@@ -7,7 +7,7 @@ Properties properties = new Properties()
 properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
 // Stop build if the proto definitions git repo is missing (via absolute path):
-def edgeProtoGitRepo = "$buildDir/../../../../edge-proto"
+def edgeProtoGitRepo = "$projectDir/../../../edge-proto"
 // Sanity check:
 if (!new File(edgeProtoGitRepo).exists() ) {
     throw new GradleException("Invalid repo. Please git clone the shared edge-proto.git repository ($edgeProtoGitRepo) at the same directory level as this git repo.")
