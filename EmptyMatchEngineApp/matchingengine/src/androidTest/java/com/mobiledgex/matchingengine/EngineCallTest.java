@@ -1022,6 +1022,7 @@ public class EngineCallTest {
                 }
                 total += aR.getPositionResultsCount();
             }
+            responseIterator.shutdown();
             assertEquals((long)(kpiRequests.size()), total);
         } catch (ExecutionException ee) {
             Log.i(TAG, Log.getStackTraceString(ee));
@@ -1079,6 +1080,7 @@ public class EngineCallTest {
                 }
                 total += aR.getPositionResultsCount();
             }
+            responseIterator.shutdown();
             assertEquals((long)(kpiRequests.size()), total);
         } catch (ExecutionException ee) {
             Log.i(TAG, Log.getStackTraceString(ee));
