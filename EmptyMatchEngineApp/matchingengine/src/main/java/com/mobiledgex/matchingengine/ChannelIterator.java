@@ -33,4 +33,11 @@ public class ChannelIterator<T> implements Iterator<T> {
     public void remove() {
         mIterator.remove();
     }
+
+    /**
+     * Shutdown the channel.
+     */
+    public void shutdown() {
+        mManagedChannel.shutdown();
+    }
 }
