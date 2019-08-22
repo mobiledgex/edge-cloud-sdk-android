@@ -32,7 +32,7 @@ import distributed_match_engine.AppClient.GetLocationRequest;
 import distributed_match_engine.AppClient.GetLocationReply;
 import distributed_match_engine.AppClient.AppInstListRequest;
 import distributed_match_engine.AppClient.AppInstListReply;
-import distributed_match_engine.AppClient.QosPositionKpiRequest;
+import distributed_match_engine.AppClient.QosPositionRequest;
 import distributed_match_engine.AppClient.QosPositionKpiReply;
 import distributed_match_engine.AppClient.QosPosition;
 
@@ -414,8 +414,8 @@ public class MatchingEngine {
                 .build();
     }
 
-    public QosPositionKpiRequest createQoSKPIRequest(List<QosPosition> requests) {
-        return QosPositionKpiRequest.newBuilder()
+    public QosPositionRequest createQoSPositionRequest(List<QosPosition> requests) {
+        return QosPositionRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .addAllPositions(requests)
                 .build();
@@ -820,7 +820,7 @@ public class MatchingEngine {
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    public ChannelIterator<QosPositionKpiReply> getQosPositionKpi(QosPositionKpiRequest request,
+    public ChannelIterator<QosPositionKpiReply> getQosPositionKpi(QosPositionRequest request,
                                                                   long timeoutInMilliseconds)
             throws InterruptedException, ExecutionException {
 
@@ -839,7 +839,7 @@ public class MatchingEngine {
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    public Future<ChannelIterator<QosPositionKpiReply>> getQosPositionKpiFuture(QosPositionKpiRequest request,
+    public Future<ChannelIterator<QosPositionKpiReply>> getQosPositionKpiFuture(QosPositionRequest request,
                                                                   long timeoutInMilliseconds)
             throws InterruptedException, ExecutionException {
 
@@ -859,7 +859,7 @@ public class MatchingEngine {
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    public ChannelIterator<QosPositionKpiReply> getQosPositionKpi(QosPositionKpiRequest request,
+    public ChannelIterator<QosPositionKpiReply> getQosPositionKpi(QosPositionRequest request,
                                                                   String host, int port,
                                                                   long timeoutInMilliseconds)
             throws InterruptedException, ExecutionException {
@@ -881,7 +881,7 @@ public class MatchingEngine {
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    public Future<ChannelIterator<QosPositionKpiReply>> getQosPositionKpiFuture(QosPositionKpiRequest request,
+    public Future<ChannelIterator<QosPositionKpiReply>> getQosPositionKpiFuture(QosPositionRequest request,
                                                                                 String host, int port,
                                                                                 long timeoutInMilliseconds)
             throws InterruptedException, ExecutionException {
