@@ -22,7 +22,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -1009,7 +1008,7 @@ public class EngineCallTest {
 
             ArrayList<AppClient.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
 
-            AppClient.QosPositionKpiRequest request = me.createQoSKPIRequest(kpiRequests);
+            AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests);
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
 
@@ -1064,7 +1063,7 @@ public class EngineCallTest {
 
             ArrayList<AppClient.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
 
-            AppClient.QosPositionKpiRequest request = me.createQoSKPIRequest(kpiRequests);
+            AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests);
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
 

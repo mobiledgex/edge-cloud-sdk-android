@@ -30,13 +30,13 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
     // Use local project Matching Engine SDK:
-    implementation project(":matchingengine")
+    //implementation project(":matchingengine")
     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
     // Use maven:
-    //implementation 'com.mobiledgex:matchingengine:1.4.8'
+    implementation 'com.mobiledgex:matchingengine:1.4.9'
     // Dependencies of Matching Engine, if using Maven:
-    //implementation "io.grpc:grpc-okhttp:${grpcVersion}"
-    //implementation "io.grpc:grpc-stub:${grpcVersion}"
+    implementation "io.grpc:grpc-okhttp:${grpcVersion}"
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
 
     // For Google Location Services.
     implementation 'com.google.android.gms:play-services-location:15.0.1'

@@ -340,7 +340,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                 aPort.getProto().getNumber(),
                                 aPort.getInternalPort(),
                                 aPort.getPublicPort(),
-                                aPort.getPathPrefix());
+                                aPort.getPathPrefix(),
+                                aPort.getEndPort());
                         }
 
                         someText += "[Cloudlet App Ports: [" + portListStr + "]\n";
