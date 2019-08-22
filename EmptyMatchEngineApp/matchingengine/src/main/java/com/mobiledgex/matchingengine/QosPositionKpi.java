@@ -16,13 +16,13 @@ import io.grpc.StatusRuntimeException;
 
 import distributed_match_engine.MatchEngineApiGrpc;
 import distributed_match_engine.AppClient;
-import distributed_match_engine.AppClient.QosPositionKpiRequest;
+import distributed_match_engine.AppClient.QosPositionRequest;
 import distributed_match_engine.AppClient.QosPositionKpiReply;
 
 public class QosPositionKpi implements Callable {
     public static final String TAG = "QueryQosKpi";
     private MatchingEngine mMatchingEngine;
-    private AppClient.QosPositionKpiRequest mQosPositionKpiRequest;
+    private AppClient.QosPositionRequest mQosPositionKpiRequest;
     private String mHost;
     private int mPort;
     private long mTimeoutInMilliseconds;
@@ -31,7 +31,7 @@ public class QosPositionKpi implements Callable {
         mMatchingEngine = matchingEngine;
     }
 
-    boolean setRequest(QosPositionKpiRequest qosPositionKpiRequest, String host, int port, long timeoutInMilliseconds) throws IllegalArgumentException {
+    boolean setRequest(QosPositionRequest qosPositionKpiRequest, String host, int port, long timeoutInMilliseconds) throws IllegalArgumentException {
         if (!mMatchingEngine.isMatchingEngineLocationAllowed()) {
             Log.e(TAG, "MobiledgeX location is disabled.");
             mQosPositionKpiRequest = null;
