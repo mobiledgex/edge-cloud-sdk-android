@@ -35,6 +35,7 @@ import distributed_match_engine.AppClient.AppInstListReply;
 import distributed_match_engine.AppClient.QosPositionRequest;
 import distributed_match_engine.AppClient.QosPositionKpiReply;
 import distributed_match_engine.AppClient.QosPosition;
+import distributed_match_engine.AppClient.BandSelection;
 
 
 import distributed_match_engine.AppClient.DynamicLocGroupRequest;
@@ -50,10 +51,6 @@ import io.grpc.okhttp.OkHttpChannelBuilder;
 import android.content.pm.PackageInfo;
 import android.util.Log;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManagerFactory;
 
 import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
 
@@ -414,11 +411,17 @@ public class MatchingEngine {
                 .build();
     }
 
-    public QosPositionRequest createQoSPositionRequest(List<QosPosition> requests) {
-        return QosPositionRequest.newBuilder()
-                .setSessionCookie(mSessionCookie)
+    public QosPositionRequest createQoSPositionRequest(List<QosPosition> requests, int lte_category, BandSelection band_selection) {
+        QosPositionRequest.Builder builder = QosPositionRequest.newBuilder();
+        builder.setSessionCookie(mSessionCookie)
                 .addAllPositions(requests)
-                .build();
+                .setLteCategory(lte_category);
+
+        if (band_selection != null) {
+            builder.setBandSelection(band_selection);
+        }
+
+        return builder.build();
     }
 
     private Loc androidLocToMeLoc(android.location.Location loc) {
