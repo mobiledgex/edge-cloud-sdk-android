@@ -992,23 +992,19 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
         enableMockLocation(context,true);
-        Location location = MockUtils.createLocation("getQosPositionKpiTest", 122.3321, 47.6062);
-        MeLocation meLoc = new MeLocation(me);
+        // The test must use a location where data exists on QOS server.
+        Location location = MockUtils.createLocation("getQosPositionKpiTest", 8.5821, 50.11);
 
         try {
-            setMockLocation(context, location);
-            location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            assertFalse("Mock'ed Location is missing!", location == null);
-
             registerClient(context, me.retrieveNetworkCarrierName(context), me);
 
-            double totalDistanceKm = 200;
+            double totalDistanceKm = 20;
             double increment = 0.1;
             double direction = 45d;
 
             ArrayList<AppClient.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
 
-            AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests);
+            AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests, 0, null);
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
 
@@ -1048,23 +1044,19 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
         enableMockLocation(context,true);
-        Location location = MockUtils.createLocation("getQosPositionKpiTest", 122.3321, 47.6062);
-        MeLocation meLoc = new MeLocation(me);
+        // The test must use a location where data exists on QOS server.
+        Location location = MockUtils.createLocation("getQosPositionKpiTest", 8.5821, 50.11);
 
         try {
-            setMockLocation(context, location);
-            location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            assertFalse("Mock'ed Location is missing!", location == null);
-
             registerClient(context, me.retrieveNetworkCarrierName(context), me);
 
-            double totalDistanceKm = 200;
+            double totalDistanceKm = 20;
             double increment = 0.1;
             double direction = 45d;
 
             ArrayList<AppClient.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
 
-            AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests);
+            AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests, 0, null);
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
 
