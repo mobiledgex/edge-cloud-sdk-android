@@ -289,7 +289,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     if (carrierName == null) {
                         someText += "No carrier Info!\n";
                     }
-                    String host = mMatchingEngine.generateDmeHostAddress(carrierName);      // Override carrier specific host name
+                    String dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
                     String devName = "EmptyMatchEngineApp"; // Always supplied by application.
@@ -301,7 +301,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     AppClient.RegisterClientReply registerStatus =
                             mMatchingEngine.registerClient(registerClientRequest,
-                                    host, port, 10000);
+                                    dmeHostAddress, port, 10000);
 
                     if (registerStatus.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {
                         someText += "Registration Failed. Error: " + registerStatus.getStatus();
@@ -315,7 +315,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     if (verifyRequest != null) {
                         // Location Verification (Blocking, or use verifyLocationFuture):
                         AppClient.VerifyLocationReply verifiedLocation =
-                                mMatchingEngine.verifyLocation(verifyRequest, host, port, 10000);
+                                mMatchingEngine.verifyLocation(verifyRequest, dmeHostAddress, port, 10000);
 
                         someText += "[Location Verified: Tower: " + verifiedLocation.getTowerStatus() +
                                 ", GPS LocationStatus: " + verifiedLocation.getGpsLocationStatus() +
@@ -325,7 +325,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         AppClient.FindCloudletRequest findCloudletRequest =
                                 mMatchingEngine.createFindCloudletRequest(ctx, carrierName, location);
                         AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
-                                host, port, 10000);
+                                dmeHostAddress, port, 10000);
 
                         List<distributed_match_engine.Appcommon.AppPort> ports = closestCloudlet.getPortsList();
                         String portListStr = "";
@@ -418,6 +418,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 } catch (InterruptedException ie) {
                     ie.printStackTrace();
                 } catch (StatusRuntimeException sre) {
+                    String causeMessage = sre.getCause().getMessage();
+                    someText = "Runtime exception: " + causeMessage;
+                    ctx.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+                            tv.setText(someText);
+                        }
+                    });
                     sre.printStackTrace();
                 } catch (IllegalArgumentException iae) {
                     iae.printStackTrace();
