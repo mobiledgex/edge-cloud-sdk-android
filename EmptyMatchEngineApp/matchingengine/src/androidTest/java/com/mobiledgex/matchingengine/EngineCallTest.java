@@ -261,7 +261,7 @@ public class EngineCallTest {
             if (useHostOverride) {
                 registerReplyFuture = me.registerClientFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
-                registerReplyFuture = me.registerClientFuture(context, request, GRPC_TIMEOUT_MS);
+                registerReplyFuture = me.registerClientFuture(request, GRPC_TIMEOUT_MS);
             }
             reply = registerReplyFuture.get();
             assert(reply != null);
@@ -315,7 +315,7 @@ public class EngineCallTest {
                 if (useHostOverride) {
                     findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
                 } else {
-                    findCloudletReply = me.findCloudlet(context, findCloudletRequest, GRPC_TIMEOUT_MS);
+                    findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
                 }
             } catch (IllegalArgumentException iae) {
                 // This is expected, request is missing.
@@ -340,7 +340,7 @@ public class EngineCallTest {
                 if (useHostOverride) {
                     verifyLocationReply = me.verifyLocation(verifyLocationRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
                 } else {
-                    verifyLocationReply = me.verifyLocation(context, verifyLocationRequest, GRPC_TIMEOUT_MS);
+                    verifyLocationReply = me.verifyLocation(verifyLocationRequest, GRPC_TIMEOUT_MS);
                 }
             } catch (IllegalArgumentException iae) {
                 // This is expected, request is missing.
@@ -453,7 +453,7 @@ public class EngineCallTest {
             if (useHostOverride) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
-                findCloudletReply = me.findCloudlet(context, findCloudletRequest, GRPC_TIMEOUT_MS);
+                findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
             }
 
         } catch (ExecutionException ee) {
@@ -501,7 +501,7 @@ public class EngineCallTest {
             if (useHostOverride) {
                 response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, 10000);
             } else {
-                response = me.findCloudletFuture(context, findCloudletRequest, 10000);
+                response = me.findCloudletFuture(findCloudletRequest, 10000);
             }
             result = response.get();
         } catch (ExecutionException ee) {
@@ -543,7 +543,7 @@ public class EngineCallTest {
             if (useHostOverride) {
                 verifyLocationReply = me.verifyLocation(verifyLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
-                verifyLocationReply = me.verifyLocation(context, verifyLocationRequest, GRPC_TIMEOUT_MS);
+                verifyLocationReply = me.verifyLocation(verifyLocationRequest, GRPC_TIMEOUT_MS);
             }
             assert (verifyLocationReply != null);
         } catch (IOException ioe) {
@@ -594,7 +594,7 @@ public class EngineCallTest {
             if (useHostOverride) {
                 verifyLocationReplyFuture = me.verifyLocationFuture(verifyLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
-                verifyLocationReplyFuture = me.verifyLocationFuture(context, verifyLocationRequest, GRPC_TIMEOUT_MS);
+                verifyLocationReplyFuture = me.verifyLocationFuture(verifyLocationRequest, GRPC_TIMEOUT_MS);
             }
             verifyLocationReply = verifyLocationReplyFuture.get();
         } catch (ExecutionException ee) {
@@ -645,7 +645,7 @@ public class EngineCallTest {
             if (useHostOverride) {
                 verifyLocationReply = me.verifyLocation(verifyLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
-                verifyLocationReply = me.verifyLocation(context, verifyLocationRequest, GRPC_TIMEOUT_MS);
+                verifyLocationReply = me.verifyLocation(verifyLocationRequest, GRPC_TIMEOUT_MS);
             }
             assert(verifyLocationReply != null);
         } catch (IOException ioe) {
@@ -810,7 +810,7 @@ public class EngineCallTest {
             if (useHostOverride) {
                 dynamicLocGroupReply = me.addUserToGroup(dynamicLocGroupRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
-                dynamicLocGroupReply = me.addUserToGroup(context, dynamicLocGroupRequest, GRPC_TIMEOUT_MS);
+                dynamicLocGroupReply = me.addUserToGroup(dynamicLocGroupRequest, GRPC_TIMEOUT_MS);
             }
             assertTrue("DynamicLocation Group Add should return: ME_SUCCESS", dynamicLocGroupReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
             assertTrue("Group cookie result.", dynamicLocGroupReply.getGroupCookie().equals("")); // FIXME: This GroupCookie should have a value.
@@ -861,7 +861,7 @@ public class EngineCallTest {
             if (useHostOverride) {
                 responseFuture = me.addUserToGroupFuture(dynamicLocGroupRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
-                responseFuture = me.addUserToGroupFuture(context, dynamicLocGroupRequest, GRPC_TIMEOUT_MS);
+                responseFuture = me.addUserToGroupFuture(dynamicLocGroupRequest, GRPC_TIMEOUT_MS);
             }
             dynamicLocGroupReply = responseFuture.get();
             assertTrue("DynamicLocation Group Add should return: ME_SUCCESS", dynamicLocGroupReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
