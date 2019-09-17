@@ -73,8 +73,9 @@ import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
 
 public class MatchingEngine {
     public static final String TAG = "MatchingEngine";
-    private final String mInitialDMEContactHost = "global.dme.mobiledgex.net";
-    private String host = mInitialDMEContactHost;
+    private final String mFallbackDmeHost = "sdkdemo.dme.mobiledgex.net";
+    private final String mBaseDmeHost = "dme.mobiledgex.net";
+    private String host = mFallbackDmeHost;
     private NetworkManager mNetworkManager;
     private int port = 50051;
 
@@ -220,13 +221,14 @@ public class MatchingEngine {
     }
 
     /**
-     * Returns the MobiledgeX Distrubuted Match Engine server hostname the SDK client should first
+     * Returns the MobiledgeX Distributed Match Engine server hostname the SDK client should first
      * contact.
      * @return
      */
     public String generateDmeHostAddress() {
         TelephonyManager telManager = (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
         if (telManager.getSimState() != TelephonyManager.SIM_STATE_READY) {
+            Log.w(TAG, "SIM is not in ready state.");
             return null;
         }
 
@@ -235,19 +237,20 @@ public class MatchingEngine {
 
         }
 
+        // The following should always work if DNS is setup, but will fail over to the fallback DME Host.
         String mccmnc = telManager.getNetworkOperator();
         if (mccmnc == null) {
-            return null;
+            return mFallbackDmeHost;
         }
 
         if (mccmnc.length() < 5 || mccmnc.length() > 6) {
-            return null;
+            return mFallbackDmeHost;
         }
 
         String mcc = mccmnc.substring(0,3);
-        String mnc = mccmnc.substring(3,mccmnc.length());
+        String mnc = mccmnc.substring(3);
 
-        String host = mcc + "-" + mnc + ".global.dme.mobiledgex.net";
+        String host = mcc + "-" + mnc + "." + mBaseDmeHost;
         return host;
 
     }
@@ -484,8 +487,7 @@ public class MatchingEngine {
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    public RegisterClientReply registerClient(Context context,
-                                              RegisterClientRequest request,
+    public RegisterClientReply registerClient(RegisterClientRequest request,
                                               long timeoutInMilliseconds)
             throws StatusRuntimeException, InterruptedException, ExecutionException {
         return registerClient(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
