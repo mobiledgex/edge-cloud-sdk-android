@@ -58,7 +58,7 @@ public class LimitsTest {
 
     FusedLocationProviderClient fusedLocationClient;
 
-    public static String hostOverride = "mexdemo.dme.mobiledgex.net";
+    public static String hostOverride = "sdkdemo.dme.mobiledgex.net";
     public static int portOverride = 50051;
 
     public boolean useHostOverride = true;
@@ -139,14 +139,14 @@ public class LimitsTest {
     }
 
     // Every call needs registration to be called first at some point.
-    public void registerClient(Context context, String carrierName, MatchingEngine me) {
+    public void registerClient(MatchingEngine me) {
         AppClient.RegisterClientReply registerReply;
         AppClient.RegisterClientRequest regRequest = MockUtils.createMockRegisterClientRequest(developerName, applicationName, me);
         try {
             if (useHostOverride) {
                 registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
-                registerReply = me.registerClient(context, regRequest, GRPC_TIMEOUT_MS);
+                registerReply = me.registerClient(regRequest, GRPC_TIMEOUT_MS);
             }
             assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
                     registerReply.getSessionCookie(), me.getSessionCookie());
@@ -189,14 +189,14 @@ public class LimitsTest {
 
             long sum1 = 0, sum2 = 0;
             String carrierName = getCarrierName(context);
-            registerClient(context, carrierName, me);
+            registerClient(me);
             AppClient.VerifyLocationRequest verifyLocationRequest1 = MockUtils.createMockVerifyLocationRequest(carrierName, me, location);
             for (int i = 0; i < elapsed1.length; i++) {
                 start = System.currentTimeMillis();
                 if (useHostOverride) {
                     verifyLocationReply1 = me.verifyLocation(verifyLocationRequest1, hostOverride, portOverride, GRPC_TIMEOUT_MS);
                 } else {
-                    verifyLocationReply1 = me.verifyLocation(context, verifyLocationRequest1, GRPC_TIMEOUT_MS);
+                    verifyLocationReply1 = me.verifyLocation(verifyLocationRequest1, GRPC_TIMEOUT_MS);
                 }
                 elapsed1[i] = System.currentTimeMillis() - start;
             }
@@ -209,7 +209,7 @@ public class LimitsTest {
             assert (verifyLocationReply1 != null);
 
             // Future
-            registerClient(context, carrierName, me);
+            registerClient(me);
             AppClient.VerifyLocationRequest verifyLocationRequest2 = MockUtils.createMockVerifyLocationRequest(carrierName, me, location);
             try {
                 for (int i = 0; i < elapsed2.length; i++) {
@@ -218,7 +218,7 @@ public class LimitsTest {
                     if (useHostOverride) {
                         locFuture = me.verifyLocationFuture(verifyLocationRequest2, hostOverride, portOverride, GRPC_TIMEOUT_MS);
                     } else {
-                        locFuture = me.verifyLocationFuture(context, verifyLocationRequest2, GRPC_TIMEOUT_MS);
+                        locFuture = me.verifyLocationFuture(verifyLocationRequest2, GRPC_TIMEOUT_MS);
                     }
                     // Do something busy()
                     verifyLocationReply2 = locFuture.get();
@@ -278,7 +278,7 @@ public class LimitsTest {
 
             long sum2 = 0;
             String carrierName = getCarrierName(context);
-            registerClient(context, carrierName, me);
+            registerClient(me);
             AppClient.VerifyLocationRequest request;
 
             // Future
@@ -290,7 +290,7 @@ public class LimitsTest {
                     if (useHostOverride) {
                         responseFutures[i] = me.verifyLocationFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
                     } else {
-                        responseFutures[i] = me.verifyLocationFuture(context, request, GRPC_TIMEOUT_MS);
+                        responseFutures[i] = me.verifyLocationFuture(request, GRPC_TIMEOUT_MS);
                     }
                     elapsed2[i] = 0;
                 }
@@ -405,7 +405,7 @@ public class LimitsTest {
 
             long sum = 0;
             String carrierName = getCarrierName(context);
-            registerClient(context, carrierName, me);
+            registerClient(me);
             AppClient.VerifyLocationRequest request;
 
             // Future
@@ -416,7 +416,7 @@ public class LimitsTest {
                 if (useHostOverride) {
                     responseFutures[i] = me.verifyLocationFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
                 } else {
-                    responseFutures[i] = me.verifyLocationFuture(context, request, GRPC_TIMEOUT_MS);
+                    responseFutures[i] = me.verifyLocationFuture(request, GRPC_TIMEOUT_MS);
                 }
                 elapsed[i] = 0;
             }
