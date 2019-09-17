@@ -73,8 +73,8 @@ import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
 
 public class MatchingEngine {
     public static final String TAG = "MatchingEngine";
-    private final String mFallbackDmeHost = "sdkdemo.dme.mobiledgex.net";
-    private final String mBaseDmeHost = "dme.mobiledgex.net";
+    public static final String mFallbackDmeHost = "sdkdemo.dme.mobiledgex.net";
+    public static final String mBaseDmeHost = "dme.mobiledgex.net";
     private String host = mFallbackDmeHost;
     private NetworkManager mNetworkManager;
     private int port = 50051;

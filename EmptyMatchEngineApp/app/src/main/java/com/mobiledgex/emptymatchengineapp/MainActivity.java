@@ -302,18 +302,22 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     boolean locationVerificationAllowed = prefs.getBoolean(getResources().getString(R.string.preference_matching_engine_location_verification), false);
 
                     //String carrierName = mMatchingEngine.retrieveNetworkCarrierName(ctx); // Regular use case
-                    String carrierName = "mexdemo";                                         // Override carrierName
+                    String carrierName = "TDG";                                         // Override carrierName
                     if (carrierName == null) {
                         someText += "No carrier Info!\n";
                     }
                     String dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+                    // SIM based DME address:
+                    someText += "(e)SIM card based DME address: " + dmeHostAddress + "\n";
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
-                    String devName = "EmptyMatchEngineApp"; // Always supplied by application.
+                    String devName = "MobiledgeX"; // Always supplied by application, and in the MobieldgeX web admin console.
+                    String appName = mMatchingEngine.getAppName(ctx); // AppName must be added to the MobiledgeX web admin console.
+                    appName = "MobiledgeX SDK Demo"; // override with a known registered appName.
 
                     AppClient.RegisterClientRequest registerClientRequest =
                             mMatchingEngine.createRegisterClientRequest(ctx,
-                                    devName, mMatchingEngine.getAppName(ctx),
+                                    devName, appName,
                                     null, carrierName, null);
 
                     AppClient.RegisterClientReply registerStatus =
@@ -435,15 +439,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 } catch (InterruptedException ie) {
                     ie.printStackTrace();
                 } catch (StatusRuntimeException sre) {
-                    String causeMessage = sre.getCause().getMessage();
-                    someText = "Runtime exception: " + causeMessage;
-                    ctx.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                            tv.setText(someText);
-                        }
-                    });
+                    Throwable cause = sre.getCause();
+                    if (cause != null) {
+                        someText = "Runtime exception: " + cause.getMessage();
+                        ctx.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+                                tv.setText(someText);
+                            }
+                        });
+                    }
                     sre.printStackTrace();
                 } catch (IllegalArgumentException iae) {
                     iae.printStackTrace();
