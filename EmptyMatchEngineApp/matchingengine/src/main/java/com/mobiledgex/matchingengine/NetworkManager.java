@@ -442,7 +442,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
             Network network = mConnectivityManager.getBoundNetworkForProcess();
             if (network != null) {
                 NetworkCapabilities networkCapabilities = mConnectivityManager.getNetworkCapabilities(network);
-                if (networkCapabilities.hasCapability(NetworkCapabilities.TRANSPORT_CELLULAR) &&
+                if (networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
                         networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
                     hasDataCellCapabilities = true;
                 }

@@ -31,6 +31,8 @@ import android.telephony.TelephonyManager;
 
 import java.io.IOException;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -73,9 +75,9 @@ import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
 
 public class MatchingEngine {
     public static final String TAG = "MatchingEngine";
-    public static final String mFallbackDmeHost = "sdkdemo.dme.mobiledgex.net";
-    public static final String mBaseDmeHost = "dme.mobiledgex.net";
-    private String host = mFallbackDmeHost;
+    public static final String fallbackDmeHost = "sdkdemo.dme.mobiledgex.net";
+    public static final String baseDmeHost = "dme.mobiledgex.net";
+    private String host = fallbackDmeHost;
     private NetworkManager mNetworkManager;
     private int port = 50051;
 
@@ -225,11 +227,11 @@ public class MatchingEngine {
      * contact.
      * @return
      */
-    public String generateDmeHostAddress() {
+    public String generateDmeHostAddress() throws DmeDnsException {
         TelephonyManager telManager = (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
         if (telManager.getSimState() != TelephonyManager.SIM_STATE_READY) {
             Log.w(TAG, "SIM is not in ready state.");
-            return null;
+            throw new DmeDnsException("SIM not in ready state.");
         }
 
         /* May be unreliable */
@@ -240,19 +242,31 @@ public class MatchingEngine {
         // The following should always work if DNS is setup, but will fail over to the fallback DME Host.
         String mccmnc = telManager.getNetworkOperator();
         if (mccmnc == null) {
-            return mFallbackDmeHost;
+            throw new DmeDnsException("No mcc-mnc string available.");
         }
 
         if (mccmnc.length() < 5 || mccmnc.length() > 6) {
-            return mFallbackDmeHost;
+            throw new DmeDnsException("Retrieved mcc-mnc string is outside expected length: " + mccmnc.length());
         }
 
         String mcc = mccmnc.substring(0,3);
         String mnc = mccmnc.substring(3);
 
-        String host = mcc + "-" + mnc + "." + mBaseDmeHost;
-        return host;
+        String potentialDmeHost = mcc + "-" + mnc + "." + baseDmeHost;
 
+        InetAddress[] addresses;
+        try {
+            addresses = InetAddress.getAllByName(potentialDmeHost);
+        } catch (UnknownHostException uhe) {
+            throw new DmeDnsException(("Could not find mcc-mnc.dme.mobiledgex.net DME server: " + potentialDmeHost), uhe);
+        }
+
+        if (addresses.length < 1) {
+            throw new DmeDnsException(("No IP address for mcc-mnc.dme.mobiledgex.net DME server: " + potentialDmeHost));
+        }
+
+        // Return the constructed DME hostname.
+        return potentialDmeHost;
     }
 
     NetworkManager getNetworkManager() {
@@ -489,7 +503,7 @@ public class MatchingEngine {
      */
     public RegisterClientReply registerClient(RegisterClientRequest request,
                                               long timeoutInMilliseconds)
-            throws StatusRuntimeException, InterruptedException, ExecutionException {
+            throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
         return registerClient(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
     /**
@@ -511,7 +525,8 @@ public class MatchingEngine {
     }
 
     public Future<RegisterClientReply> registerClientFuture(RegisterClientRequest request,
-                                                            long timeoutInMilliseconds) {
+                                                            long timeoutInMilliseconds)
+            throws DmeDnsException {
         return registerClientFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
     /**
@@ -541,7 +556,7 @@ public class MatchingEngine {
      */
     public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                           long timeoutInMilliseconds)
-            throws StatusRuntimeException, InterruptedException, ExecutionException {
+            throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
         return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
 
     }
@@ -571,8 +586,8 @@ public class MatchingEngine {
      * @return
      */
     public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
-                                          long timeoutInMilliseconds) {
-        
+                                          long timeoutInMilliseconds)
+            throws DmeDnsException {
         return findCloudletFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
 
@@ -606,7 +621,8 @@ public class MatchingEngine {
      */
     public VerifyLocationReply verifyLocation(VerifyLocationRequest request,
                                              long timeoutInMilliseconds)
-            throws StatusRuntimeException, InterruptedException, IOException, ExecutionException {
+            throws DmeDnsException, StatusRuntimeException, InterruptedException, IOException,
+                   ExecutionException {
         return verifyLocation(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
     /**
@@ -638,7 +654,8 @@ public class MatchingEngine {
      * @return
      */
     public Future<VerifyLocationReply> verifyLocationFuture(VerifyLocationRequest request,
-                                                            long timeoutInMilliseconds) {
+                                                            long timeoutInMilliseconds)
+            throws DmeDnsException {
         return verifyLocationFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
     /**
@@ -668,8 +685,7 @@ public class MatchingEngine {
     public GetLocationReply getLocation(Context context,
                                         GetLocationRequest request,
                                         long timeoutInMilliseconds)
-            throws StatusRuntimeException, InterruptedException, ExecutionException {
-        
+            throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
         return getLocation(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
     /**
@@ -699,8 +715,8 @@ public class MatchingEngine {
      */
     public Future<GetLocationReply> getLocationFuture(Context context,
                                                       GetLocationRequest request,
-                                                      long timeoutInMilliseconds) {
-        
+                                                      long timeoutInMilliseconds)
+            throws DmeDnsException {
         return getLocationFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
     /**
@@ -730,7 +746,7 @@ public class MatchingEngine {
      */
     public DynamicLocGroupReply addUserToGroup(DynamicLocGroupRequest request,
                                                long timeoutInMilliseconds)
-            throws InterruptedException, ExecutionException {
+            throws DmeDnsException, InterruptedException, ExecutionException {
         return addUserToGroup(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
     /**
@@ -757,7 +773,8 @@ public class MatchingEngine {
      * @return
      */
     public Future<DynamicLocGroupReply> addUserToGroupFuture(DynamicLocGroupRequest request,
-                                                             long timeoutInMilliseconds) {
+                                                             long timeoutInMilliseconds)
+            throws DmeDnsException {
         return addUserToGroupFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
     /**
@@ -786,8 +803,7 @@ public class MatchingEngine {
      */
     public AppInstListReply getAppInstList(AppInstListRequest request,
                                            long timeoutInMilliseconds)
-            throws InterruptedException, ExecutionException {
-        String carrierName = request.getCarrierName();
+            throws DmeDnsException, InterruptedException, ExecutionException {
         return getAppInstList(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
 
@@ -814,9 +830,8 @@ public class MatchingEngine {
      * @return
      */
     public Future<AppInstListReply> getAppInstListFuture(AppInstListRequest request,
-                                                         long timeoutInMilliseconds) {
-
-        String carrierName = request.getCarrierName();
+                                                         long timeoutInMilliseconds)
+            throws DmeDnsException {
         return getAppInstListFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
     /**
@@ -847,7 +862,7 @@ public class MatchingEngine {
      */
     public ChannelIterator<QosPositionKpiReply> getQosPositionKpi(QosPositionRequest request,
                                                                   long timeoutInMilliseconds)
-            throws InterruptedException, ExecutionException {
+            throws DmeDnsException, InterruptedException, ExecutionException {
         QosPositionKpi qosPositionKpi = new QosPositionKpi(this);
         qosPositionKpi.setRequest(request,generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
         return qosPositionKpi.call();
@@ -864,7 +879,7 @@ public class MatchingEngine {
      */
     public Future<ChannelIterator<QosPositionKpiReply>> getQosPositionKpiFuture(QosPositionRequest request,
                                                                   long timeoutInMilliseconds)
-            throws InterruptedException, ExecutionException {
+            throws DmeDnsException {
         QosPositionKpi qosPositionKpi = new QosPositionKpi(this);
         qosPositionKpi.setRequest(request,generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
         return submit(qosPositionKpi);
@@ -884,7 +899,6 @@ public class MatchingEngine {
                                                                   String host, int port,
                                                                   long timeoutInMilliseconds)
             throws InterruptedException, ExecutionException {
-
         QosPositionKpi qosPositionKpi = new QosPositionKpi(this);
         qosPositionKpi.setRequest(request, host, port, timeoutInMilliseconds);
         return qosPositionKpi.call();
@@ -904,9 +918,7 @@ public class MatchingEngine {
      */
     public Future<ChannelIterator<QosPositionKpiReply>> getQosPositionKpiFuture(QosPositionRequest request,
                                                                                 String host, int port,
-                                                                                long timeoutInMilliseconds)
-            throws InterruptedException, ExecutionException {
-
+                                                                                long timeoutInMilliseconds) {
         QosPositionKpi qosPositionKpi = new QosPositionKpi(this);
         qosPositionKpi.setRequest(request, host, port, timeoutInMilliseconds);
         return submit(qosPositionKpi);
