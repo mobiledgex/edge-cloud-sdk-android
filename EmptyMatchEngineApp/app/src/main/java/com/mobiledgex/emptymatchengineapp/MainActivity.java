@@ -38,6 +38,7 @@ import android.widget.TextView;
 import android.content.Intent;
 
 // Matching Engine API:
+import com.mobiledgex.matchingengine.DmeDnsException;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.NetworkRequestTimeoutException;
 import com.mobiledgex.matchingengine.util.RequestPermissions;
@@ -306,9 +307,20 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     if (carrierName == null) {
                         someText += "No carrier Info!\n";
                     }
-                    String dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
-                    // SIM based DME address:
-                    someText += "(e)SIM card based DME address: " + dmeHostAddress + "\n";
+
+                    // It's possible the Generated DME DNS host doesn't exist yet for your SIM.
+                    String dmeHostAddress;
+                    try {
+                        dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+                        someText += "(e)SIM card based DME address: " + dmeHostAddress + "\n";
+                    } catch (DmeDnsException dde){
+                        someText += dde.getMessage();
+                        // Here, being unable to register to the Edge infrastructure, app should
+                        // fall back to public cloud server. Edge is not available.
+                        // For Demo app, we use the sdkdemo dme server to continue to MobiledgeX.
+                        dmeHostAddress = "sdkdemo." + MatchingEngine.baseDmeHost;
+                    }
+
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
                     String devName = "MobiledgeX"; // Always supplied by application, and in the MobieldgeX web admin console.
@@ -369,7 +381,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                         String appInstListText = "";
                         AppClient.AppInstListRequest appInstListRequest = mMatchingEngine.createAppInstListRequest(ctx, carrierName, location);
-                        AppClient.AppInstListReply appInstListReply = mMatchingEngine.getAppInstList(appInstListRequest,10000);
+
+                        AppClient.AppInstListReply appInstListReply = mMatchingEngine.getAppInstList(
+                                appInstListRequest, dmeHostAddress, port, 10000);
                         for (AppClient.CloudletLocation cloudletLocation : appInstListReply.getCloudletsList()) {
                             String location_carrierName = cloudletLocation.getCarrierName();
                             String location_cloudletName = cloudletLocation.getCloudletName();
