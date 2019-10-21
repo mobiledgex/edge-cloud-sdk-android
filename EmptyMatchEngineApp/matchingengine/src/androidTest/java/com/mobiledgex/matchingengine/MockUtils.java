@@ -73,7 +73,7 @@ public class MockUtils {
             LocOuterClass.Loc loc = LocOuterClass.Loc.newBuilder()
                     .setLongitude(longitude)
                     .setLatitude(latitude)
-                    .build();
+                .build();
 
             QosPosition np = AppClient.QosPosition.newBuilder()
                     .setPositionid(id++)
@@ -84,6 +84,30 @@ public class MockUtils {
         }
 
         return positions;
+    }
+
+    /**
+     * Returns a destination long/lat as a Location object, along direction (in degrees), some distance in kilometers away.
+     *
+     * @param longitude_src
+     * @param latitude_src
+     * @param direction_degrees
+     * @param kilometers
+     * @return
+     */
+    public static Location createLocation(double longitude_src, double latitude_src, double direction_degrees, double kilometers) {
+        double direction_radians = direction_degrees * (Math.PI / 180);
+
+        // Provider is static class name:
+        Location newLoc = new Location(MethodHandles.lookup().lookupClass().getName());
+
+        // Not accurate:
+        double kmPerDegreeLat = 110.57; //at Equator
+        double kmPerDegreeLong = 111.32; //at Equator
+        newLoc.setLongitude(longitude_src + kilometers/kmPerDegreeLong * Math.cos(direction_radians));
+        newLoc.setLatitude(latitude_src + kilometers/kmPerDegreeLat * Math.sin(direction_radians));
+
+        return newLoc;
     }
 
     public static LocOuterClass.Loc androidToMessageLoc(Location location) {

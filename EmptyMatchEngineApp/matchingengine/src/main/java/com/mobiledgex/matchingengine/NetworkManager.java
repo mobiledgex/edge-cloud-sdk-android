@@ -198,8 +198,12 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return networkRequest;
     }
 
-    public Network getNetwork() {
-        return mNetwork;
+    /**
+     * Returns the current active network, independent of what the NetworkManager is doing.
+     * @return
+     */
+    public Network getActiveNetwork() {
+        return mConnectivityManager.getActiveNetwork();
     }
 
     // This Roaming Data value is un-reliable except under a new NetworkCapabilities Key in API 28.
@@ -338,7 +342,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
 
                     @Override
                     public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
-                        Log.d(TAG, "requestNetwork onCapabilitiesChanged(): " + network.toString());
+                        Log.d(TAG, "requestNetwork onCapabilitiesChanged(): " + network.toString() + "Capabilities: " + networkCapabilities.toString());
                         logTransportCapabilities(networkCapabilities);
                     }
 
@@ -525,7 +529,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     }
 
     /**
-     * Switch to a network using Callbacks. This only does network binding. It does not wait for the network to become active.
+     * Switch entire process to a network using Callbacks. The callback onAvailable(Network) will notify availability.
      * @param networkRequest
      * @param networkCallback
      * @return
@@ -534,7 +538,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         mConnectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
-                Log.d(TAG, "requestNetwork onAvailable(), binding process to network.");
+                Log.d(TAG, "requestNetwork onAvailable().");
 
                 mNetwork = network;
                 mConnectivityManager.bindProcessToNetwork(network);
