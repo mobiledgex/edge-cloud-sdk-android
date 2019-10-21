@@ -19,10 +19,6 @@ package com.mobiledgex.matchingengine;
 
 import android.util.Log;
 
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -92,11 +88,11 @@ public class QosPositionKpi implements Callable {
         ManagedChannel channel;
         NetworkManager nm = null;
         try {
-            channel = mMatchingEngine.channelPicker(mHost, mPort);
-            MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
-
             nm = mMatchingEngine.getNetworkManager();
             nm.switchToCellularInternetNetworkBlocking();
+
+            channel = mMatchingEngine.channelPicker(mHost, mPort);
+            MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
             response = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .getQosPositionKpi(mQosPositionKpiRequest);

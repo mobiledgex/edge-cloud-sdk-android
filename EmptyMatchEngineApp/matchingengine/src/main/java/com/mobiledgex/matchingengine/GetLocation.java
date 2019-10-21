@@ -19,9 +19,6 @@ package com.mobiledgex.matchingengine;
 
 import android.util.Log;
 
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -82,11 +79,11 @@ public class GetLocation implements Callable {
         ManagedChannel channel = null;
         NetworkManager nm = null;
         try {
-            channel = mMatchingEngine.channelPicker(mHost, mPort);
-            MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
-
             nm = mMatchingEngine.getNetworkManager();
             nm.switchToCellularInternetNetworkBlocking();
+
+            channel = mMatchingEngine.channelPicker(mHost, mPort);
+            MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .getLocation(mRequest);

@@ -150,6 +150,9 @@ public class LimitsTest {
             }
             assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
                     registerReply.getSessionCookie(), me.getSessionCookie());
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertTrue("ExecutionException registering client!", false);
         } catch (ExecutionException ee) {
             Log.e(TAG, Log.getStackTraceString(ee));
             Assert.assertTrue("ExecutionException registering client", false);
@@ -235,6 +238,9 @@ public class LimitsTest {
                 throw e;
             }
 
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertFalse("basicLatencyTest: IOException!", true);
         } catch (IOException ioe) {
             Log.e(TAG, Log.getStackTraceString(ioe));
             assertFalse("basicLatencyTest: IOException!", true);
@@ -350,6 +356,9 @@ public class LimitsTest {
                 e.printStackTrace();
                 throw e;
             }
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertTrue("ExecutionExceptionDmeDnsException!", false);
         } catch (ExecutionException ee) {
             Log.i(TAG, Log.getStackTraceString(ee));
             assertFalse("basicLatencyTest: ExecutionException!", true);
@@ -473,6 +482,9 @@ public class LimitsTest {
             }
             assertTrue("Test did not complete successfully.", done);
 
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertTrue("basicLatencyTest: DmeDnsException", false);
         } catch (ExecutionException ee) {
             Log.e(TAG, Log.getStackTraceString(ee));
             assertFalse("basicLatencyTest: ExecutionException!", true);
