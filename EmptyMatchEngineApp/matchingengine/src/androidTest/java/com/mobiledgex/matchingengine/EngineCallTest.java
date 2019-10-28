@@ -44,10 +44,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.Socket;
-import java.net.URL;
-import java.net.URLConnection;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
@@ -195,6 +192,108 @@ public class EngineCallTest {
         fusedLocationClient.flushLocations();
     }
 
+    @Test
+    public void mexDisabledTest() {
+        Context context = InstrumentationRegistry.getTargetContext();
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(false);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+        MeLocation meLoc = new MeLocation(me);
+
+        Location loc = MockUtils.createLocation("mexDisabledTest", 122.3321, 47.6062);
+        boolean allRun = false;
+
+        try {
+            enableMockLocation(context, true);
+            setMockLocation(context, loc);
+            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
+            try {
+                // Non-Mock.
+                AppClient.RegisterClientRequest registerClientRequest = me.createRegisterClientRequest(
+                        context, developerName, null, null, null, null);
+                AppClient.RegisterClientReply registerStatusReply = me.registerClient(registerClientRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
+            } catch (IllegalArgumentException iae) {
+                Log.i(TAG, "Expected exception for registerClient. Mex Disabled.");
+            } catch (InterruptedException ioe) {
+                Log.i(TAG, "Expected exception for registerClient. " + Log.getStackTraceString(ioe));
+            }
+
+            try {
+                AppClient.FindCloudletRequest findCloudletRequest;
+                findCloudletRequest = me.createFindCloudletRequest(context, me.retrieveNetworkCarrierName(context), location);
+                AppClient.FindCloudletReply findCloudletReply;
+                if (useHostOverride) {
+                    findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+                } else {
+                    findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
+                }
+            } catch (IllegalArgumentException iae) {
+                // This is expected, request is missing.
+                Log.i(TAG, "Expected exception for findCloudlet. Mex Disabled.");
+            }
+
+            try {
+                AppClient.GetLocationRequest locationRequest = me.createGetLocationRequest(context, MockUtils.getCarrierName(context));
+                AppClient.GetLocationReply getLocationReply;
+                if (useHostOverride) {
+                    getLocationReply = me.getLocation(locationRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
+                } else {
+                    getLocationReply = me.getLocation(context, locationRequest, GRPC_TIMEOUT_MS);
+                }
+            } catch (IllegalArgumentException iae) {
+                // This is expected, request is missing.
+                Log.i(TAG, "Expected exception for getLocation. Mex Disabled.");
+            }
+            try {
+                AppClient.VerifyLocationRequest verifyLocationRequest = me.createVerifyLocationRequest(context, MockUtils.getCarrierName(context), location);
+                AppClient.VerifyLocationReply verifyLocationReply;
+                if (useHostOverride) {
+                    verifyLocationReply = me.verifyLocation(verifyLocationRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
+                } else {
+                    verifyLocationReply = me.verifyLocation(verifyLocationRequest, GRPC_TIMEOUT_MS);
+                }
+            } catch (IllegalArgumentException iae) {
+                // This is expected, request is missing.
+                Log.i(TAG, "Expected exception for verifyLocation. Mex Disabled.");
+            } catch (IOException ioe) {
+                Log.i(TAG, "Expected exception for verifyLocation. " + Log.getStackTraceString(ioe));
+            }
+
+
+            try {
+                // Non-Mock.
+                AppClient.AppInstListRequest appInstListRequest = me.createAppInstListRequest(context, MockUtils.getCarrierName(context), location);
+                AppClient.AppInstListReply appInstListReply;
+                if (useHostOverride) {
+                    appInstListReply = me.getAppInstList(appInstListRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
+                } else {
+                    appInstListReply = me.getAppInstList(appInstListRequest, GRPC_TIMEOUT_MS);
+                }
+            } catch (IllegalArgumentException iae) {
+                // This is expected, request is missing.
+                Log.i(TAG, "Expected exception for registerClient. Mex Disabled.");
+            } catch (InterruptedException ioe) {
+                Log.i(TAG, "Expected exception for registerClient. " + Log.getStackTraceString(ioe));
+            }
+            allRun = true;
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertFalse("mexDisabledTest: DmeDnsException", true);
+        } catch (ExecutionException ee) {
+            Log.e(TAG, Log.getStackTraceString(ee));
+            assertFalse("mexDisabledTest: ExecutionException!", true);
+        } catch (StatusRuntimeException sre) {
+            Log.e(TAG, Log.getStackTraceString(sre));
+            assertFalse("mexDisabledTest: StatusRuntimeException!", true);
+        } catch (InterruptedException ie) {
+            Log.e(TAG, Log.getStackTraceString(ie));
+            assertFalse("mexDisabledTest: InterruptedException!", true);
+        } finally {
+            enableMockLocation(context,false);
+        }
+
+        assertTrue("All requests must run with failures.", allRun);
+    }
 
     // Every call needs registration to be called first at some point.
     public void registerClient(MatchingEngine me) {
@@ -316,150 +415,6 @@ public class EngineCallTest {
         Log.i(TAG, "registerClientFutureTest() response: " + reply.toString());
         assertEquals(0, reply.getVer());
         assertEquals(AppClient.ReplyStatus.RS_SUCCESS, reply.getStatus());
-    }
-
-    @Test
-    public void mexDisabledTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
-        MatchingEngine me = new MatchingEngine(context);
-        me.setMatchingEngineLocationAllowed(false);
-        me.setAllowSwitchIfNoSubscriberInfo(true);
-        MeLocation meLoc = new MeLocation(me);
-
-        Location loc = MockUtils.createLocation("mexDisabledTest", 122.3321, 47.6062);
-        boolean allRun = false;
-
-        try {
-            enableMockLocation(context, true);
-            setMockLocation(context, loc);
-            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            try {
-                // Non-Mock.
-                AppClient.RegisterClientRequest registerClientRequest = me.createRegisterClientRequest(
-                        context, developerName, null, null, null, null);
-                AppClient.RegisterClientReply registerStatusReply = me.registerClient(registerClientRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
-            } catch (IllegalArgumentException iae) {
-                Log.i(TAG, "Expected exception for registerClient. Mex Disabled.");
-            } catch (InterruptedException ioe) {
-                Log.i(TAG, "Expected exception for registerClient. " + Log.getStackTraceString(ioe));
-            }
-
-            try {
-                AppClient.FindCloudletRequest findCloudletRequest;
-                findCloudletRequest = me.createFindCloudletRequest(context, me.retrieveNetworkCarrierName(context), location);
-                AppClient.FindCloudletReply findCloudletReply;
-                if (useHostOverride) {
-                    findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-                } else {
-                    findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
-                }
-            } catch (IllegalArgumentException iae) {
-                // This is expected, request is missing.
-                Log.i(TAG, "Expected exception for findCloudlet. Mex Disabled.");
-            }
-
-            try {
-                AppClient.GetLocationRequest locationRequest = me.createGetLocationRequest(context, MockUtils.getCarrierName(context));
-                AppClient.GetLocationReply getLocationReply;
-                if (useHostOverride) {
-                    getLocationReply = me.getLocation(locationRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
-                } else {
-                    getLocationReply = me.getLocation(context, locationRequest, GRPC_TIMEOUT_MS);
-                }
-            } catch (IllegalArgumentException iae) {
-                // This is expected, request is missing.
-                Log.i(TAG, "Expected exception for getLocation. Mex Disabled.");
-            }
-            try {
-                AppClient.VerifyLocationRequest verifyLocationRequest = me.createVerifyLocationRequest(context, MockUtils.getCarrierName(context), location);
-                AppClient.VerifyLocationReply verifyLocationReply;
-                if (useHostOverride) {
-                    verifyLocationReply = me.verifyLocation(verifyLocationRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
-                } else {
-                    verifyLocationReply = me.verifyLocation(verifyLocationRequest, GRPC_TIMEOUT_MS);
-                }
-            } catch (IllegalArgumentException iae) {
-                // This is expected, request is missing.
-                Log.i(TAG, "Expected exception for verifyLocation. Mex Disabled.");
-            } catch (IOException ioe) {
-                Log.i(TAG, "Expected exception for verifyLocation. " + Log.getStackTraceString(ioe));
-            }
-
-
-            try {
-                // Non-Mock.
-                AppClient.AppInstListRequest appInstListRequest = me.createAppInstListRequest(context, MockUtils.getCarrierName(context), location);
-                AppClient.AppInstListReply appInstListReply;
-                if (useHostOverride) {
-                    appInstListReply = me.getAppInstList(appInstListRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
-                } else {
-                    appInstListReply = me.getAppInstList(appInstListRequest, GRPC_TIMEOUT_MS);
-                }
-            } catch (IllegalArgumentException iae) {
-                // This is expected, request is missing.
-                Log.i(TAG, "Expected exception for registerClient. Mex Disabled.");
-            } catch (InterruptedException ioe) {
-                Log.i(TAG, "Expected exception for registerClient. " + Log.getStackTraceString(ioe));
-            }
-            allRun = true;
-        } catch (DmeDnsException dde) {
-            Log.e(TAG, Log.getStackTraceString(dde));
-            assertFalse("mexDisabledTest: DmeDnsException", true);
-        } catch (ExecutionException ee) {
-            Log.e(TAG, Log.getStackTraceString(ee));
-            assertFalse("mexDisabledTest: ExecutionException!", true);
-        } catch (StatusRuntimeException sre) {
-            Log.e(TAG, Log.getStackTraceString(sre));
-            assertFalse("mexDisabledTest: StatusRuntimeException!", true);
-        } catch (InterruptedException ie) {
-            Log.e(TAG, Log.getStackTraceString(ie));
-            assertFalse("mexDisabledTest: InterruptedException!", true);
-        } finally {
-            enableMockLocation(context,false);
-        }
-
-        assertTrue("All requests must run with failures.", allRun);
-    }
-
-    /**
-     * This test disabled networking. This test will only ever pass if the DME server accepts
-     * non-cellular communications.
-     */
-    @Test
-    public void meNetworkingDisabledTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
-        MatchingEngine me = new MatchingEngine(context);
-        me.setNetworkSwitchingEnabled(false);
-        me.setMatchingEngineLocationAllowed(true);
-        me.setAllowSwitchIfNoSubscriberInfo(true);
-
-        AppClient.RegisterClientReply registerClientReply = null;
-        try {
-            AppClient.RegisterClientRequest registerClientRequest = MockUtils.createMockRegisterClientRequest(
-                    developerName,
-                    applicationName,
-                    me);
-
-            registerClientReply = me.registerClient(registerClientRequest, GRPC_TIMEOUT_MS);
-            if (registerClientReply.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {
-                assertFalse("mexNetworkDisabledTest: registerClient somehow succeeded!", true);
-            }
-        } catch (DmeDnsException dde) {
-            Log.e(TAG, Log.getStackTraceString(dde));
-            assertFalse("meNetworkingDisabledTest: DmeDnsException", true);
-        } catch (ExecutionException ee) {
-            Log.e(TAG, Log.getStackTraceString(ee));
-            assertFalse("meNetworkingDisabledTest: ExecutionException!", true);
-        } catch (StatusRuntimeException sre) {
-            Log.e(TAG, Log.getStackTraceString(sre));
-            assertTrue("mexNetworkDisabledTest: registerClient non-null, and somehow succeeded!",registerClientReply == null);
-        } catch (InterruptedException ie) {
-            Log.e(TAG, Log.getStackTraceString(ie));
-            assertFalse("meNetworkingDisabledTest: InterruptedException!", true);
-        } finally {
-            enableMockLocation(context,false);
-            me.setNetworkSwitchingEnabled(true);
-        }
     }
 
     @Test
@@ -610,7 +565,7 @@ public class EngineCallTest {
         // Temporary.
         assertEquals(0, verifyLocationReply.getVer());
         assertEquals(AppClient.VerifyLocationReply.TowerStatus.TOWER_UNKNOWN, verifyLocationReply.getTowerStatus());
-        assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_ROAMING_COUNTRY_MISMATCH, verifyLocationReply.getGpsLocationStatus());
+        assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_VERIFIED, verifyLocationReply.getGpsLocationStatus());
     }
 
     @Test
@@ -658,7 +613,7 @@ public class EngineCallTest {
         // Temporary.
         assertEquals(0, verifyLocationReply.getVer());
         assertEquals(AppClient.VerifyLocationReply.TowerStatus.TOWER_UNKNOWN, verifyLocationReply.getTowerStatus());
-        assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_ROAMING_COUNTRY_MISMATCH, verifyLocationReply.getGpsLocationStatus());
+        assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_VERIFIED, verifyLocationReply.getGpsLocationStatus());
     }
 
 
@@ -671,7 +626,7 @@ public class EngineCallTest {
         Context context = InstrumentationRegistry.getTargetContext();
         enableMockLocation(context,true);
 
-        Location mockLoc = MockUtils.createLocation("verifyMockedLocationTest_NorthPole", 90d, 0d);
+        Location mockLoc = MockUtils.createLocation("verifyMockedLocationTest_NorthPole", 90d, 1d);
 
 
         MatchingEngine me = new MatchingEngine(context);
@@ -976,7 +931,7 @@ public class EngineCallTest {
 
             assertEquals(0, list.getVer());
             assertEquals(AppClient.AppInstListReply.AIStatus.AI_SUCCESS, list.getStatus());
-            assertEquals(2, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
+            assertEquals(1, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
             for (int i = 0; i < list.getCloudletsCount(); i++) {
                 Log.v(TAG, "Cloudlet: " + list.getCloudlets(i).toString());
             }
@@ -1029,7 +984,7 @@ public class EngineCallTest {
 
             assertEquals(0, list.getVer());
             assertEquals(AppClient.AppInstListReply.AIStatus.AI_SUCCESS, list.getStatus());
-            assertEquals(2, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
+            assertEquals(1, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
             for (int i = 0; i < list.getCloudletsCount(); i++) {
                 Log.v(TAG, "Cloudlet: " + list.getCloudlets(i).toString());
             }
@@ -1155,82 +1110,6 @@ public class EngineCallTest {
             enableMockLocation(context,false);
         }
 
-    }
-
-    /**
-     * Test connection to our HttpEcho server (or local HttpEcho server if you replace demoHost).
-     */
-    @Test
-    public void appConnectionTest000() {
-        Context context = InstrumentationRegistry.getContext();
-
-        MatchingEngine me = new MatchingEngine(context);
-        me.setMatchingEngineLocationAllowed(true);
-        me.setAllowSwitchIfNoSubscriberInfo(true);
-        me.setNetworkSwitchingEnabled(false);
-
-        enableMockLocation(context,true);
-
-        AppConnectionManager appConnectionManager = me.getAppConnectionManager();
-        String demoHost = "mexdemo-app-docker-cluster.fairview-main.gddt.mobiledgex.net";
-        int demoPort = 3001;
-        Socket s = null;
-        try {
-
-            // This bypasses FindCloudlet, and goes straight to echo test server.
-            registerClient(me);
-            Future<Socket> sf = appConnectionManager.getTcpSocket(demoHost, demoPort);
-
-            assertFalse(sf == null);
-            s = sf.get();
-        } catch (InterruptedException ie) {
-            assertFalse("Socket connection failed, it must not be null!",s == null);
-        } catch (ExecutionException ee) {
-            assertTrue("Exception hit: " + ee.getCause(), false);
-        }
-
-        String methodNameData = new Object() {}
-                .getClass()
-                .getEnclosingMethod()
-                .getName();
-        BufferedOutputStream bos;
-        BufferedInputStream bis;
-
-        try {
-            bos = new BufferedOutputStream(s.getOutputStream());
-            String data = "{\"Data\": \"food\"}";
-            String rawpost = "POST / HTTP/1.1\r\n" +
-                    "Host: mexdemo-app-docker-cluster.fairview-main.gddt.mobiledgex.net:3001\r\n" +
-                    "User-Agent: curl/7.54.0\r\n" +
-                    "Accept: */*\r\n" +
-                    "Content-Length: " + data.length() + "\r\n" +
-                    "Content-Type: application/json\r\n" +
-                    "\r\n" + data;
-            bos.write(rawpost.getBytes());
-            bos.flush();
-
-            Object aMon = new Object(); // Some arbitrary object Monitor.
-            synchronized (aMon) {
-                aMon.wait(1000);
-            }
-
-            bis = new BufferedInputStream(s.getInputStream());
-            int available = bis.available();
-            assertTrue("No bytes available in response.", available > 0); // Probably true.
-
-            byte[] b = new byte[4096];
-            int numRead = bis.read(b);
-            assertTrue("Didn't get response!", numRead > 0);
-            String output = new String(b);
-            // Not an http client, so we're just going to get the substring of something stable:
-            boolean found = output.indexOf("food") != -1 ? true : false;;
-            assertTrue("Didn't find json data [" + data + "] in response!", found == true);
-        } catch (IOException ioe) {
-            assertTrue("Failed to get output stream for socket!", false);
-        } catch (InterruptedException ie) {
-            Log.i(TAG, Log.getStackTraceString(ie));
-            assertFalse("appConnectionTestTcp001: InterruptedException!", true);
-        }
     }
 
     /**
@@ -1462,6 +1341,7 @@ public class EngineCallTest {
             // SSL:
             Future<OkHttpClient> httpClientFuture = null;
             httpClientFuture = me.getAppConnectionManager().getHttpClient();
+            assertTrue("HttpClientFuture is NULL!", httpClientFuture != null);
 
             // FIXME: UI Console exposes HTTP as TCP only, so test here use getTcpList().
             String url = null;

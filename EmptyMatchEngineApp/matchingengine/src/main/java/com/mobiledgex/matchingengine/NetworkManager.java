@@ -107,14 +107,14 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
 
     private NetworkManager(ConnectivityManager connectivityManager, SubscriptionManager subscriptionManager) {
 
-        this.mConnectivityManager = connectivityManager;
+        mConnectivityManager = connectivityManager;
         mSubscriptionManager = subscriptionManager;
         mSubscriptionManager.addOnSubscriptionsChangedListener(this);
         mThreadPool = Executors.newSingleThreadExecutor();
     }
 
     private NetworkManager(ConnectivityManager connectivityManager, SubscriptionManager subscriptionManager, ExecutorService executorService) {
-        this.mConnectivityManager = connectivityManager;
+        mConnectivityManager = connectivityManager;
         mSubscriptionManager = subscriptionManager;
         mSubscriptionManager.addOnSubscriptionsChangedListener(this);
         mThreadPool = executorService;
@@ -295,7 +295,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         public Network call() throws InterruptedException, NetworkRequestTimeoutException, NetworkRequestNoSubscriptionInfoException {
             if (mNetworkSwitchingEnabled == false) {
                 Log.e(TAG, "NetworkManager is disabled.");
-                return null;
+                return mNetwork;
             }
 
             // If the target is cellular, and there's no subscriptions, just return.
@@ -479,7 +479,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     public Network switchToCellularInternetNetworkBlocking() throws InterruptedException, ExecutionException {
         boolean isCellularData = isCurrentNetworkInternetCellularDataCapable();
         if (isCellularData) {
-            return null; // Nothing to do, have cellular data
+            return mNetwork;
         }
 
         NetworkRequest request = getCellularNetworkRequest();
@@ -493,14 +493,8 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
      * @return
      */
     public Future<Network> switchToCellularInternetNetworkFuture() {
-        boolean isCellularData = isCurrentNetworkInternetCellularDataCapable();
-
         NetworkRequest networkRequest = getCellularNetworkRequest();
         Future<Network> cellNetworkFuture;
-
-        if (isCellularData) {
-            return null; // Nothing to do, already have cellular data
-        }
 
         cellNetworkFuture = mThreadPool.submit(new NetworkSwitcherCallable(networkRequest));
         return cellNetworkFuture;
