@@ -30,8 +30,8 @@ import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 
 import java.io.IOException;
-
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -71,14 +71,16 @@ import android.content.pm.PackageInfo;
 import android.util.Log;
 
 
+import javax.net.ssl.SSLSocket;
+
 import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
 
 public class MatchingEngine {
     public static final String TAG = "MatchingEngine";
-    public static final String fallbackDmeHost = "sdkdemo.dme.mobiledgex.net";
     public static final String baseDmeHost = "dme.mobiledgex.net";
-    private String host = fallbackDmeHost;
+    private String host = baseDmeHost;
     private NetworkManager mNetworkManager;
+    private AppConnectionManager mAppConnectionManager;
     private int port = 50051;
 
     // A threadpool for all the MatchEngine API callable interfaces:
@@ -105,12 +107,14 @@ public class MatchingEngine {
         threadpool = Executors.newSingleThreadExecutor();
         ConnectivityManager connectivityManager = context.getSystemService(ConnectivityManager.class);
         mNetworkManager = NetworkManager.getInstance(connectivityManager, getSubscriptionManager(context));
+        mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
     }
     public MatchingEngine(Context context, ExecutorService executorService) {
         threadpool = executorService;
         ConnectivityManager connectivityManager = context.getSystemService(ConnectivityManager.class);
         mNetworkManager = NetworkManager.getInstance(connectivityManager, getSubscriptionManager(context), threadpool);
+        mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
     }
 
@@ -924,6 +928,42 @@ public class MatchingEngine {
         return submit(qosPositionKpi);
     }
 
+    /**
+     * Retrieve the app connection manager associated with this MatchingEngine instance.
+     * @return
+     */
+    public AppConnectionManager getAppConnectionManager() {
+        return mAppConnectionManager;
+    }
+
+    /**
+     * Returns a standard SSLSocket, on a cellular Network, if available.
+     * @param host
+     * @param port
+     * @return
+     */
+    public Future<SSLSocket> getTcpSSLSocket(String host, int port) {
+        return mAppConnectionManager.getTcpSslSocket(host, port);
+    }
+
+    /**
+     * If there's only one TCP socket port, this returns that. Otherwise use the one
+     * with host and port parameters instead.
+     *
+     * @param findCloudletReply
+     * @return
+     */
+    public Future<Socket> getTcpSocket(FindCloudletReply findCloudletReply) {
+        List<AppConnectionManager.HostAndPort> hp = mAppConnectionManager.getTCPList(findCloudletReply);
+        if (hp.isEmpty() && hp.size() > 1) {
+            return null;
+        }
+        AppConnectionManager.HostAndPort one = hp.get(0);
+
+        return mAppConnectionManager.getTcpSocket(one.host, one.port);
+    }
+
+
     //
     // Network Wrappers:
     //
@@ -1008,6 +1048,7 @@ public class MatchingEngine {
      * @return
      */
     ManagedChannel channelPicker(String host, int port) {
+
         if (isSSLEnabled()) {
             return OkHttpChannelBuilder // Public certs only.
                     .forAddress(host, port)
