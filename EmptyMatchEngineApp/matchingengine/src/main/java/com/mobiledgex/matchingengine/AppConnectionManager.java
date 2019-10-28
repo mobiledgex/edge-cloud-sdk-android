@@ -18,12 +18,12 @@
 package com.mobiledgex.matchingengine;
 
 import android.net.Network;
+import android.util.Log;
 
 import com.squareup.okhttp.OkHttpClient;
 
 import java.net.DatagramSocket;
 import java.net.Socket;
-import java.security.SecureRandom;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -32,14 +32,13 @@ import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.SocketFactory;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
 
 public class AppConnectionManager {
+    private final static String TAG = "AppConnectionManager";
     private NetworkManager mNetworkManager;
     private ExecutorService mExecutor;
 
@@ -78,8 +77,7 @@ public class AppConnectionManager {
     }
 
     /**
-     * Utility function that returns a list of TCP ports listed. This does NOT generate the
-     * ports until endPort in the list, just the first instance.
+     * Utility function that returns a list of TCP ports in the reply parameter.
      * @param findCloudletReply
      * @return
      */
@@ -90,7 +88,7 @@ public class AppConnectionManager {
             return null;
         }
 
-        ArrayList<HostAndPort> hostList = new ArrayList<HostAndPort>();
+        ArrayList<HostAndPort> hostList = new ArrayList<>();
         for (Appcommon.AppPort port : findCloudletReply.getPortsList()) {
             if (port.getProto() == Appcommon.LProto.L_PROTO_UDP) {
                 String prefix = port.getFqdnPrefix();
@@ -107,8 +105,7 @@ public class AppConnectionManager {
     }
 
     /**
-     * Utility function that returns a list of TCP ports listed. This does NOT generate the
-     * ports until endPort in the list, just the first instance.
+     * Utility function that returns a list of TCP ports listed in the reply parameter.
      * @param findCloudletReply
      * @return
      */
@@ -119,7 +116,7 @@ public class AppConnectionManager {
             return null;
         }
 
-        ArrayList<HostAndPort> hostList = new ArrayList<HostAndPort>();
+        ArrayList<HostAndPort> hostList = new ArrayList<>();
         for (Appcommon.AppPort port : findCloudletReply.getPortsList()) {
             if (port.getProto() == Appcommon.LProto.L_PROTO_TCP) {
                 String prefix = port.getFqdnPrefix();
@@ -136,8 +133,7 @@ public class AppConnectionManager {
     }
 
     /**
-     * Utility function that returns a list of HTTP ports listed. This does NOT generate the
-     * ports until endPort in the list, just the first instance.
+     * Utility function that returns a list of HTTP ports in the reply parameter.
      * @param findCloudletReply
      * @return
      */
@@ -148,7 +144,7 @@ public class AppConnectionManager {
             return null;
         }
 
-        ArrayList<HostAndPort> hostList = new ArrayList<HostAndPort>();
+        ArrayList<HostAndPort> hostList = new ArrayList<>();
         for (Appcommon.AppPort port : findCloudletReply.getPortsList()) {
             if (port.getProto() == Appcommon.LProto.L_PROTO_HTTP) {
                 String prefix = port.getFqdnPrefix();
@@ -181,23 +177,27 @@ public class AppConnectionManager {
             @Override
             public SSLSocket call() throws Exception {
 
-                Future<Network> networkFuture = mNetworkManager.switchToCellularInternetNetworkFuture();
-                Network net = networkFuture.get(); // Await.
+                Network net = mNetworkManager.switchToCellularInternetNetworkBlocking();
 
                 if (net == null && mNetworkManager.isNetworkSwitchingEnabled()) {
                     return null;
-                }
-                else { // Going with the default device network.
+                }else {
                     net = mNetworkManager.getActiveNetwork();
                 }
                 mobiledgexSSLSocketFactory = (MobiledgeXSSLSocketFactory)MobiledgeXSSLSocketFactory.getDefault(net);
 
+                mNetworkManager.resetNetworkToDefault();
+
+                SSLSocket socket;
                 if (host == null || port < 0) {
                     // not connected socket.
-                    return (SSLSocket)mobiledgexSSLSocketFactory.createSocket();
+                    socket = (SSLSocket)mobiledgexSSLSocketFactory.createSocket();
                 } else {
-                    return (SSLSocket)mobiledgexSSLSocketFactory.createSocket(host, port);
+                    socket = (SSLSocket)mobiledgexSSLSocketFactory.createSocket(host, port);
                 }
+
+                mNetworkManager.resetNetworkToDefault();
+                return socket;
             }
         };
 
@@ -215,27 +215,27 @@ public class AppConnectionManager {
             @Override
             public Socket call() throws Exception {
 
-                Future<Network> networkFuture = mNetworkManager.switchToCellularInternetNetworkFuture();
-                Network net = networkFuture.get(); // Blocks.
+                Network net = mNetworkManager.switchToCellularInternetNetworkBlocking();
 
                 if (net == null && mNetworkManager.isNetworkSwitchingEnabled()) {
                     return null;
-                }
-                else { // Going with the default device network.
+                } else {
                     net = mNetworkManager.getActiveNetwork();
                 }
 
                 SocketFactory sf = net.getSocketFactory();
+                Socket socket = null;
                 if (host == null || port < 0) {
                     // not connected socket.
-                    Socket socket = sf.createSocket();
+                    socket = sf.createSocket();
                     net.bindSocket(socket);
-                    return socket;
                 } else {
                     // Connected socket.
-                    Socket socket = sf.createSocket(host, port);
-                    return socket;
+                    socket = sf.createSocket(host, port);
                 }
+
+                mNetworkManager.resetNetworkToDefault();
+                return socket;
             }
         };
 
@@ -253,12 +253,14 @@ public class AppConnectionManager {
                 if (net == null && mNetworkManager.isNetworkSwitchingEnabled()) {
                     return null;
                 }
-                else { // Going with the default device network.
+                else {
                     net = mNetworkManager.getActiveNetwork();
                 }
 
                 DatagramSocket ds = new DatagramSocket();
                 net.bindSocket(ds);
+
+                mNetworkManager.resetNetworkToDefault();
 
                 return ds;
             }
@@ -269,28 +271,23 @@ public class AppConnectionManager {
 
     /**
      * Http Connection via OkHttpClient object, over a cellular network interface. Null is returned
-     * if a requested cellular network is not available, not allowed. It is connected immediately.
+     * if a requested cellular network is not available or not allowed.
      *
      * Convenience method. Get the network from NetworkManager, and set the SSLSocket factory
      * for different communication protocols.
      * @return
      */
     Future<OkHttpClient> getHttpClient() {
-        if (!mNetworkManager.isNetworkSwitchingEnabled()) {
-            return null;
-        }
-
         Callable<OkHttpClient> socketCallable = new Callable<OkHttpClient>() {
             @Override
             public OkHttpClient call() throws Exception {
 
-                Future<Network> networkFuture = mNetworkManager.switchToCellularInternetNetworkFuture();
-                Network net = networkFuture.get(); // Blocks.
+                Network net = mNetworkManager.switchToCellularInternetNetworkBlocking();
 
                 if (net == null && mNetworkManager.isNetworkSwitchingEnabled()) {
                     return null;
                 }
-                else { // Going with the default device network.
+                else {
                     net = mNetworkManager.getActiveNetwork();
                 }
 
@@ -302,6 +299,8 @@ public class AppConnectionManager {
 
                 mobiledgexSSLSocketFactory.setNetwork(net);
                 client.setSslSocketFactory(mobiledgexSSLSocketFactory);
+
+                mNetworkManager.resetNetworkToDefault();
 
                 return client;
             }
