@@ -376,7 +376,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                 aPort.getPathPrefix(),
                                 aPort.getEndPort());
                         }
-
                         someText += "[Cloudlet App Ports: [" + portListStr + "]\n";
 
                         String appInstListText = "";

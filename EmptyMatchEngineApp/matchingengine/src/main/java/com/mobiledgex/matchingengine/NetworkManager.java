@@ -107,14 +107,14 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
 
     private NetworkManager(ConnectivityManager connectivityManager, SubscriptionManager subscriptionManager) {
 
-        this.mConnectivityManager = connectivityManager;
+        mConnectivityManager = connectivityManager;
         mSubscriptionManager = subscriptionManager;
         mSubscriptionManager.addOnSubscriptionsChangedListener(this);
         mThreadPool = Executors.newSingleThreadExecutor();
     }
 
     private NetworkManager(ConnectivityManager connectivityManager, SubscriptionManager subscriptionManager, ExecutorService executorService) {
-        this.mConnectivityManager = connectivityManager;
+        mConnectivityManager = connectivityManager;
         mSubscriptionManager = subscriptionManager;
         mSubscriptionManager.addOnSubscriptionsChangedListener(this);
         mThreadPool = executorService;
@@ -198,8 +198,12 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return networkRequest;
     }
 
-    public Network getNetwork() {
-        return mNetwork;
+    /**
+     * Returns the current active network, independent of what the NetworkManager is doing.
+     * @return
+     */
+    public Network getActiveNetwork() {
+        return mConnectivityManager.getActiveNetwork();
     }
 
     // This Roaming Data value is un-reliable except under a new NetworkCapabilities Key in API 28.
@@ -291,7 +295,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         public Network call() throws InterruptedException, NetworkRequestTimeoutException, NetworkRequestNoSubscriptionInfoException {
             if (mNetworkSwitchingEnabled == false) {
                 Log.e(TAG, "NetworkManager is disabled.");
-                return null;
+                return mNetwork;
             }
 
             // If the target is cellular, and there's no subscriptions, just return.
@@ -338,7 +342,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
 
                     @Override
                     public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
-                        Log.d(TAG, "requestNetwork onCapabilitiesChanged(): " + network.toString());
+                        Log.d(TAG, "requestNetwork onCapabilitiesChanged(): " + network.toString() + "Capabilities: " + networkCapabilities.toString());
                         logTransportCapabilities(networkCapabilities);
                     }
 
@@ -475,7 +479,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     public Network switchToCellularInternetNetworkBlocking() throws InterruptedException, ExecutionException {
         boolean isCellularData = isCurrentNetworkInternetCellularDataCapable();
         if (isCellularData) {
-            return null; // Nothing to do, have cellular data
+            return mNetwork;
         }
 
         NetworkRequest request = getCellularNetworkRequest();
@@ -489,14 +493,8 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
      * @return
      */
     public Future<Network> switchToCellularInternetNetworkFuture() {
-        boolean isCellularData = isCurrentNetworkInternetCellularDataCapable();
-
         NetworkRequest networkRequest = getCellularNetworkRequest();
         Future<Network> cellNetworkFuture;
-
-        if (isCellularData) {
-            return null; // Nothing to do, already have cellular data
-        }
 
         cellNetworkFuture = mThreadPool.submit(new NetworkSwitcherCallable(networkRequest));
         return cellNetworkFuture;
@@ -525,7 +523,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     }
 
     /**
-     * Switch to a network using Callbacks. This only does network binding. It does not wait for the network to become active.
+     * Switch entire process to a network using Callbacks. The callback onAvailable(Network) will notify availability.
      * @param networkRequest
      * @param networkCallback
      * @return
@@ -534,7 +532,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         mConnectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
-                Log.d(TAG, "requestNetwork onAvailable(), binding process to network.");
+                Log.d(TAG, "requestNetwork onAvailable().");
 
                 mNetwork = network;
                 mConnectivityManager.bindProcessToNetwork(network);
