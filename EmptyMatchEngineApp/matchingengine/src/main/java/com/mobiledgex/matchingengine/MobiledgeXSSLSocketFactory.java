@@ -37,7 +37,7 @@ public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
 
     private static Network mNetwork;
     private static SSLContext mSSLContext = null;
-    private static SSLSocketFactory mSSLSocketFactory = null;
+    private static MobiledgeXSSLSocketFactory singleton;
 
     public class MissingNetworkException extends Exception {
         public MissingNetworkException(String msg) {
@@ -53,33 +53,31 @@ public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
         mNetwork = network;
     }
 
-    /**
-     * Check return. May be null if SSL is missing.
-     * @return
-     */
-    public static synchronized SocketFactory getDefault() {
-        if (mSSLContext == null) {
-            try {
-                mSSLContext = SSLContext.getDefault();
-                mSSLSocketFactory = mSSLContext.getSocketFactory();
-            } catch (NoSuchAlgorithmException nsae){
-                // SSL is missing from platform!
-                nsae.printStackTrace();
-                mSSLContext = null;
-                mSSLSocketFactory = null;
-            }
-        }
-        return mSSLSocketFactory;
-    }
-
     public static Network setNetwork(Network network) {
         mNetwork = network;
         return mNetwork;
     }
 
+    /**
+     * Check return. May be null if SSL is missing.
+     * @return
+     */
     public static synchronized SocketFactory getDefault(Network network) {
-        mNetwork = network;
-        return getDefault();
+        if (mSSLContext == null) {
+            try {
+                mSSLContext = SSLContext.getDefault();
+            } catch (NoSuchAlgorithmException nsae){
+                // SSL is missing from platform!
+                nsae.printStackTrace();
+                mSSLContext = null;
+            }
+        }
+
+        mNetwork = network; // Replace.
+        if (singleton == null) {
+            singleton = new MobiledgeXSSLSocketFactory(network);
+        }
+        return singleton;
     }
 
     /**
