@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -60,6 +61,7 @@ import distributed_match_engine.AppClient.BandSelection;
 import distributed_match_engine.AppClient.DynamicLocGroupRequest;
 import distributed_match_engine.AppClient.DynamicLocGroupReply;
 
+import distributed_match_engine.Appcommon.AppPort;
 import distributed_match_engine.LocOuterClass;
 import distributed_match_engine.LocOuterClass.Loc;
 import io.grpc.ManagedChannel;
@@ -70,6 +72,7 @@ import io.grpc.okhttp.OkHttpChannelBuilder;
 import android.content.pm.PackageInfo;
 import android.util.Log;
 
+import com.squareup.okhttp.OkHttpClient;
 
 import javax.net.ssl.SSLSocket;
 
@@ -936,35 +939,6 @@ public class MatchingEngine {
         return mAppConnectionManager;
     }
 
-    /**
-     * Returns a standard SSLSocket, on a cellular Network, if available.
-     * @param host
-     * @param port
-     * @return
-     */
-    public Future<SSLSocket> getTcpSSLSocket(String host, int port) {
-        return mAppConnectionManager.getTcpSslSocket(host, port);
-    }
-
-    /**
-     * If there's only one TCP socket port, this returns that. Otherwise use the one
-     * with host and port parameters instead.
-     *
-     * @param findCloudletReply
-     * @return
-     */
-    public Future<Socket> getTcpSocket(FindCloudletReply findCloudletReply) {
-        List<AppConnectionManager.HostAndPort> hp = mAppConnectionManager.getTCPList(findCloudletReply);
-        if (hp.isEmpty() && hp.size() > 1) {
-            return null;
-        }
-        AppConnectionManager.HostAndPort one = hp.get(0);
-
-        return mAppConnectionManager.getTcpSocket(one.host, one.port);
-    }
-
-
-    //
     // Network Wrappers:
     //
 
