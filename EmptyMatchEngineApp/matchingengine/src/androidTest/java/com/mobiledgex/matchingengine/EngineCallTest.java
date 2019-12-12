@@ -1345,7 +1345,6 @@ public class EngineCallTest {
             MeLocation meLoc = new MeLocation(me);
             assertTrue("Missing Location!", meLoc != null);
 
-            enableMockLocation(context, true);
             Location mockLoc = MockUtils.createLocation("verifyLocationFutureTest", 122.3321, 47.6062);
             setMockLocation(context, mockLoc);
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
@@ -1429,5 +1428,68 @@ public class EngineCallTest {
         } finally {
             enableMockLocation(context,false);
         }
+    }
+
+    @Test
+    public void testRegisterAndFindCloudlet_001() {
+        Context context = InstrumentationRegistry.getContext();
+
+        MatchingEngine me = new MatchingEngine(context);
+        AppConnectionManager appConnect = me.getAppConnectionManager();
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+
+        enableMockLocation(context,true);
+
+        Socket socket = null;
+        try {
+            MeLocation meLoc = new MeLocation(me);
+            assertTrue("Missing Location!", meLoc != null);
+
+            Location mockLoc = MockUtils.createLocation("verifyLocationFutureTest", 122.3321, 47.6062);
+            setMockLocation(context, mockLoc);
+            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
+
+            Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
+                    "MobiledgeX", "HttpEcho",
+                    "20191204", "TDG", location, "");
+            // Just wait:
+            AppClient.FindCloudletReply reply = findCloudletReplyFuture.get();
+            HashMap<Integer, AppPort> appTcpPortMap = appConnect.getTCPMap(reply);
+            AppPort appPort = appTcpPortMap.get(3001);
+            Future<Socket> socketFuture = me.getAppConnectionManager().getTcpSocket(reply, appPort, appPort.getPublicPort(), (int)GRPC_TIMEOUT_MS);
+            socket = socketFuture.get();
+
+            assertTrue("FindCloudletReply failed!", reply != null);
+        } catch (ExecutionException ee) {
+            Log.i(TAG, Log.getStackTraceString(ee));
+            assertFalse("testRegisterAndFindCloudlet_001: ExecutionException!", true);
+        } catch (StatusRuntimeException sre) {
+            Log.i(TAG, Log.getStackTraceString(sre));
+            assertFalse("testRegisterAndFindCloudlet_001: StatusRuntimeException!", true);
+        } catch (InterruptedException ie) {
+            Log.i(TAG, Log.getStackTraceString(ie));
+            assertFalse("testRegisterAndFindCloudlet_001: InterruptedException!", true);
+        } finally {
+            try {
+                if (socket != null) {
+                    socket.close();
+                }
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+            enableMockLocation(context,false);
+        }
+    }
+
+    @Test
+    public void getAppNameTest() {
+        Context context = InstrumentationRegistry.getContext();
+
+        MatchingEngine me = new MatchingEngine(context);
+
+        String appName = me.getAppName(context);
+        // Under test, there is no app manifest or name.
+        assertTrue(appName != null && appName == "");
     }
 }
