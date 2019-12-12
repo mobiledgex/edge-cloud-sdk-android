@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 29
     defaultConfig {
         applicationId "com.mobiledgex.emptymatchengineapp"
         minSdkVersion 23
@@ -33,7 +33,7 @@ dependencies {
     implementation project(":matchingengine")
     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
     // Use maven:
-    //implementation 'com.mobiledgex:matchingengine:1.4.15'
+    //implementation 'com.mobiledgex:matchingengine:1.4.17'
     // Dependencies of Matching Engine, if using Maven:
     //implementation "io.grpc:grpc-okhttp:${grpcVersion}"
     //implementation "io.grpc:grpc-stub:${grpcVersion}"
