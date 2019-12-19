@@ -1142,6 +1142,11 @@ public class MatchingEngine {
                 RegisterClientRequest registerClientRequest = createDefaultRegisterClientRequest(context, developerName)
                         .setAuthToken(authToken)
                         .build();
+                RegisterClientReply registerClientReply = me.registerClient(registerClientRequest, me.getNetworkManager().getTimeout());
+
+                if (registerClientReply == null) {
+                    return null;
+                }
 
                 FindCloudletRequest findCloudletRequest =
                         createFindCloudletRequest(context, registerClientRequest.getCarrierName(), location);
