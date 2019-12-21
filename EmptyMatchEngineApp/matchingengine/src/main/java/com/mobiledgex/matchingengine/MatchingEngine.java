@@ -335,7 +335,7 @@ public class MatchingEngine {
         return potentialDmeHost;
     }
 
-    NetworkManager getNetworkManager() {
+    public NetworkManager getNetworkManager() {
         return mNetworkManager;
     }
 
