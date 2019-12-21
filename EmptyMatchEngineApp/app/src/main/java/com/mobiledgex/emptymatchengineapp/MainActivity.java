@@ -38,9 +38,12 @@ import android.widget.TextView;
 import android.content.Intent;
 
 // Matching Engine API:
+import com.mobiledgex.matchingengine.AppConnectionManager;
 import com.mobiledgex.matchingengine.DmeDnsException;
 import com.mobiledgex.matchingengine.MatchingEngine;
+import com.mobiledgex.matchingengine.NetworkManager;
 import com.mobiledgex.matchingengine.NetworkRequestTimeoutException;
+import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.util.RequestPermissions;
 
 import distributed_match_engine.AppClient;
@@ -56,12 +59,12 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.mobiledgex.matchingengine.performancemetrics.Site;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
-
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String TAG = "MainActivity";
@@ -70,6 +73,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     private RequestPermissions mRpUtil;
     private MatchingEngine mMatchingEngine;
+    private NetTest netTest;
     private FusedLocationProviderClient mFusedLocationClient;
 
     private LocationCallback mLocationCallback;
@@ -151,6 +155,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             Intent intent = new Intent(this, FirstTimeUseActivity.class);
             startActivity(intent);
         }
+
+        netTest = new NetTest();
     }
 
     @Override
@@ -197,12 +203,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         if (mDoLocationUpdates) {
             startLocationUpdates();
         }
+        netTest.doTest(true);
     }
 
     @Override
     public void onPause() {
         super.onPause();
         stopLocationUpdates();
+        netTest.doTest(false);
     }
 
     @Override
@@ -282,6 +290,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 // Location found. Create a request:
                 try {
                     someText = "";
+                    // Switch entire process over to cellular for application use.
+                    mMatchingEngine.getNetworkManager().switchToCellularInternetNetworkBlocking();
+
                     // If no carrierName, or active Subscription networks, the app should use the public cloud instead.
                     List<SubscriptionInfo> subList = mMatchingEngine.getActiveSubscriptionInfoList();
                     if (subList != null && subList.size() > 0) {
@@ -293,6 +304,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             }
                         }
                         mMatchingEngine.setNetworkSwitchingEnabled(true);
+                        NetworkManager networkManager = mMatchingEngine.getNetworkManager();
                     } else {
                         // This example will continue to execute anyway, as Demo DME may still be reachable to discover nearby edge cloudlets.
                         someText += "No active cellular networks: app should use public cloud instead of the edgecloudlet at this time.\n";
@@ -317,8 +329,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         someText += dde.getMessage();
                         // Here, being unable to register to the Edge infrastructure, app should
                         // fall back to public cloud server. Edge is not available.
-                        // For Demo app, we use the sdkdemo dme server to continue to MobiledgeX.
-                        dmeHostAddress = "sdkdemo." + MatchingEngine.baseDmeHost;
+                        // For Demo app, we use the eu-mexdemo dme server to continue to MobiledgeX.
+                        dmeHostAddress = "eu-mexdemo." + MatchingEngine.baseDmeHost;
                     }
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
@@ -327,6 +339,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     String appName = mMatchingEngine.getAppName(ctx); // AppName must be added to the MobiledgeX web admin console.
                     appName = "MobiledgeX SDK Demo"; // override with a known registered appName.
 
+                    // There is also createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
+                    // like AuthToken or Tag key value pairs.
                     AppClient.RegisterClientRequest registerClientRequest =
                             mMatchingEngine.createRegisterClientRequest(ctx,
                                     devName, appName,
@@ -354,11 +368,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                 ", GPS LocationStatus: " + verifiedLocation.getGpsLocationStatus() +
                                 ", Location Accuracy: " + verifiedLocation.getGpsLocationAccuracyKm() + " ]\n";
 
-                        // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture):
+                        // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
+                        // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
                         AppClient.FindCloudletRequest findCloudletRequest =
                                 mMatchingEngine.createFindCloudletRequest(ctx, carrierName, location);
                         AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
                                 dmeHostAddress, port, 10000);
+
+                        AppConnectionManager appManager = mMatchingEngine.getAppConnectionManager();
 
                         List<distributed_match_engine.Appcommon.AppPort> ports = closestCloudlet.getPortsList();
                         String portListStr = "";
@@ -375,7 +392,18 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                 aPort.getPublicPort(),
                                 aPort.getPathPrefix(),
                                 aPort.getEndPort());
+
+                            appManager.createUrl(closestCloudlet, aPort, 0);
+                            // Create a URL:
+
+                            String l7Url = mMatchingEngine.getAppConnectionManager().createUrl(closestCloudlet, aPort, aPort.getPublicPort());
+                            Site site = new Site(mMatchingEngine.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, l7Url);
+                            netTest.sites.add(site);
                         }
+
+                        // This ping from the cellular network, provided the site network set to a cellular edge network.
+                        netTest.doTest(true);
+
                         someText += "[Cloudlet App Ports: [" + portListStr + "]\n";
 
                         String appInstListText = "";
@@ -432,10 +460,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             tv.setText(someText);
                         }
                     });
-                } catch (ExecutionException ee) {
-                    ee.printStackTrace();
-                    if (ee.getCause() instanceof NetworkRequestTimeoutException) {
-                        String causeMessage = ee.getCause().getMessage();
+
+                    // Set network back to last default one, if desired:
+                    mMatchingEngine.getNetworkManager().resetNetworkToDefault();
+                } catch (ExecutionException | StatusRuntimeException e) {
+                    e.printStackTrace();
+                    if (e.getCause() instanceof NetworkRequestTimeoutException) {
+                        String causeMessage = e.getCause().getMessage();
                         someText = "Network connection failed: " + causeMessage;
                         Log.e(TAG, someText);
                         // Handle network error with failover logic. MobiledgeX MatchingEngine requests over cellular is needed to talk to the DME.
@@ -447,27 +478,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             }
                         });
                     }
-                } catch (IOException ioe) {
-                    ioe.printStackTrace();
-                } catch (InterruptedException ie) {
-                    ie.printStackTrace();
-                } catch (StatusRuntimeException sre) {
-                    Throwable cause = sre.getCause();
-                    if (cause != null) {
-                        someText = "Runtime exception: " + cause.getMessage();
-                        ctx.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                                tv.setText(someText);
-                            }
-                        });
-                    }
-                    sre.printStackTrace();
-                } catch (IllegalArgumentException iae) {
-                    iae.printStackTrace();
-                } catch (Resources.NotFoundException nfe) {
-                    nfe.printStackTrace();
+                } catch (IOException | InterruptedException | IllegalArgumentException | Resources.NotFoundException e) {
+                    e.printStackTrace();
                 }
             }
         });

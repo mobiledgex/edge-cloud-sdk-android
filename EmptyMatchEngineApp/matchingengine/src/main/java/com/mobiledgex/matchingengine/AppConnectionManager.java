@@ -346,7 +346,7 @@ public class AppConnectionManager {
      * Convenience method. Get the network from NetworkManager, and set the SSLSocket factory
      * for different communication protocols.
      *
-     * @param timeoutMs timeout in milliseconds.
+     * @param timeoutMs connect timeout in milliseconds.
      * @return null can be returned if the network does not exist, if network switching is disabled,
      *         of if a SSL Socket Factory cannot be created.
      */
