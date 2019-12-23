@@ -457,7 +457,6 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
 
     /**
      * Wrapper function to get, if possible, to a Cellular Data Network connection. This isn't instant. Callback interface.
-     * Does not bind process.
      */
     public void requestCellularNetwork(ConnectivityManager.NetworkCallback networkCallback) {
         boolean isCellularData = isCurrentNetworkInternetCellularDataCapable();
