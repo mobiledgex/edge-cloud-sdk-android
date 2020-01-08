@@ -456,9 +456,9 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     }
 
     /**
-     * Wrapper function to switch, if possible, to a Cellular Data Network connection. This isn't instant. Callback interface.
+     * Wrapper function to get, if possible, to a Cellular Data Network connection. This isn't instant. Callback interface.
      */
-    public void switchToCellularInternetNetwork(ConnectivityManager.NetworkCallback networkCallback) {
+    public void requestCellularNetwork(ConnectivityManager.NetworkCallback networkCallback) {
         boolean isCellularData = isCurrentNetworkInternetCellularDataCapable();
         if (isCellularData) {
             return; // Nothing to do, have cellular data
@@ -535,6 +535,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
                 Log.d(TAG, "requestNetwork onAvailable().");
 
                 mNetwork = network;
+
                 mConnectivityManager.bindProcessToNetwork(network);
                 if (networkCallback == null) {
                     networkCallback.onAvailable(network);
