@@ -32,6 +32,7 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
 
+import org.junit.After;
 import org.junit.Test;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -81,12 +82,33 @@ public class EngineCallTest {
     public static int portOverride = 50051;
 
     public boolean useHostOverride = true;
+    public boolean useWifiOnly = false; // This also disables network switching, since the android default is WiFi.
 
     @Before
     public void LooperEnsure() {
         // SubscriberManager needs a thread. Start one:
         if (Looper.myLooper()==null)
             Looper.prepare();
+    }
+
+    // Mini test of wifi only:
+    @Test
+    public void testWiFiOnly() {
+        useWifiOnly = true;
+
+        Context context = InstrumentationRegistry.getTargetContext();
+        MatchingEngine me = new MatchingEngine(context);
+        me.setUseWifiOnly(useWifiOnly);
+        assertEquals(true, me.isUseWifiOnly());
+        String overrideHost = "";
+        try {
+            overrideHost = me.generateDmeHostAddress();
+        } catch (DmeDnsException dde) {
+            assertTrue("Cannot set to use WiFi! DNS failure!", false);
+        }
+        assertEquals(me.wifiOnlyDmeHost, overrideHost);
+        me.setUseWifiOnly(useWifiOnly = false);
+        assertEquals(false, me.isUseWifiOnly());
     }
 
     @Before
@@ -348,9 +370,12 @@ public class EngineCallTest {
             if (useHostOverride) {
                 reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
-                reply = me.registerClient(request, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
+                reply = me.registerClient(request, me.generateDmeHostAddress(), me.getPort(), GRPC_TIMEOUT_MS);
             }
             assert (reply != null);
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertFalse("registerClientTest: DmeDnsException!", true);
         } catch (ExecutionException ee) {
             Log.e(TAG, Log.getStackTraceString(ee));
             assertFalse("registerClientTest: ExecutionException!", true);
@@ -581,7 +606,6 @@ public class EngineCallTest {
         MeLocation meLoc = new MeLocation(me);
         AppClient.VerifyLocationReply verifyLocationReply = null;
         Future<AppClient.VerifyLocationReply> verifyLocationReplyFuture = null;
-        Future<AppClient.VerifyLocationRequest> verifyLocationRequestFuture = null;
 
         try {
             enableMockLocation(context, true);
