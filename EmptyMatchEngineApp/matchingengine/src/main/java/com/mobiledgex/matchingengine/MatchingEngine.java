@@ -1300,15 +1300,6 @@ public class MatchingEngine {
         return mNetworkManager.isWiFiCallingSupported(carrierConfigManager);
     }
 
-
-    public String getHost() {
-        return host;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
-    }
-
     public int getPort() {
         return port;
     }
