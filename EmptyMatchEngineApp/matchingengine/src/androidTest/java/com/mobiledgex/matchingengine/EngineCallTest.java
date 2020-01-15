@@ -236,7 +236,7 @@ public class EngineCallTest {
                 // Non-Mock.
                 AppClient.RegisterClientRequest registerClientRequest = me.createRegisterClientRequest(
                         context, developerName, null, null, null, null);
-                AppClient.RegisterClientReply registerStatusReply = me.registerClient(registerClientRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
+                AppClient.RegisterClientReply registerStatusReply = me.registerClient(registerClientRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } catch (IllegalArgumentException iae) {
                 Log.i(TAG, "Expected exception for registerClient. Mex Disabled.");
             } catch (InterruptedException ioe) {
@@ -261,7 +261,7 @@ public class EngineCallTest {
                 AppClient.GetLocationRequest locationRequest = me.createGetLocationRequest(context, MockUtils.getCarrierName(context));
                 AppClient.GetLocationReply getLocationReply;
                 if (useHostOverride) {
-                    getLocationReply = me.getLocation(locationRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
+                    getLocationReply = me.getLocation(locationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
                 } else {
                     getLocationReply = me.getLocation(context, locationRequest, GRPC_TIMEOUT_MS);
                 }
@@ -273,7 +273,7 @@ public class EngineCallTest {
                 AppClient.VerifyLocationRequest verifyLocationRequest = me.createVerifyLocationRequest(context, MockUtils.getCarrierName(context), location);
                 AppClient.VerifyLocationReply verifyLocationReply;
                 if (useHostOverride) {
-                    verifyLocationReply = me.verifyLocation(verifyLocationRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
+                    verifyLocationReply = me.verifyLocation(verifyLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
                 } else {
                     verifyLocationReply = me.verifyLocation(verifyLocationRequest, GRPC_TIMEOUT_MS);
                 }
@@ -290,7 +290,7 @@ public class EngineCallTest {
                 AppClient.AppInstListRequest appInstListRequest = me.createAppInstListRequest(context, MockUtils.getCarrierName(context), location);
                 AppClient.AppInstListReply appInstListReply;
                 if (useHostOverride) {
-                    appInstListReply = me.getAppInstList(appInstListRequest, me.getHost(), me.getPort(), GRPC_TIMEOUT_MS);
+                    appInstListReply = me.getAppInstList(appInstListRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
                 } else {
                     appInstListReply = me.getAppInstList(appInstListRequest, GRPC_TIMEOUT_MS);
                 }
