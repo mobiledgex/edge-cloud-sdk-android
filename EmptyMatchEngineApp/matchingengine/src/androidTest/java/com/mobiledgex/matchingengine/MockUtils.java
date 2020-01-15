@@ -36,12 +36,6 @@ import static org.junit.Assert.assertTrue;
 public class MockUtils {
     private final static String TAG = "MockUtils";
 
-    public static String getCarrierName(Context context) {
-        TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-        String networkOperatorName = telManager.getNetworkOperatorName();
-        return networkOperatorName;
-    }
-
     public static Location createLocation(String provider, double longitude, double latitude) {
         Location loc = new Location(provider);
         loc.setLongitude(longitude);

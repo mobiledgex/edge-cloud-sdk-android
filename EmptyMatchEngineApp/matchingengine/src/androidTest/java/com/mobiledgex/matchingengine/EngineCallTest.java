@@ -69,7 +69,7 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 @RunWith(AndroidJUnit4.class)
 public class EngineCallTest {
     public static final String TAG = "EngineCallTest";
-    public static final long GRPC_TIMEOUT_MS = 15000;
+    public static final long GRPC_TIMEOUT_MS = 21000;
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
@@ -81,8 +81,9 @@ public class EngineCallTest {
     public static String hostOverride = "eu-mexdemo.dme.mobiledgex.net";
     public static int portOverride = 50051;
 
-    public boolean useHostOverride = true;
+    public boolean useHostOverride = false;
     public boolean useWifiOnly = false; // This also disables network switching, since the android default is WiFi.
+
 
     @Before
     public void LooperEnsure() {
@@ -258,7 +259,7 @@ public class EngineCallTest {
             }
 
             try {
-                AppClient.GetLocationRequest locationRequest = me.createGetLocationRequest(context, MockUtils.getCarrierName(context));
+                AppClient.GetLocationRequest locationRequest = me.createGetLocationRequest(context, me.retrieveNetworkCarrierName(context));
                 AppClient.GetLocationReply getLocationReply;
                 if (useHostOverride) {
                     getLocationReply = me.getLocation(locationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -270,7 +271,7 @@ public class EngineCallTest {
                 Log.i(TAG, "Expected exception for getLocation. Mex Disabled.");
             }
             try {
-                AppClient.VerifyLocationRequest verifyLocationRequest = me.createVerifyLocationRequest(context, MockUtils.getCarrierName(context), location);
+                AppClient.VerifyLocationRequest verifyLocationRequest = me.createVerifyLocationRequest(context, me.retrieveNetworkCarrierName(context), location);
                 AppClient.VerifyLocationReply verifyLocationReply;
                 if (useHostOverride) {
                     verifyLocationReply = me.verifyLocation(verifyLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -287,7 +288,7 @@ public class EngineCallTest {
 
             try {
                 // Non-Mock.
-                AppClient.AppInstListRequest appInstListRequest = me.createAppInstListRequest(context, MockUtils.getCarrierName(context), location);
+                AppClient.AppInstListRequest appInstListRequest = me.createAppInstListRequest(context, me.retrieveNetworkCarrierName(context), location);
                 AppClient.AppInstListReply appInstListReply;
                 if (useHostOverride) {
                     appInstListReply = me.getAppInstList(appInstListRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -463,7 +464,7 @@ public class EngineCallTest {
             setMockLocation(context, loc);
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            String carrierName = MockUtils.getCarrierName(context);
+            String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
             AppClient.FindCloudletRequest findCloudletRequest = MockUtils.createMockFindCloudletRequest(
@@ -515,7 +516,7 @@ public class EngineCallTest {
             setMockLocation(context, loc);
             Location location = meLoc.getBlocking(context, 10000);
 
-            String carrierName = MockUtils.getCarrierName(context);
+            String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
             AppClient.FindCloudletRequest findCloudletRequest = MockUtils.createMockFindCloudletRequest(carrierName, me, location);
@@ -559,7 +560,7 @@ public class EngineCallTest {
             setMockLocation(context, mockLoc);
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            String carrierName = MockUtils.getCarrierName(context);
+            String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
             AppClient.VerifyLocationRequest verifyLocationRequest = MockUtils.createMockVerifyLocationRequest(carrierName, me, location);
@@ -593,7 +594,7 @@ public class EngineCallTest {
         // Temporary.
         assertEquals(0, verifyLocationReply.getVer());
         assertEquals(AppClient.VerifyLocationReply.TowerStatus.TOWER_UNKNOWN, verifyLocationReply.getTowerStatus());
-        assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_VERIFIED, verifyLocationReply.getGpsLocationStatus());
+        assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_ROAMING_COUNTRY_MATCH, verifyLocationReply.getGpsLocationStatus());
     }
 
     @Test
@@ -613,7 +614,7 @@ public class EngineCallTest {
             setMockLocation(context, mockLoc);
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            String carrierName = MockUtils.getCarrierName(context);
+            String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
             AppClient.VerifyLocationRequest verifyLocationRequest = MockUtils.createMockVerifyLocationRequest(carrierName, me, location);
 
@@ -640,7 +641,7 @@ public class EngineCallTest {
         // Temporary.
         assertEquals(0, verifyLocationReply.getVer());
         assertEquals(AppClient.VerifyLocationReply.TowerStatus.TOWER_UNKNOWN, verifyLocationReply.getTowerStatus());
-        assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_VERIFIED, verifyLocationReply.getGpsLocationStatus());
+        assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_ROAMING_COUNTRY_MATCH, verifyLocationReply.getGpsLocationStatus());
     }
 
 
@@ -667,7 +668,7 @@ public class EngineCallTest {
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
-            String carrierName = MockUtils.getCarrierName(context);
+            String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
             AppClient.VerifyLocationRequest verifyLocationRequest = MockUtils.createMockVerifyLocationRequest(carrierName, me, location);
 
@@ -713,7 +714,7 @@ public class EngineCallTest {
         enableMockLocation(context,true);
         Location loc = MockUtils.createLocation("getLocationTest", 122.3321, 47.6062);
 
-        String carrierName = MockUtils.getCarrierName(context);
+        String carrierName = me.retrieveNetworkCarrierName(context);
         try {
             setMockLocation(context, loc);
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
@@ -773,7 +774,7 @@ public class EngineCallTest {
         enableMockLocation(context,true);
         Location loc = MockUtils.createLocation("getLocationTest", 122.3321, 47.6062);
 
-        String carrierName = MockUtils.getCarrierName(context);
+        String carrierName = me.retrieveNetworkCarrierName(context);
         try {
             // Directly create request for testing:
             // Passed in Location (which is a callback interface)
@@ -833,7 +834,7 @@ public class EngineCallTest {
         Location location = MockUtils.createLocation("createDynamicLocationGroupAddTest", 122.3321, 47.6062);
         MeLocation meLoc = new MeLocation(me);
 
-        String carrierName = MockUtils.getCarrierName(context);
+        String carrierName = me.retrieveNetworkCarrierName(context);
         try {
             setMockLocation(context, location);
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
@@ -886,7 +887,7 @@ public class EngineCallTest {
         Location location = MockUtils.createLocation("createDynamicLocationGroupAddTest", 122.3321, 47.6062);
         MeLocation meLoc = new MeLocation(me);
 
-        String carrierName = MockUtils.getCarrierName(context);
+        String carrierName = me.retrieveNetworkCarrierName(context);
         try {
             setMockLocation(context, location);
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
