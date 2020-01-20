@@ -344,7 +344,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     AppClient.RegisterClientRequest registerClientRequest =
                             mMatchingEngine.createRegisterClientRequest(ctx,
                                     devName, appName,
-                                    null, carrierName, null);
+                                    null, carrierName, null, 0, null, mMatchingEngine.getUniqueId(ctx), null);
 
                     AppClient.RegisterClientReply registerStatus =
                             mMatchingEngine.registerClient(registerClientRequest,
@@ -358,7 +358,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     }
 
                     AppClient.VerifyLocationRequest verifyRequest =
-                            mMatchingEngine.createVerifyLocationRequest(ctx, carrierName, location);
+                            mMatchingEngine.createVerifyLocationRequest(ctx, carrierName, location, 0, null);
                     if (verifyRequest != null) {
                         // Location Verification (Blocking, or use verifyLocationFuture):
                         AppClient.VerifyLocationReply verifiedLocation =
@@ -371,7 +371,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
                         // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
                         AppClient.FindCloudletRequest findCloudletRequest =
-                                mMatchingEngine.createFindCloudletRequest(ctx, carrierName, location);
+                                mMatchingEngine.createFindCloudletRequest(ctx, carrierName, location, 0, null);
                         AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
                                 dmeHostAddress, port, 10000);
 
@@ -407,10 +407,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         someText += "[Cloudlet App Ports: [" + portListStr + "]\n";
 
                         String appInstListText = "";
-                        AppClient.AppInstListRequest appInstListRequest = mMatchingEngine.createAppInstListRequest(ctx, carrierName, location);
+                        AppClient.AppInstListRequest appInstListRequest = mMatchingEngine.createAppInstListRequest(ctx, carrierName, location, 0, null);
 
                         AppClient.AppInstListReply appInstListReply = mMatchingEngine.getAppInstList(
                                 appInstListRequest, dmeHostAddress, port, 10000);
+
                         for (AppClient.CloudletLocation cloudletLocation : appInstListReply.getCloudletsList()) {
                             String location_carrierName = cloudletLocation.getCarrierName();
                             String location_cloudletName = cloudletLocation.getCloudletName();

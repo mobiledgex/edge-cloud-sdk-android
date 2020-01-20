@@ -25,6 +25,7 @@ import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
+import android.provider.Settings.Secure;
 import android.support.annotation.RequiresApi;
 import android.telephony.CarrierConfigManager;
 import android.telephony.CellIdentityCdma;
@@ -52,6 +53,7 @@ import java.net.UnknownHostException;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -289,6 +291,13 @@ public class MatchingEngine {
         return cellInfoCidMap;
     }
 
+    public String getUniqueId(Context context) {
+        String uuid = Secure.getString(context.getContentResolver(),
+                Secure.ANDROID_ID);
+        Log.d(TAG, "uuid is " + uuid);
+        return uuid;
+    }
+
     /**
      * Returns the MobiledgeX Distributed Match Engine server hostname the SDK client should first
      * contact.
@@ -397,12 +406,13 @@ public class MatchingEngine {
                 .setAppName(appName)
                 .setAppVers(versionName)
                 .setCarrierName(carrierName)
-                .setAuthToken("");
+                .setAuthToken("")
+                .setCellId(0);
     }
 
     public RegisterClientRequest createRegisterClientRequest(Context context, String developerName,
                                                              String applicationName, String appVersion,
-                                                             String carrierName, String authToken)
+                                                             String carrierName, String authToken, int cellId, String uniqueIdType, String uniqueId, List<AppClient.Tag> tags)
     {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create RegisterClientRequest disabled. Matching engine is not configured to allow use.");
@@ -442,18 +452,26 @@ public class MatchingEngine {
             // Hard stop, or continue?
         }
 
-        return AppClient.RegisterClientRequest.newBuilder()
+        RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder()
                 .setDevName((developerName == null) ? "" : developerName)
                 .setAppName(appName)
                 .setAppVers(versionName)
                 .setCarrierName((carrierName == null || carrierName.equals(""))
                         ? retrieveNetworkCarrierName(context) : carrierName)
                 .setAuthToken((authToken == null) ? "" : authToken)
-                .build();
+                .setCellId(cellId)
+                .setUniqueIdType((uniqueIdType == null) ? "" : uniqueIdType)
+                .setUniqueId((uniqueId == null) ? getUniqueId(context) : uniqueId); // null if auto generate unique id, empty string if no unique id
+
+        if (tags != null) {
+            builder.addAllTags(tags);
+        }
+
+        return builder.build();
     }
 
     public VerifyLocationRequest createVerifyLocationRequest(Context context, String carrierName,
-                                                             android.location.Location location) {
+                                                             android.location.Location location, int cellId, List<AppClient.Tag> tags) {
         if (context == null) {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
@@ -473,13 +491,19 @@ public class MatchingEngine {
         }
         Loc aLoc = androidLocToMeLoc(location);
 
-        return AppClient.VerifyLocationRequest.newBuilder()
+        VerifyLocationRequest.Builder builder = AppClient.VerifyLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(
                         (carrierName == null || carrierName.equals(""))
                             ? retrieveNetworkCarrierName(context) : carrierName)
                 .setGpsLocation(aLoc) // Latest token is unknown until retrieved.
-                .build();
+                .setCellId(cellId);
+
+        if (tags != null) {
+            builder.addAllTags(tags);
+        }
+
+        return builder.build();
     }
 
     public AppClient.FindCloudletRequest.Builder createDefaultFindCloudletRequest(Context context, Location location) {
@@ -497,11 +521,12 @@ public class MatchingEngine {
         return FindCloudletRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(carrierName)
-                .setGpsLocation(aLoc);
+                .setGpsLocation(aLoc)
+                .setCellId(0);
     }
 
     public FindCloudletRequest createFindCloudletRequest(Context context, String carrierName,
-                                                         android.location.Location location) {
+                                                         android.location.Location location, int cellId, List<AppClient.Tag> tags) {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
             return null;
@@ -512,14 +537,20 @@ public class MatchingEngine {
 
         Loc aLoc = androidLocToMeLoc(location);
 
-        return FindCloudletRequest.newBuilder()
+        FindCloudletRequest.Builder builder = FindCloudletRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(
                         (carrierName == null || carrierName.equals(""))
                             ? retrieveNetworkCarrierName(context) : carrierName
                 )
                 .setGpsLocation(aLoc)
-                .build();
+                .setCellId(cellId);
+
+        if (tags != null) {
+            builder.addAllTags(tags);
+        }
+
+        return builder.build();
     }
 
     public AppClient.GetLocationRequest.Builder createDefaultGetLocationRequest(Context context) {
@@ -534,10 +565,11 @@ public class MatchingEngine {
 
         return GetLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(carrierName);
+                .setCarrierName(carrierName)
+                .setCellId(0);
     }
 
-    public GetLocationRequest createGetLocationRequest(Context context, String carrierName) {
+    public GetLocationRequest createGetLocationRequest(Context context, String carrierName, int cellId, List<AppClient.Tag> tags) {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
             return null;
@@ -546,14 +578,20 @@ public class MatchingEngine {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
 
-        return GetLocationRequest.newBuilder()
+        GetLocationRequest.Builder builder = GetLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(
                         (carrierName == null || carrierName.equals(""))
                             ? retrieveNetworkCarrierName(context) : carrierName
 
                 )
-                .build();
+                .setCellId(cellId);
+
+        if (tags != null) {
+            builder.addAllTags(tags);
+        }
+
+        return builder.build();
     }
 
     public AppClient.AppInstListRequest.Builder createDefaultAppInstListRequest(Context context, android.location.Location location) {
@@ -571,11 +609,12 @@ public class MatchingEngine {
         return AppInstListRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(carrierName)
-                .setGpsLocation(aLoc);
+                .setGpsLocation(aLoc)
+                .setCellId(0);
     }
 
     public AppInstListRequest createAppInstListRequest(Context context, String carrierName,
-                                                       android.location.Location location) {
+                                                       android.location.Location location, int cellId, List<AppClient.Tag> tags) {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
             return null;
@@ -595,12 +634,18 @@ public class MatchingEngine {
         }
         Loc aLoc = androidLocToMeLoc(location);
 
-        return AppClient.AppInstListRequest.newBuilder()
+        AppInstListRequest.Builder builder = AppClient.AppInstListRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName((carrierName == null || carrierName.equals(""))
                         ? retrieveNetworkCarrierName(context) : carrierName)
                 .setGpsLocation(aLoc)
-                .build();
+                .setCellId(cellId);
+
+        if (tags != null) {
+            builder.addAllTags(tags);
+        }
+
+        return builder.build();
     }
 
     public AppClient.DynamicLocGroupRequest.Builder createDefaultDynamicLocGroupRequest(Context context, DynamicLocGroupRequest.DlgCommType commType) {
@@ -614,12 +659,13 @@ public class MatchingEngine {
         return DynamicLocGroupRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setLgId(1001L) // FIXME: NOT IMPLEMENTED
-                .setCommType(commType);
+                .setCommType(commType)
+                .setCellId(0);
     }
 
     public DynamicLocGroupRequest createDynamicLocGroupRequest(Context context,
                                                                DynamicLocGroupRequest.DlgCommType commType,
-                                                               String userData) {
+                                                               String userData, int cellId, List<AppClient.Tag> tags) {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
             return null;
@@ -632,12 +678,18 @@ public class MatchingEngine {
             commType = DynamicLocGroupRequest.DlgCommType.DLG_SECURE;
         }
 
-        return DynamicLocGroupRequest.newBuilder()
+        DynamicLocGroupRequest.Builder builder = DynamicLocGroupRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setLgId(1001L) // FIXME: NOT IMPLEMENTED
                 .setCommType(commType)
                 .setUserData(userData == null ? "" : userData)
-                .build();
+                .setCellId(cellId);
+
+        if (tags != null) {
+            builder.addAllTags(tags);
+        }
+
+        return builder.build();
     }
 
     public AppClient.QosPositionRequest.Builder createDefaultQosPositionRequest(List<QosPosition> requests, int lte_category, BandSelection band_selection) {
@@ -650,7 +702,8 @@ public class MatchingEngine {
         QosPositionRequest.Builder builder = QosPositionRequest.newBuilder();
         builder.setSessionCookie(mSessionCookie)
                 .addAllPositions(requests)
-                .setLteCategory(lte_category);
+                .setLteCategory(lte_category)
+                .setCellId(0);
 
         if (band_selection != null) {
             builder.setBandSelection(band_selection);
@@ -659,7 +712,7 @@ public class MatchingEngine {
         return builder;
     }
 
-    public QosPositionRequest createQoSPositionRequest(List<QosPosition> requests, int lte_category, BandSelection band_selection) {
+    public QosPositionRequest createQoSPositionRequest(List<QosPosition> requests, int lte_category, BandSelection band_selection, int cellId, List<AppClient.Tag> tags) {
 
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
@@ -667,6 +720,13 @@ public class MatchingEngine {
         }
 
         QosPositionRequest.Builder builder = createDefaultQosPositionRequest(requests, lte_category, band_selection);
+
+        builder.setCellId(cellId);
+
+        if (tags != null) {
+            builder.addAllTags(tags);
+        }
+
         return builder.build();
     }
 
@@ -1133,7 +1193,9 @@ public class MatchingEngine {
     public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
                                                              final String developerName,
                                                              final Location location,
-                                                             final String authToken) {
+                                                             final String authToken,
+                                                             final int cellId,
+                                                             final List<AppClient.Tag> tags) {
         final MatchingEngine me = this;
 
         Callable<FindCloudletReply> future = new Callable<FindCloudletReply>() {
@@ -1149,7 +1211,7 @@ public class MatchingEngine {
                 }
 
                 FindCloudletRequest findCloudletRequest =
-                        createFindCloudletRequest(context, registerClientRequest.getCarrierName(), location);
+                        createFindCloudletRequest(context, registerClientRequest.getCarrierName(), location, cellId, tags);
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, me.getNetworkManager().getTimeout());
 
                 return findCloudletReply;
@@ -1168,7 +1230,11 @@ public class MatchingEngine {
                                                              final String appVersion,
                                                              final String carrierName,
                                                              final Location location,
-                                                             final String authToken) {
+                                                             final String authToken,
+                                                             final int cellId,
+                                                             final String uniqueIdType,
+                                                             final String uniqueId,
+                                                             final List<AppClient.Tag> tags) {
 
         final MatchingEngine me = this;
 
@@ -1176,7 +1242,7 @@ public class MatchingEngine {
             @Override
             public FindCloudletReply call() throws Exception {
                 RegisterClientRequest registerClientRequest = createRegisterClientRequest(context,
-                        developerName, applicationName, appVersion, carrierName, authToken);
+                        developerName, applicationName, appVersion, carrierName, authToken, cellId, uniqueIdType, uniqueId, tags);
 
                 RegisterClientReply registerClientReply = me.registerClient(registerClientRequest, me.getNetworkManager().getTimeout());
 
@@ -1204,7 +1270,11 @@ public class MatchingEngine {
                                                              final String appVersion,
                                                              final String carrierName,
                                                              final Location location,
-                                                             final String authToken) {
+                                                             final String authToken,
+                                                             final int cellId,
+                                                             final String uniqueIdType,
+                                                             final String uniqueId,
+                                                             final List<AppClient.Tag> tags) {
 
         final MatchingEngine me = this;
 
@@ -1212,7 +1282,7 @@ public class MatchingEngine {
             @Override
             public FindCloudletReply call() throws Exception {
                 RegisterClientRequest registerClientRequest = createRegisterClientRequest(context,
-                        developerName, applicationName, appVersion, carrierName, authToken);
+                        developerName, applicationName, appVersion, carrierName, authToken, cellId, uniqueIdType, uniqueId, tags);
 
                 RegisterClientReply registerClientReply = me.registerClient(registerClientRequest,
                         host, port, me.getNetworkManager().getTimeout());
