@@ -94,6 +94,8 @@ import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
 public class MatchingEngine {
     public static final String TAG = "MatchingEngine";
     public static final String baseDmeHost = "dme.mobiledgex.net";
+    public static final String WIFIHOST = "wifi";
+    public static final String wifiOnlyDmeHost =  WIFIHOST + "." + baseDmeHost; // Demo mode only.
     private String host = baseDmeHost;
     private NetworkManager mNetworkManager;
     private AppConnectionManager mAppConnectionManager;
@@ -116,6 +118,7 @@ public class MatchingEngine {
     private LocOuterClass.Loc mMatchEngineLocation;
 
     private boolean isSSLEnabled = true;
+    private boolean useOnlyWifi = false;
 
     private Context mContext;
 
@@ -144,6 +147,15 @@ public class MatchingEngine {
 
     public static void setMatchingEngineLocationAllowed(boolean allowMatchingEngineLocation) {
         mMatchingEngineLocationAllowed = allowMatchingEngineLocation;
+    }
+
+    public boolean isUseWifiOnly() {
+        return useOnlyWifi;
+    }
+
+    public void setUseWifiOnly(boolean enabled) {
+        useOnlyWifi = enabled;
+        setNetworkSwitchingEnabled(!useOnlyWifi);
     }
 
     private SubscriptionManager getSubscriptionManager(Context context) {
@@ -235,11 +247,17 @@ public class MatchingEngine {
      */
     public String retrieveNetworkCarrierName(Context context) {
         TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-        String networkOperatorName = telManager.getNetworkOperatorName();
-        if (networkOperatorName == null) {
-            Log.w(TAG, "Network Carrier name is not found on device.");
+        String networkOperator= telManager.getNetworkOperator();
+
+        if (useOnlyWifi) {
+            return WIFIHOST;
         }
-        return networkOperatorName;
+
+        if (networkOperator == null) {
+            Log.e(TAG, "Network Carrier name is not found on device.");
+            return WIFIHOST;
+        }
+        return networkOperator;
     }
 
     /**
@@ -295,6 +313,11 @@ public class MatchingEngine {
      * @return
      */
     public String generateDmeHostAddress() throws DmeDnsException {
+
+        if (useOnlyWifi) {
+            return wifiOnlyDmeHost;
+        }
+
         TelephonyManager telManager = (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
         if (telManager.getSimState() != TelephonyManager.SIM_STATE_READY) {
             Log.w(TAG, "SIM is not in ready state.");
@@ -308,7 +331,8 @@ public class MatchingEngine {
 
         String mccmnc = telManager.getNetworkOperator();
         if (mccmnc == null) {
-            throw new DmeDnsException("No mcc-mnc string available.");
+            Log.e(TAG, "No mcc-mnc string available.");
+            return wifiOnlyDmeHost; // fallback to wifi.
         }
 
         if (mccmnc.length() < 5 || mccmnc.length() > 6) {
@@ -681,7 +705,7 @@ public class MatchingEngine {
                 .setSpeed((loc == null) ? 0.0d : loc.getSpeed());
 
         if (Build.VERSION.SDK_INT > 26) {
-            builder.setVerticalAccuracy(loc.getVerticalAccuracyMeters());
+            builder.setVerticalAccuracy((loc == null) ? 0.0d : loc.getVerticalAccuracyMeters());
         }
         return builder.build();
     }
@@ -1274,15 +1298,6 @@ public class MatchingEngine {
      */
     public boolean isWiFiCallingSupported(CarrierConfigManager carrierConfigManager) {
         return mNetworkManager.isWiFiCallingSupported(carrierConfigManager);
-    }
-
-
-    public String getHost() {
-        return host;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
     }
 
     public int getPort() {
