@@ -49,8 +49,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 
-
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -87,6 +86,7 @@ import io.grpc.okhttp.OkHttpChannelBuilder;
 
 import android.content.pm.PackageInfo;
 import android.util.Log;
+import android.util.Pair;
 
 
 import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
@@ -267,44 +267,52 @@ public class MatchingEngine {
      *         be empty.
      * @throws SecurityException if GET_PHONE_STATE missing.
      */
-    public HashMap<String, Long> retrieveCellId(Context context) throws SecurityException {
+    public List<Pair<String, Long>> retrieveCellId(Context context) throws SecurityException {
         TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
 
-        HashMap<String, Long> cellInfoCidMap = new HashMap<>();
+        List<Pair<String, Long>> list = new ArrayList<>();
         long cid;
         for (CellInfo cellInfo : telManager.getAllCellInfo()) {
+            Pair<String, Long> cellIdentityPair = null;
+            if (!cellInfo.isRegistered()) {
+                continue;
+            }
             try {
                 if (Build.VERSION.SDK_INT >= 29 && cellInfo instanceof CellInfoNr) { // Q
                     CellIdentityNr cellIdentityNr = (CellIdentityNr)((CellInfoNr)cellInfo).getCellIdentity();
                     cid = cellIdentityNr.getNci();
-                    cellInfoCidMap.put(cellIdentityNr.getClass().getSimpleName(), cid);
+                    cellIdentityPair = new Pair(cellIdentityNr.getClass().getSimpleName(), cid);
                 } else if (Build.VERSION.SDK_INT >= 29 && cellInfo instanceof CellInfoTdscdma) {
                     CellIdentityTdscdma cellIdentityTdscdma = ((CellInfoTdscdma)cellInfo).getCellIdentity();
                     cid = cellIdentityTdscdma.getCid();
-                    cellInfoCidMap.put(cellInfo.getClass().getSimpleName(), cid);
+                    cellIdentityPair = new Pair(cellIdentityTdscdma.getClass().getSimpleName(), cid);
                 } else if (cellInfo instanceof CellInfoLte) {
                     CellIdentityLte cellIdentityLte = ((CellInfoLte)cellInfo).getCellIdentity();
                     cid = cellIdentityLte.getCi();
-                    cellInfoCidMap.put(cellInfo.getClass().getSimpleName(), cid);
+                    cellIdentityPair = new Pair(cellIdentityLte.getClass().getSimpleName(), cid);
                 } else if (cellInfo instanceof CellInfoGsm) {
                     CellIdentityGsm cellIdentityGsm = ((CellInfoGsm)cellInfo).getCellIdentity();
                     cid = cellIdentityGsm.getCid();
-                    cellInfoCidMap.put(cellInfo.getClass().getSimpleName(), cid);
+                    cellIdentityPair = new Pair(cellIdentityGsm.getClass().getSimpleName(), cid);
                 } else if (cellInfo instanceof CellInfoWcdma) {
                     CellIdentityWcdma cellIdentityWcdma = ((CellInfoWcdma)cellInfo).getCellIdentity();
                     cid = cellIdentityWcdma.getCid();
-                    cellInfoCidMap.put(cellInfo.getClass().getSimpleName(), cid);
+                    cellIdentityPair = new Pair(cellIdentityWcdma.getClass().getSimpleName(), cid);
                 } else if (cellInfo instanceof CellInfoCdma) {
                     CellIdentityCdma cellIdentityCdma = ((CellInfoCdma)cellInfo).getCellIdentity();
                     cid = cellIdentityCdma.getBasestationId();
-                    cellInfoCidMap.put(cellInfo.getClass().getSimpleName(), cid);
+                    cellIdentityPair = new Pair(cellIdentityCdma.getClass().getSimpleName(), cid);
+                }
+
+                if (cellIdentityPair != null) {
+                    list.add(cellIdentityPair);
                 }
             } catch (NullPointerException npe) {
                 continue;
             }
         }
 
-        return cellInfoCidMap;
+        return list;
     }
 
     /**
@@ -863,6 +871,7 @@ public class MatchingEngine {
             throws StatusRuntimeException, InterruptedException, IOException, ExecutionException {
         VerifyLocation verifyLocation = new VerifyLocation(this);
         verifyLocation.setRequest(request, host, port, timeoutInMilliseconds);
+
         return verifyLocation.call();
     }
 
