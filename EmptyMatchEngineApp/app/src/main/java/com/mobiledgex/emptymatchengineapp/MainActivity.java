@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2020-2020 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.telephony.CarrierConfigManager;
 import android.telephony.SubscriptionInfo;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
@@ -330,7 +331,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         // Here, being unable to register to the Edge infrastructure, app should
                         // fall back to public cloud server. Edge is not available.
                         // For Demo app, we use the eu-mexdemo dme server to continue to MobiledgeX.
-                        dmeHostAddress = "eu-mexdemo." + MatchingEngine.baseDmeHost;
+                        //dmeHostAddress = "eu-mexdemo." + MatchingEngine.baseDmeHost;
+                        dmeHostAddress = "sdkdemo." + MatchingEngine.baseDmeHost;
                     }
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
@@ -349,6 +351,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     AppClient.RegisterClientReply registerStatus =
                             mMatchingEngine.registerClient(registerClientRequest,
                                     dmeHostAddress, port, 10000);
+                    Log.i(TAG, "RegisterReply is " + registerStatus);
 
                     if (registerStatus.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {
                         someText += "Registration Failed. Error: " + registerStatus.getStatus();
@@ -357,12 +360,23 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         return;
                     }
 
+                    // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
+                    // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
+                    AppClient.FindCloudletRequest findCloudletRequest =
+                            mMatchingEngine.createFindCloudletRequest(ctx, carrierName, location, 0, null);
+                    Log.i(TAG, "after create find cloudlet request" + findCloudletRequest);
+                    AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
+                            dmeHostAddress, port, 10000);
+                    Log.i(TAG, "CloudletReply is " + closestCloudlet);
+
                     AppClient.VerifyLocationRequest verifyRequest =
                             mMatchingEngine.createVerifyLocationRequest(ctx, carrierName, location, 0, null);
+                    Log.i(TAG, "verifyRequest is " + verifyRequest);
                     if (verifyRequest != null) {
                         // Location Verification (Blocking, or use verifyLocationFuture):
                         AppClient.VerifyLocationReply verifiedLocation =
                                 mMatchingEngine.verifyLocation(verifyRequest, dmeHostAddress, port, 10000);
+                        Log.i(TAG, "VerifyLocationReply is " + verifiedLocation);
 
                         someText += "[Location Verified: Tower: " + verifiedLocation.getTowerStatus() +
                                 ", GPS LocationStatus: " + verifiedLocation.getGpsLocationStatus() +
@@ -370,10 +384,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                         // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
                         // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
-                        AppClient.FindCloudletRequest findCloudletRequest =
+                        /*AppClient.FindCloudletRequest findCloudletRequest =
                                 mMatchingEngine.createFindCloudletRequest(ctx, carrierName, location, 0, null);
                         AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
                                 dmeHostAddress, port, 10000);
+                        Log.i(TAG, "CloudletReply is " + closestCloudlet);*/
 
                         AppConnectionManager appManager = mMatchingEngine.getAppConnectionManager();
 
