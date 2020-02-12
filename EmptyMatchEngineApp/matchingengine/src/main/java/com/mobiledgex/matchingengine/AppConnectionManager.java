@@ -185,7 +185,7 @@ public class AppConnectionManager {
      * @return May be null if SSL socket factory cannot be created, or if it cannot find a cellular
      *         network.
      */
-    Future<SSLSocket> getTcpSslSocket(final AppClient.FindCloudletReply findCloudletReply,
+    public Future<SSLSocket> getTcpSslSocket(final AppClient.FindCloudletReply findCloudletReply,
                                       final AppPort appPort, final int portNum, final int timeoutMs) {
         if (!mNetworkManager.isNetworkSwitchingEnabled()) {
             return null;
@@ -243,7 +243,7 @@ public class AppConnectionManager {
      * @param timeoutMs timeout in milliseconds. 0 for infinite.
      * @return null can be returned if the network does not exist, or if network switching is disabled.
      */
-    Future<Socket> getTcpSocket(final AppClient.FindCloudletReply findCloudletReply,
+    public Future<Socket> getTcpSocket(final AppClient.FindCloudletReply findCloudletReply,
                                 final AppPort appPort, final int portNum, final int timeoutMs) {
         if (!mNetworkManager.isNetworkSwitchingEnabled()) {
             return null;
@@ -301,7 +301,7 @@ public class AppConnectionManager {
      * @param timeoutMs timeout in milliseconds. 0 for infinite.
      * @return null can be returned if the network does not exist, or if network switching is disabled.
      */
-    Future<DatagramSocket> getUdpSocket(final AppClient.FindCloudletReply findCloudletReply,
+    public Future<DatagramSocket> getUdpSocket(final AppClient.FindCloudletReply findCloudletReply,
                                         final AppPort appPort, final int portNum, final int timeoutMs) {
         Callable<DatagramSocket> socketCallable = new Callable<DatagramSocket>() {
             @Override
@@ -350,7 +350,7 @@ public class AppConnectionManager {
      * @return null can be returned if the network does not exist, if network switching is disabled,
      *         of if a SSL Socket Factory cannot be created.
      */
-    Future<OkHttpClient> getHttpClient(final long timeoutMs) {
+    public Future<OkHttpClient> getHttpClient(final long timeoutMs) {
         Callable<OkHttpClient> socketCallable = new Callable<OkHttpClient>() {
             @Override
             public OkHttpClient call() throws Exception {
