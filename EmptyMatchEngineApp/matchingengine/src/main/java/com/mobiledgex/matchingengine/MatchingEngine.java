@@ -28,6 +28,7 @@ import android.provider.Settings;
 import android.provider.Settings.Secure;
 import android.support.annotation.RequiresApi;
 import android.telephony.CarrierConfigManager;
+import android.telephony.CellIdentity;
 import android.telephony.CellIdentityCdma;
 import android.telephony.CellIdentityGsm;
 import android.telephony.CellIdentityLte;
@@ -52,7 +53,6 @@ import java.net.UnknownHostException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -447,12 +447,16 @@ public class MatchingEngine {
                 .setAppVers(versionName)
                 .setCarrierName(carrierName)
                 .setAuthToken("")
+                .setUniqueId(getUniqueId(context))
+                .setUniqueIdType("applicationInstallId") // FIXME: proto enum type definition needed.
                 .setCellId(0);
     }
 
     public RegisterClientRequest createRegisterClientRequest(Context context, String developerName,
                                                              String applicationName, String appVersion,
-                                                             String carrierName, String authToken, int cellId, String uniqueIdType, String uniqueId, List<AppClient.Tag> tags)
+                                                             String carrierName, String authToken,
+                                                             int cellId, String uniqueIdType,
+                                                             String uniqueId, List<AppClient.Tag> tags)
     {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create RegisterClientRequest disabled. Matching engine is not configured to allow use.");
@@ -510,8 +514,8 @@ public class MatchingEngine {
         return builder.build();
     }
 
-    public VerifyLocationRequest createVerifyLocationRequest(Context context, String carrierName,
-                                                             android.location.Location location, int cellId, List<AppClient.Tag> tags) {
+    public VerifyLocationRequest.Builder createDefaultVerifyLocationRequest(Context context, String carrierName,
+                                                             android.location.Location location) {
         if (context == null) {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
@@ -531,19 +535,48 @@ public class MatchingEngine {
         }
         Loc aLoc = androidLocToMeLoc(location);
 
+        List<Pair<String, Long>> ids = retrieveCellId(context);
+        long cellId = 0;
+        if (ids.size() > 0) {
+            // FIXME: Need a preference, as we can't guess here.
+            if (ids.size() > 0) {
+                cellId = ids.get(0).second;
+            }
+        }
+
         VerifyLocationRequest.Builder builder = AppClient.VerifyLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(
                         (carrierName == null || carrierName.equals(""))
-                            ? retrieveNetworkCarrierName(context) : carrierName)
+                                ? retrieveNetworkCarrierName(context) : carrierName)
                 .setGpsLocation(aLoc) // Latest token is unknown until retrieved.
-                .setCellId(cellId);
+                .setCellId((int)cellId);
+        return builder;
+    }
 
-        if (tags != null) {
-            builder.addAllTags(tags);
+    public VerifyLocationRequest createVerifyLocationRequest(Context context, String carrierName,
+                                                             android.location.Location location,
+                                                             int cellId, List<AppClient.Tag> tags) {
+
+        if (!mMatchingEngineLocationAllowed) {
+            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
+            return null;
         }
 
-        return builder.build();
+        if (cellId == 0) {
+            List<Pair<String, Long>> ids = retrieveCellId(context);
+            if (ids.size() > 0) {
+                // FIXME: Need a preference, as we can't guess here.
+                if (ids.size() > 0) {
+                    cellId = ids.get(0).second.intValue();
+                }
+            }
+        }
+
+        return createDefaultVerifyLocationRequest(context, carrierName, location)
+                .setCellId(cellId)
+                .addAllTags(tags)
+                .build();
     }
 
     /**
@@ -591,8 +624,8 @@ public class MatchingEngine {
                 .setDevName(developerName)
                 .setAppName(appName)
                 .setAppVers(versionName)
-                .setGpsLocation(aLoc);
-                .setCellId();
+                .setGpsLocation(aLoc)
+                .setCellId(0);
     }
 
     public FindCloudletRequest createFindCloudletRequest(Context context, String carrierName,
