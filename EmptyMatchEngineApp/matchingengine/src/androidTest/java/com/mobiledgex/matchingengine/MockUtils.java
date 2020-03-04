@@ -125,11 +125,14 @@ public class MockUtils {
                 .build();
     }
 
-    public static AppClient.FindCloudletRequest createMockFindCloudletRequest(String networkOperatorName, MatchingEngine me, Location location) {
+    public static AppClient.FindCloudletRequest createMockFindCloudletRequest(String networkOperatorName, String developerName, String appName, String appVersion, MatchingEngine me, Location location) {
         return AppClient.FindCloudletRequest.newBuilder()
                 .setVer(0)
                 .setSessionCookie(me.getSessionCookie() == null ? "" : me.getSessionCookie())
                 .setCarrierName(networkOperatorName)
+                .setDevName(developerName)
+                .setAppName(appName)
+                .setAppVers(appVersion)
                 .setGpsLocation(androidToMessageLoc(location))
                 .build();
     }
