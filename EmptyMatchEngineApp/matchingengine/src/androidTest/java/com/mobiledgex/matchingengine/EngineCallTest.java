@@ -236,7 +236,7 @@ public class EngineCallTest {
             try {
                 // Non-Mock.
                 AppClient.RegisterClientRequest registerClientRequest = me.createRegisterClientRequest(
-                        context, developerName, null, null, null, null);
+                        context, developerName, null, null, null, null, 0, null, null , null);
                 AppClient.RegisterClientReply registerStatusReply = me.registerClient(registerClientRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } catch (IllegalArgumentException iae) {
                 Log.i(TAG, "Expected exception for registerClient. Mex Disabled.");
@@ -246,7 +246,7 @@ public class EngineCallTest {
 
             try {
                 AppClient.FindCloudletRequest findCloudletRequest;
-                findCloudletRequest = me.createFindCloudletRequest(context, me.retrieveNetworkCarrierName(context), location);
+                findCloudletRequest = me.createFindCloudletRequest(context, me.retrieveNetworkCarrierName(context), location, 0, null);
                 AppClient.FindCloudletReply findCloudletReply;
                 if (useHostOverride) {
                     findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -259,7 +259,7 @@ public class EngineCallTest {
             }
 
             try {
-                AppClient.GetLocationRequest locationRequest = me.createGetLocationRequest(context, me.retrieveNetworkCarrierName(context));
+                AppClient.GetLocationRequest locationRequest = me.createGetLocationRequest(context, me.retrieveNetworkCarrierName(context), 0, null);
                 AppClient.GetLocationReply getLocationReply;
                 if (useHostOverride) {
                     getLocationReply = me.getLocation(locationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -271,7 +271,7 @@ public class EngineCallTest {
                 Log.i(TAG, "Expected exception for getLocation. Mex Disabled.");
             }
             try {
-                AppClient.VerifyLocationRequest verifyLocationRequest = me.createVerifyLocationRequest(context, me.retrieveNetworkCarrierName(context), location);
+                AppClient.VerifyLocationRequest verifyLocationRequest = me.createVerifyLocationRequest(context, me.retrieveNetworkCarrierName(context), location, 0, null);
                 AppClient.VerifyLocationReply verifyLocationReply;
                 if (useHostOverride) {
                     verifyLocationReply = me.verifyLocation(verifyLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -288,7 +288,7 @@ public class EngineCallTest {
 
             try {
                 // Non-Mock.
-                AppClient.AppInstListRequest appInstListRequest = me.createAppInstListRequest(context, me.retrieveNetworkCarrierName(context), location);
+                AppClient.AppInstListRequest appInstListRequest = me.createAppInstListRequest(context, me.retrieveNetworkCarrierName(context), location, 0, null);
                 AppClient.AppInstListReply appInstListReply;
                 if (useHostOverride) {
                     appInstListReply = me.getAppInstList(appInstListRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1055,7 +1055,7 @@ public class EngineCallTest {
 
             ArrayList<AppClient.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
 
-            AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests, 0, null);
+            AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests, 0, null, 0, null);
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
 
@@ -1107,7 +1107,7 @@ public class EngineCallTest {
 
             ArrayList<AppClient.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
 
-            AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests, 0, null);
+            AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests, 0, null, 0, null);
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
 
@@ -1151,8 +1151,9 @@ public class EngineCallTest {
 
         MatchingEngine me = new MatchingEngine(context);
         AppConnectionManager appConnect = me.getAppConnectionManager();
-        me.setMatchingEngineLocationAllowed(true);
-        me.setAllowSwitchIfNoSubscriberInfo(true);
+        me.setNetworkSwitchingEnabled(false);
+        //me.setMatchingEngineLocationAllowed(true);
+        //me.setAllowSwitchIfNoSubscriberInfo(true);
 
         enableMockLocation(context, true);
 
@@ -1161,7 +1162,7 @@ public class EngineCallTest {
         BufferedInputStream bis = null;
         try {
             // Test against Http Echo.
-            AppClient.RegisterClientRequest req = me.createRegisterClientRequest(context, "MobiledgeX", "HttpEcho", "20191204", "TDG", null);
+            AppClient.RegisterClientRequest req = me.createRegisterClientRequest(context, "MobiledgeX", "HttpEcho", "20191204", "TDG", null, 0, null, null, null);
             AppClient.RegisterClientReply reply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             assertTrue("Register did not succeed for HttpEcho appInst", reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
 
@@ -1173,7 +1174,7 @@ public class EngineCallTest {
             setMockLocation(context, mockLoc);
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(context, "TDG", location);
+            AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(context, "TDG", location, 0, null);
             AppClient.FindCloudletReply findCloudletReply;
             if (useHostOverride) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1279,7 +1280,7 @@ public class EngineCallTest {
         try {
             String data = "{\"Data\": \"food\"}";
 
-            AppClient.RegisterClientRequest req = me.createRegisterClientRequest(context, "MobiledgeX", "HttpEcho", "20191204", "TDG", null);
+            AppClient.RegisterClientRequest req = me.createRegisterClientRequest(context, "MobiledgeX", "HttpEcho", "20191204", "TDG", null, 0, null, null, null);
             AppClient.RegisterClientReply reply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             assertTrue("Register did not succeed for HttpEcho appInst", reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
 
@@ -1291,7 +1292,7 @@ public class EngineCallTest {
             setMockLocation(context, mockLoc);
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(context, "TDG", location);
+            AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(context, "TDG", location, 0, null);
             AppClient.FindCloudletReply findCloudletReply;
             if (useHostOverride) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1363,7 +1364,7 @@ public class EngineCallTest {
         try {
             String data = "{\"Data\": \"food\"}";
 
-            AppClient.RegisterClientRequest req = me.createRegisterClientRequest(context, "MobiledgeX", "HttpEcho", "20191204", "TDG", null);
+            AppClient.RegisterClientRequest req = me.createRegisterClientRequest(context, "MobiledgeX", "HttpEcho", "20191204", "TDG", null, 0, null, null, null);
             AppClient.RegisterClientReply reply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             assertTrue("Register did not succeed for HttpEcho appInst", reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
 
@@ -1374,7 +1375,7 @@ public class EngineCallTest {
             setMockLocation(context, mockLoc);
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(context, "TDG", location);
+            AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(context, "TDG", location, 0, null);
             AppClient.FindCloudletReply findCloudletReply;
             if (useHostOverride) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1477,7 +1478,7 @@ public class EngineCallTest {
 
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
                     "MobiledgeX", "HttpEcho",
-                    "20191204", "TDG", location, "");
+                    "20191204", "TDG", location, "", 0, null, null, null);
             // Just wait:
             AppClient.FindCloudletReply reply = findCloudletReplyFuture.get();
             HashMap<Integer, AppPort> appTcpPortMap = appConnect.getTCPMap(reply);
