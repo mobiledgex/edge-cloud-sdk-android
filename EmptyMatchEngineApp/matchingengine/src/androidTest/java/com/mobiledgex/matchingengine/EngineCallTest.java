@@ -19,6 +19,7 @@ package com.mobiledgex.matchingengine;
 
 import android.app.UiAutomation;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Environment;
 import android.os.Looper;
 import android.support.test.InstrumentationRegistry;
@@ -32,7 +33,6 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
 
-import org.junit.After;
 import org.junit.Test;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -74,11 +74,13 @@ public class EngineCallTest {
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
     public static final String developerName = "MobiledgeX";
+    // Other globals:
     public static final String applicationName = "MobiledgeX SDK Demo";
+    public static final String appVersion = "2.0";
 
     FusedLocationProviderClient fusedLocationClient;
 
-    public static String hostOverride = "eu-mexdemo.dme.mobiledgex.net";
+    public static String hostOverride = "wifi.dme.mobiledgex.net";
     public static int portOverride = 50051;
 
     public boolean useHostOverride = false;
@@ -92,6 +94,19 @@ public class EngineCallTest {
             Looper.prepare();
     }
 
+    @Before
+    public void grantPermissions() {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+            uiAutomation.grantRuntimePermission(
+                    InstrumentationRegistry.getTargetContext().getPackageName(),
+                    "android.permission.READ_PHONE_STATE");
+            uiAutomation.grantRuntimePermission(
+                    InstrumentationRegistry.getTargetContext().getPackageName(),
+                    "android.permission.ACCESS_COARSE_LOCATION");
+        }
+    }
     // Mini test of wifi only:
     @Test
     public void testWiFiOnly() {
@@ -110,20 +125,6 @@ public class EngineCallTest {
         assertEquals(me.wifiOnlyDmeHost, overrideHost);
         me.setUseWifiOnly(useWifiOnly = false);
         assertEquals(false, me.isUseWifiOnly());
-    }
-
-    @Before
-    public void grantPermissions() {
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
-            uiAutomation.grantRuntimePermission(
-                    InstrumentationRegistry.getTargetContext().getPackageName(),
-                    "android.permission.READ_PHONE_STATE");
-            uiAutomation.grantRuntimePermission(
-                    InstrumentationRegistry.getTargetContext().getPackageName(),
-                    "android.permission.ACCESS_COARSE_LOCATION");
-        }
     }
 
     private void copyFile(File source, File destination) {
@@ -173,7 +174,6 @@ public class EngineCallTest {
             File destFile = new File(filesDir.getAbsolutePath() + "/" + fileNames[i]);
             copyFile(srcFile, destFile);
         }
-
 
     }
 
@@ -322,11 +322,21 @@ public class EngineCallTest {
     }
 
     // Every call needs registration to be called first at some point.
+    // Test only!
     public void registerClient(MatchingEngine me) {
+        Context context = InstrumentationRegistry.getTargetContext();
+
         AppClient.RegisterClientReply registerReply;
         AppClient.RegisterClientRequest regRequest;
-        regRequest = MockUtils.createMockRegisterClientRequest(developerName, applicationName, me);
+
         try {
+            // The app version will be null, but we can build from scratch for test
+            regRequest = AppClient.RegisterClientRequest.newBuilder()
+                    .setCarrierName(me.retrieveNetworkCarrierName(context))
+                    .setDevName(developerName)
+                    .setAppName(applicationName)
+                    .setAppVers(appVersion)
+                    .build();
             if (useHostOverride) {
                 registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
@@ -458,7 +468,6 @@ public class EngineCallTest {
 
         Location loc = MockUtils.createLocation("findCloudletTest", 122.3321, 47.6062);
 
-
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
@@ -467,14 +476,22 @@ public class EngineCallTest {
             String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
-            AppClient.FindCloudletRequest findCloudletRequest = MockUtils.createMockFindCloudletRequest(
-                    carrierName, me, location);
+            // Set devName and location, then override the rest for testing:
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, developerName, location)
+                .setAppName(applicationName)
+                .setAppVers(appVersion)
+                .build();
             if (useHostOverride) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
             }
 
+        }
+        catch (PackageManager.NameNotFoundException nnfe){
+            Log.e(TAG, nnfe.getMessage());
+            Log.e(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("FindCloudlet: NameNotFoundException", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("FindCloudlet: DmeDnsException", true);
@@ -482,6 +499,7 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(ee));
             assertFalse("FindCloudlet: ExecutionException!", true);
         } catch (StatusRuntimeException sre) {
+            Log.e(TAG, sre.getMessage());
             Log.e(TAG, Log.getStackTraceString(sre));
             assertFalse("FindCloudlet: StatusRunTimeException!", true);
         } catch (InterruptedException ie) {
@@ -493,7 +511,7 @@ public class EngineCallTest {
 
         if (findCloudletReply != null) {
             // Temporary.
-            assertEquals("App's expected test cloudlet FQDN doesn't match.", "mobiledgexmobiledgexsdkdemo10.mexdemo-app-cluster.centralus-main.azure.mobiledgex.net", findCloudletReply.getFqdn());
+            assertEquals("App's expected test cloudlet FQDN doesn't match.", "mobiledgexmobiledgexsdkdemo20.mexdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net", findCloudletReply.getFqdn());
         } else {
             assertFalse("No findCloudlet response!", false);
         }
@@ -519,7 +537,8 @@ public class EngineCallTest {
             String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
-            AppClient.FindCloudletRequest findCloudletRequest = MockUtils.createMockFindCloudletRequest(carrierName, me, location);
+            AppClient.FindCloudletRequest findCloudletRequest = MockUtils.createMockFindCloudletRequest(
+                    carrierName, developerName, applicationName, appVersion, me, location);
             if (useHostOverride) {
                 response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, 10000);
             } else {
@@ -540,7 +559,7 @@ public class EngineCallTest {
         }
 
         // Temporary.
-        assertEquals("Fully qualified domain name not expected.", "mobiledgexmobiledgexsdkdemo10.mexdemo-app-cluster.centralus-main.azure.mobiledgex.net", result.getFqdn());
+        assertEquals("Fully qualified domain name not expected.", "mobiledgexmobiledgexsdkdemo20.mexdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net", result.getFqdn());
 
     }
 
@@ -959,7 +978,7 @@ public class EngineCallTest {
 
             assertEquals(0, list.getVer());
             assertEquals(AppClient.AppInstListReply.AIStatus.AI_SUCCESS, list.getStatus());
-            assertEquals(1, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
+            assertEquals(2, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
             for (int i = 0; i < list.getCloudletsCount(); i++) {
                 Log.v(TAG, "Cloudlet: " + list.getCloudlets(i).toString());
             }
@@ -1012,7 +1031,7 @@ public class EngineCallTest {
 
             assertEquals(0, list.getVer());
             assertEquals(AppClient.AppInstListReply.AIStatus.AI_SUCCESS, list.getStatus());
-            assertEquals(1, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
+            assertEquals(2, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
             for (int i = 0; i < list.getCloudletsCount(); i++) {
                 Log.v(TAG, "Cloudlet: " + list.getCloudlets(i).toString());
             }
@@ -1024,6 +1043,7 @@ public class EngineCallTest {
             Log.i(TAG, Log.getStackTraceString(ee));
             assertFalse("getAppInstListFutureTest: ExecutionException!", true);
         } catch (StatusRuntimeException sre) {
+            Log.i(TAG, sre.getMessage());
             Log.i(TAG, Log.getStackTraceString(sre));
             assertFalse("getAppInstListFutureTest: StatusRuntimeException!", true);
         } catch (InterruptedException ie) {
@@ -1046,6 +1066,7 @@ public class EngineCallTest {
         // The test must use a location where data exists on QOS server.
         Location location = MockUtils.createLocation("getQosPositionKpiTest", 8.5821, 50.11);
 
+        ChannelIterator<AppClient.QosPositionKpiReply> responseIterator = null;
         try {
             registerClient(me);
 
@@ -1058,8 +1079,11 @@ public class EngineCallTest {
             AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests, 0, null, 0, null);
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
-
-            ChannelIterator<AppClient.QosPositionKpiReply> responseIterator = me.getQosPositionKpi(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            if (useHostOverride) {
+                responseIterator = me.getQosPositionKpi(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                responseIterator = me.getQosPositionKpi(request, GRPC_TIMEOUT_MS);
+            }
             // A stream of QosPositionKpiReply(s), with a non-stream block of responses.
             long total = 0;
             while (responseIterator.hasNext()) {
@@ -1071,10 +1095,14 @@ public class EngineCallTest {
             }
             responseIterator.shutdown();
             assertEquals((long)(kpiRequests.size()), total);
+        } catch (DmeDnsException dde) {
+            Log.i(TAG, Log.getStackTraceString(dde));
+            assertFalse("queryQosKpiTest: DmeDnsException!", true);
         } catch (ExecutionException ee) {
             Log.i(TAG, Log.getStackTraceString(ee));
             assertFalse("queryQosKpiTest: ExecutionException!", true);
         } catch (StatusRuntimeException sre) {
+            Log.i(TAG, sre.getMessage());
             Log.i(TAG, Log.getStackTraceString(sre));
             assertFalse("queryQosKpiTest: StatusRuntimeException!", true);
         } catch (InterruptedException ie) {
@@ -1082,6 +1110,9 @@ public class EngineCallTest {
             assertFalse("queryQosKpiTest: InterruptedException!", true);
         } finally {
             enableMockLocation(context,false);
+            if (responseIterator != null) {
+                responseIterator.shutdown();
+            }
         }
 
     }
@@ -1110,8 +1141,12 @@ public class EngineCallTest {
             AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests, 0, null, 0, null);
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
-
-            Future<ChannelIterator<AppClient.QosPositionKpiReply>> replyFuture = me.getQosPositionKpiFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            Future<ChannelIterator<AppClient.QosPositionKpiReply>> replyFuture = null;
+            if (useHostOverride) {
+                replyFuture = me.getQosPositionKpiFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                replyFuture = me.getQosPositionKpiFuture(request, GRPC_TIMEOUT_MS);
+            }
             // A stream of QosPositionKpiReply(s), with a non-stream block of responses.
             // Wait for value with get().
             ChannelIterator<AppClient.QosPositionKpiReply> responseIterator = replyFuture.get();
@@ -1125,10 +1160,14 @@ public class EngineCallTest {
             }
             responseIterator.shutdown();
             assertEquals((long)(kpiRequests.size()), total);
+        } catch (DmeDnsException dde) {
+            Log.i(TAG, Log.getStackTraceString(dde));
+            assertFalse("getQosPositionKpiFutureTest: DmeDnsException!", true);
         } catch (ExecutionException ee) {
             Log.i(TAG, Log.getStackTraceString(ee));
             assertFalse("getQosPositionKpiFutureTest: ExecutionException!", true);
         } catch (StatusRuntimeException sre) {
+            Log.i(TAG, sre.getMessage());
             Log.i(TAG, Log.getStackTraceString(sre));
             assertFalse("getQosPositionKpiFutureTest: StatusRuntimeException!", true);
         } catch (InterruptedException ie) {
@@ -1151,7 +1190,7 @@ public class EngineCallTest {
 
         MatchingEngine me = new MatchingEngine(context);
         AppConnectionManager appConnect = me.getAppConnectionManager();
-        me.setNetworkSwitchingEnabled(false);
+        //me.setNetworkSwitchingEnabled(false);
         //me.setMatchingEngineLocationAllowed(true);
         //me.setAllowSwitchIfNoSubscriberInfo(true);
 
@@ -1162,21 +1201,48 @@ public class EngineCallTest {
         BufferedInputStream bis = null;
         try {
             // Test against Http Echo.
-            AppClient.RegisterClientRequest req = me.createRegisterClientRequest(context, "MobiledgeX", "HttpEcho", "20191204", "GDDT", null, 0, null, null, null);
-            AppClient.RegisterClientReply reply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            assertTrue("Register did not succeed for HttpEcho appInst", reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            String carrierName = "GDDT";
+            String appName = "HttpEcho";
+            String devName = "MobiledgeX";
+            String appVersion = "20191204";
+
+            // Exercise and override the default:
+            // The app version will be null, but we can build from scratch for test
+            AppClient.RegisterClientRequest regRequest = AppClient.RegisterClientRequest.newBuilder()
+                    .setCarrierName(me.retrieveNetworkCarrierName(context))
+                    .setDevName(devName)
+                    .setAppName(appName)
+                    .setAppVers(appVersion)
+                    .build();
+
+            AppClient.RegisterClientReply registerClientReply;
+            if (true) {
+                registerClientReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                registerClientReply = me.registerClient(regRequest, GRPC_TIMEOUT_MS);
+            }
+            assertTrue("Register did not succeed for HttpEcho appInst", registerClientReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
 
             MeLocation meLoc = new MeLocation(me);
             assertTrue("Missing Location!", meLoc != null);
 
             enableMockLocation(context, true);
             Location mockLoc = MockUtils.createLocation("appConnectionTestTcp001", 122.3321, 47.6062);
+            Location loc = MockUtils.createLocation("registerClientTest", 122.3321, 47.6062);
             setMockLocation(context, mockLoc);
+            synchronized (meLoc) {
+                meLoc.wait(1000); // Give some time for system to pick up change.
+            }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(context, "GDDT", location, 0, null);
+            // Default, with test overrides:
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, devName, location)
+                    .setAppName(appName)
+                    .setAppVers(appVersion)
+                    .build();
+
             AppClient.FindCloudletReply findCloudletReply;
-            if (useHostOverride) {
+            if (true) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
@@ -1231,6 +1297,10 @@ public class EngineCallTest {
                 assertTrue("Failed to get output stream for socket!", false);
             }
 
+        } catch (PackageManager.NameNotFoundException nnfe){
+            Log.e(TAG, nnfe.getMessage());
+            Log.e(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("FindCloudlet: NameNotFoundException", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("appConnectionTestTcp001: DmeDnsException", true);
@@ -1238,6 +1308,7 @@ public class EngineCallTest {
             Log.i(TAG, Log.getStackTraceString(ee));
             assertFalse("appConnectionTestTcp001: ExecutionException!", true);
         } catch (StatusRuntimeException sre) {
+            Log.i(TAG, sre.getMessage());
             Log.i(TAG, Log.getStackTraceString(sre));
             assertFalse("appConnectionTestTcp001: StatusRuntimeException!", true);
         } catch (InterruptedException ie) {
@@ -1258,6 +1329,7 @@ public class EngineCallTest {
                 assertFalse("IO Exceptions trying to close socket.", true);
             }
             enableMockLocation(context, false);
+            me.setNetworkSwitchingEnabled(true);
         }
     }
 
@@ -1277,12 +1349,27 @@ public class EngineCallTest {
         enableMockLocation(context,true);
 
         OkHttpClient httpClient = null;
+        // Test against Http Echo.
+        String carrierName = "GDDT";
+        String appName = "HttpEcho";
+        String devName = "MobiledgeX";
+        String appVersion = "20191204";
         try {
             String data = "{\"Data\": \"food\"}";
 
-            AppClient.RegisterClientRequest req = me.createRegisterClientRequest(context, "MobiledgeX", "HttpEcho", "20191204", "GDDT", null, 0, null, null, null);
-            AppClient.RegisterClientReply reply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            assertTrue("Register did not succeed for HttpEcho appInst", reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            AppClient.RegisterClientRequest req = me.createDefaultRegisterClientRequest(context, devName)
+                    .setCarrierName(carrierName)
+                    .setAppName(appName)
+                    .setAppVers(appVersion)
+                    .build();
+
+            AppClient.RegisterClientReply registerReply;
+            if (true) {
+                registerReply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                registerReply = me.registerClient(req, GRPC_TIMEOUT_MS);
+            }
+            assertTrue("Register did not succeed for HttpEcho appInst", registerReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
 
             MeLocation meLoc = new MeLocation(me);
             assertTrue("Missing Location!", meLoc != null);
@@ -1290,11 +1377,20 @@ public class EngineCallTest {
             enableMockLocation(context, true);
             Location mockLoc = MockUtils.createLocation("verifyLocationFutureTest", 122.3321, 47.6062);
             setMockLocation(context, mockLoc);
+            synchronized (mockLoc) {
+                mockLoc.wait(1000);
+            }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(context, "GDDT", location, 0, null);
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, devName, location)
+                    .setCarrierName(carrierName)
+                    .setAppName(appName)
+                    .setAppVers(appVersion)
+                    .build();
+            assertEquals("Session cookies don't match!", registerReply.getSessionCookie(), findCloudletRequest.getSessionCookie());
+
             AppClient.FindCloudletReply findCloudletReply;
-            if (useHostOverride) {
+            if (true) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
@@ -1306,6 +1402,7 @@ public class EngineCallTest {
 
             // FIXME: UI Console exposes HTTP as TCP only, so test here use getTcpMap().
             String url = null;
+            assertTrue("No AppPorts!", findCloudletReply.getPortsCount() > 0);
             HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
             // Choose the port that we happen to know the internal port for, 3001.
             AppPort one = portMap.get(3001);
@@ -1330,26 +1427,32 @@ public class EngineCallTest {
             String output = response.body().string();
             boolean found = output.indexOf("food") !=-1 ? true : false;;
             assertTrue("Didn't find json data [" + data + "] in response!", found == true);
+        } catch (PackageManager.NameNotFoundException nnfe) {
+
         } catch (IOException ioe) {
             Log.e(TAG, Log.getStackTraceString(ioe));
-            assertFalse("appConnectionTestTcp001: IOException", true);
+            assertFalse("appConnectionTestTcp002: IOException", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
-            assertFalse("appConnectionTestTcp001: DmeDnsException", true);
+            assertFalse("appConnectionTestTcp002: DmeDnsException", true);
         } catch (ExecutionException ee) {
             Log.i(TAG, Log.getStackTraceString(ee));
-            assertFalse("appConnectionTestTcp001: ExecutionException!", true);
+            assertFalse("appConnectionTestTcp002: ExecutionException!", true);
         } catch (StatusRuntimeException sre) {
+            Log.i(TAG, sre.getMessage());
             Log.i(TAG, Log.getStackTraceString(sre));
-            assertFalse("appConnectionTestTcp001: StatusRuntimeException!", true);
+            assertFalse("appConnectionTestTcp002: StatusRuntimeException!", true);
         } catch (InterruptedException ie) {
             Log.i(TAG, Log.getStackTraceString(ie));
-            assertFalse("appConnectionTestTcp001: InterruptedException!", true);
+            assertFalse("appConnectionTestTcp002: InterruptedException!", true);
         } finally {
             enableMockLocation(context,false);
         }
     }
 
+    /**
+     * NOTE: HttpEcho may only be installed on wifi.dme domain
+     */
     @Test
     public void appConnectionTestTcp_Http_001() {
         Context context = InstrumentationRegistry.getContext();
@@ -1363,21 +1466,44 @@ public class EngineCallTest {
 
         try {
             String data = "{\"Data\": \"food\"}";
+            String carrierName = "GDDT";
+            String devName = "MobiledgeX";
+            String appName = "HttpEcho";
+            String appVersion = "20191204";
 
-            AppClient.RegisterClientRequest req = me.createRegisterClientRequest(context, "MobiledgeX", "HttpEcho", "20191204", "GDDT", null, 0, null, null, null);
-            AppClient.RegisterClientReply reply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            assertTrue("Register did not succeed for HttpEcho appInst", reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            AppClient.RegisterClientRequest req = me.createDefaultRegisterClientRequest(context, devName)
+                    .setCarrierName(carrierName)
+                    .setAppName(appName)
+                    .setAppVers(appVersion)
+                    .build();
+            AppClient.RegisterClientReply registerClientReply;
+            if (true) {
+                registerClientReply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                registerClientReply = me.registerClient(req, GRPC_TIMEOUT_MS);
+            }
+            assertTrue("Register did not succeed for HttpEcho appInst", registerClientReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
 
             MeLocation meLoc = new MeLocation(me);
             assertTrue("Missing Location!", meLoc != null);
 
             Location mockLoc = MockUtils.createLocation("verifyLocationFutureTest", 122.3321, 47.6062);
             setMockLocation(context, mockLoc);
+            Object aMon = new Object(); // Some arbitrary object Monitor.
+            synchronized (aMon) {
+                aMon.wait(1000);
+            }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(context, "GDDT", location, 0, null);
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, developerName, location)
+                    //.setCarrierName(carrierName)
+                    .setAppName(appName)
+                    .setAppVers(appVersion)
+                    .build();
+            assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
+                    me.getSessionCookie(), findCloudletRequest.getSessionCookie());
             AppClient.FindCloudletReply findCloudletReply;
-            if (useHostOverride) {
+            if (true) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
@@ -1436,6 +1562,10 @@ public class EngineCallTest {
                 assertEquals("Should fail SSL Host verification, but still be 200 OK. Status: ", 200, httpStatus);
             }
             assertTrue("Did not fail hostname SSL verification!", failedVerification);
+        } catch (PackageManager.NameNotFoundException nnfe) {
+            Log.e(TAG, nnfe.getMessage());
+            Log.i(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("appConnectionTestTcp001: Package Info is missing!", true);
         } catch (IOException ioe) {
             Log.e(TAG, Log.getStackTraceString(ioe));
             assertFalse("appConnectionTestTcp001: IOException", true);
@@ -1446,6 +1576,7 @@ public class EngineCallTest {
             Log.i(TAG, Log.getStackTraceString(ee));
             assertFalse("appConnectionTestTcp001: ExecutionException!", true);
         } catch (StatusRuntimeException sre) {
+            Log.e(TAG, sre.getMessage());
             Log.i(TAG, Log.getStackTraceString(sre));
             assertFalse("appConnectionTestTcp001: StatusRuntimeException!", true);
         } catch (InterruptedException ie) {
@@ -1458,35 +1589,46 @@ public class EngineCallTest {
 
     @Test
     public void testRegisterAndFindCloudlet_001() {
-        Context context = InstrumentationRegistry.getContext();
-
+        Context context = InstrumentationRegistry.getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
-        AppConnectionManager appConnect = me.getAppConnectionManager();
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
+        AppConnectionManager appConnectionManager = me.getAppConnectionManager();
+
+        MeLocation meLoc = new MeLocation(me);
+        Location location;
+        AppClient.RegisterClientReply registerClientReply = null;
+        String carrierName = "GDDT";
+        String developerName = "MobiledgeX";
+        String appName = "HttpEcho";
+        String appVersion = "20191204";
+
         enableMockLocation(context,true);
+        Location loc = MockUtils.createLocation("registerClientTest", 122.3321, 47.6062);
 
         Socket socket = null;
         try {
-            MeLocation meLoc = new MeLocation(me);
-            assertTrue("Missing Location!", meLoc != null);
-
-            Location mockLoc = MockUtils.createLocation("verifyLocationFutureTest", 122.3321, 47.6062);
-            setMockLocation(context, mockLoc);
-            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
+            setMockLocation(context, loc);
+            Object aMon = new Object(); // Some arbitrary object Monitor.
+            synchronized (aMon) {
+                aMon.wait(1000);
+            }
+            location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
+            assertTrue("Required location is null!", location != null);
 
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
-                    "MobiledgeX", "HttpEcho",
-                    "20191204", "GDDT", location, "", 0, null, null, null);
+                    developerName, appName,
+                    appVersion, carrierName, location, "",
+                    0, null, null, null); // FIXME: These parameters should be overloaded or optional.
             // Just wait:
-            AppClient.FindCloudletReply reply = findCloudletReplyFuture.get();
-            HashMap<Integer, AppPort> appTcpPortMap = appConnect.getTCPMap(reply);
+            AppClient.FindCloudletReply findCloudletReply = findCloudletReplyFuture.get();
+            HashMap<Integer, AppPort> appTcpPortMap = appConnectionManager.getTCPMap(findCloudletReply);
             AppPort appPort = appTcpPortMap.get(3001);
-            Future<Socket> socketFuture = me.getAppConnectionManager().getTcpSocket(reply, appPort, appPort.getPublicPort(), (int)GRPC_TIMEOUT_MS);
+            Future<Socket> socketFuture = me.getAppConnectionManager().getTcpSocket(findCloudletReply, appPort, appPort.getPublicPort(), (int)GRPC_TIMEOUT_MS);
             socket = socketFuture.get();
 
-            assertTrue("FindCloudletReply failed!", reply != null);
+            assertTrue("FindCloudletReply failed!", findCloudletReply != null);
         } catch (ExecutionException ee) {
             Log.i(TAG, Log.getStackTraceString(ee));
             assertFalse("testRegisterAndFindCloudlet_001: ExecutionException!", true);
