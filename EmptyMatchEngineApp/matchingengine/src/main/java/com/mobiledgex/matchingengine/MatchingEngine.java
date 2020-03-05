@@ -385,7 +385,7 @@ public class MatchingEngine {
     }
 
     /**
-     * Returns the Application Name.
+     * Returns the nonLocalizedLabel Application Name.
      * @param context
      * @return
      */
@@ -396,6 +396,17 @@ public class MatchingEngine {
         appName = appInfo.nonLocalizedLabel != null ? appInfo.nonLocalizedLabel.toString() : "";
 
         return stringId == 0 ? appName : context.getString(stringId);
+    }
+
+    /**
+     * Returns the Application Version.
+     * @param context
+     * @return
+     */
+    public String getAppVersion(Context context)
+            throws PackageManager.NameNotFoundException {
+        PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+        return pInfo.versionName;
     }
 
     /**
@@ -412,7 +423,7 @@ public class MatchingEngine {
             throws PackageManager.NameNotFoundException {
 
         if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create RegisterClientRequest disabled. Matching engine is not configured to allow use.");
+            Log.e(TAG, "Create RegisterClientRequest disabled. Matching engine is not configured to allow use.");
             return null;
         }
         if (context == null) {
@@ -424,18 +435,14 @@ public class MatchingEngine {
         }
 
         // App
-        PackageInfo pInfo;
-        String versionName;
         String appName = getAppName(context);
-
-        pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-        versionName = pInfo.versionName;
+        String versionName = getAppVersion(context);
 
         // Invalid application version state
-        if (versionName == null || versionName.equals("") && BuildConfig.DEBUG) {
+        if (versionName == null || versionName.equals("")) {
             versionName = "0"; // This will fail lookup at the server.
             Log.e(TAG, "Error: No application versionName found! RegisterClientRequest requires an application version name.");
-        } else {
+        } else if (!BuildConfig.DEBUG){
             throw new IllegalArgumentException("RegisterClientRequest requires an application version name.");
         }
 
@@ -457,9 +464,10 @@ public class MatchingEngine {
                                                              String carrierName, String authToken,
                                                              int cellId, String uniqueIdType,
                                                              String uniqueId, List<AppClient.Tag> tags)
+            throws PackageManager.NameNotFoundException
     {
         if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create RegisterClientRequest disabled. Matching engine is not configured to allow use.");
+            Log.e(TAG, "Create RegisterClientRequest disabled. Matching engine is not configured to allow use.");
             return null;
         }
         if (context == null) {
@@ -479,7 +487,7 @@ public class MatchingEngine {
             }
         }
         PackageInfo pInfo;
-        String versionName = "";
+        String versionName;
         String appName;
         if (applicationName == null || applicationName.equals("")) {
             appName = getAppName(context);
@@ -488,13 +496,7 @@ public class MatchingEngine {
             appName = applicationName;
         }
 
-        try {
-            pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-            versionName = (appVersion == null || appVersion.isEmpty()) ? pInfo.versionName : appVersion;
-        } catch (PackageManager.NameNotFoundException nfe) {
-            nfe.printStackTrace();
-            // Hard stop, or continue?
-        }
+        versionName = (appVersion == null || appVersion.isEmpty()) ? getAppVersion(context) : appVersion;
 
         RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder()
                 .setDevName((developerName == null) ? "" : developerName)
@@ -514,7 +516,7 @@ public class MatchingEngine {
         return builder.build();
     }
 
-    public VerifyLocationRequest.Builder createDefaultVerifyLocationRequest(Context context, String carrierName,
+    public VerifyLocationRequest.Builder createDefaultVerifyLocationRequest(Context context,
                                                              android.location.Location location) {
         if (context == null) {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
@@ -529,10 +531,7 @@ public class MatchingEngine {
             throw new IllegalArgumentException("Location parameter is required.");
         }
 
-        String retrievedNetworkOperatorName = retrieveNetworkCarrierName(context);
-        if(carrierName == null || carrierName.equals("")) {
-            carrierName = retrievedNetworkOperatorName;
-        }
+        String carrierName = retrieveNetworkCarrierName(context);
         Loc aLoc = androidLocToMeLoc(location);
 
         List<Pair<String, Long>> ids = retrieveCellId(context);
@@ -546,9 +545,7 @@ public class MatchingEngine {
 
         VerifyLocationRequest.Builder builder = AppClient.VerifyLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(
-                        (carrierName == null || carrierName.equals(""))
-                                ? retrieveNetworkCarrierName(context) : carrierName)
+                .setCarrierName(carrierName)
                 .setGpsLocation(aLoc) // Latest token is unknown until retrieved.
                 .setCellId((int)cellId);
         return builder;
@@ -573,7 +570,9 @@ public class MatchingEngine {
             }
         }
 
-        return createDefaultVerifyLocationRequest(context, carrierName, location)
+        return createDefaultVerifyLocationRequest(context, location)
+                .setCarrierName(carrierName == null || carrierName.isEmpty() ?
+                        retrieveNetworkCarrierName(context) : carrierName)
                 .setCellId(cellId)
                 .addAllTags(tags)
                 .build();

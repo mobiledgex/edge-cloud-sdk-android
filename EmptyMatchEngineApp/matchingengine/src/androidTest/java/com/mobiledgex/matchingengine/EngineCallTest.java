@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.jar.Attributes;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon.AppPort;
@@ -227,84 +228,31 @@ public class EngineCallTest {
         MeLocation meLoc = new MeLocation(me);
 
         Location loc = MockUtils.createLocation("mexDisabledTest", 122.3321, 47.6062);
-        boolean allRun = false;
 
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            try {
-                // Non-Mock.
-                AppClient.RegisterClientRequest registerClientRequest = me.createRegisterClientRequest(
-                        context, developerName, null, null, null, null, 0, null, null , null);
-                AppClient.RegisterClientReply registerStatusReply = me.registerClient(registerClientRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            } catch (IllegalArgumentException iae) {
-                Log.i(TAG, "Expected exception for registerClient. Mex Disabled.");
-            } catch (InterruptedException ioe) {
-                Log.i(TAG, "Expected exception for registerClient. " + Log.getStackTraceString(ioe));
-            }
 
-            try {
-                AppClient.FindCloudletRequest findCloudletRequest;
-                findCloudletRequest = me.createFindCloudletRequest(context, me.retrieveNetworkCarrierName(context), location, 0, null);
-                AppClient.FindCloudletReply findCloudletReply;
-                if (useHostOverride) {
-                    findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-                } else {
-                    findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
-                }
-            } catch (IllegalArgumentException iae) {
-                // This is expected, request is missing.
-                Log.i(TAG, "Expected exception for findCloudlet. Mex Disabled.");
-            }
+            AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, developerName).build();
+            assertTrue(registerClientRequest == null);
 
-            try {
-                AppClient.GetLocationRequest locationRequest = me.createGetLocationRequest(context, me.retrieveNetworkCarrierName(context), 0, null);
-                AppClient.GetLocationReply getLocationReply;
-                if (useHostOverride) {
-                    getLocationReply = me.getLocation(locationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-                } else {
-                    getLocationReply = me.getLocation(context, locationRequest, GRPC_TIMEOUT_MS);
-                }
-            } catch (IllegalArgumentException iae) {
-                // This is expected, request is missing.
-                Log.i(TAG, "Expected exception for getLocation. Mex Disabled.");
-            }
-            try {
-                AppClient.VerifyLocationRequest verifyLocationRequest = me.createVerifyLocationRequest(context, me.retrieveNetworkCarrierName(context), location, 0, null);
-                AppClient.VerifyLocationReply verifyLocationReply;
-                if (useHostOverride) {
-                    verifyLocationReply = me.verifyLocation(verifyLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-                } else {
-                    verifyLocationReply = me.verifyLocation(verifyLocationRequest, GRPC_TIMEOUT_MS);
-                }
-            } catch (IllegalArgumentException iae) {
-                // This is expected, request is missing.
-                Log.i(TAG, "Expected exception for verifyLocation. Mex Disabled.");
-            } catch (IOException ioe) {
-                Log.i(TAG, "Expected exception for verifyLocation. " + Log.getStackTraceString(ioe));
-            }
+            AppClient.FindCloudletRequest findCloudletRequest;
+            findCloudletRequest = me.createDefaultFindCloudletRequest(context, developerName, location).build();
+            assertTrue(findCloudletRequest == null);
 
+            AppClient.GetLocationRequest locationRequest = me.createDefaultGetLocationRequest(context).build();
+            assertTrue(locationRequest == null);
 
-            try {
-                // Non-Mock.
-                AppClient.AppInstListRequest appInstListRequest = me.createAppInstListRequest(context, me.retrieveNetworkCarrierName(context), location, 0, null);
-                AppClient.AppInstListReply appInstListReply;
-                if (useHostOverride) {
-                    appInstListReply = me.getAppInstList(appInstListRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-                } else {
-                    appInstListReply = me.getAppInstList(appInstListRequest, GRPC_TIMEOUT_MS);
-                }
-            } catch (IllegalArgumentException iae) {
-                // This is expected, request is missing.
-                Log.i(TAG, "Expected exception for registerClient. Mex Disabled.");
-            } catch (InterruptedException ioe) {
-                Log.i(TAG, "Expected exception for registerClient. " + Log.getStackTraceString(ioe));
-            }
-            allRun = true;
-        } catch (DmeDnsException dde) {
-            Log.e(TAG, Log.getStackTraceString(dde));
-            assertFalse("mexDisabledTest: DmeDnsException", true);
+            AppClient.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location).build();
+            assertTrue(verifyLocationRequest == null);
+
+            AppClient.AppInstListRequest appInstListRequest = me.createDefaultAppInstListRequest(context, location).build();
+            assertTrue(appInstListRequest == null);
+
+        } catch (PackageManager.NameNotFoundException nnfe) {
+            Log.e(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("mexDisabledTest: NameNotFoundException", true);
         } catch (ExecutionException ee) {
             Log.e(TAG, Log.getStackTraceString(ee));
             assertFalse("mexDisabledTest: ExecutionException!", true);
@@ -314,11 +262,12 @@ public class EngineCallTest {
         } catch (InterruptedException ie) {
             Log.e(TAG, Log.getStackTraceString(ie));
             assertFalse("mexDisabledTest: InterruptedException!", true);
+        }  catch (Exception e) {
+            Log.e(TAG, "Creation of request is not supposed to succeed!");
+            Log.e(TAG, Log.getStackTraceString(e));
         } finally {
             enableMockLocation(context,false);
         }
-
-        assertTrue("All requests must run with failures.", allRun);
     }
 
     // Every call needs registration to be called first at some point.
@@ -336,6 +285,9 @@ public class EngineCallTest {
                     .setDevName(developerName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
+                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
+                    .setUniqueIdType("applicationInstallId")
+                    .setUniqueId(me.getUniqueId(context))
                     .build();
             if (useHostOverride) {
                 registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -354,7 +306,6 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(ioe));
             assertTrue("InterruptedException registering client", false);
         }
-
     }
 
     @Test
@@ -377,13 +328,22 @@ public class EngineCallTest {
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
-            AppClient.RegisterClientRequest request = MockUtils.createMockRegisterClientRequest(developerName, appName, me);
+            AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, developerName)
+                    .setAppName(applicationName)
+                    .setAppVers(appVersion)
+                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
+                    .setUniqueIdType("applicationInstallId")
+                    .setUniqueId(me.getUniqueId(context))
+                    .build();
             if (useHostOverride) {
                 reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
                 reply = me.registerClient(request, me.generateDmeHostAddress(), me.getPort(), GRPC_TIMEOUT_MS);
             }
             assert (reply != null);
+        } catch (PackageManager.NameNotFoundException nnfe) {
+            Log.e(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("ExecutionException registering using PackageManager.", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("registerClientTest: DmeDnsException!", true);
@@ -428,7 +388,13 @@ public class EngineCallTest {
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
-            AppClient.RegisterClientRequest request = MockUtils.createMockRegisterClientRequest(developerName, applicationName, me);
+            AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, developerName)
+                    .setAppName(applicationName)
+                    .setAppVers(appVersion)
+                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
+                    .setUniqueIdType("applicationInstallId")
+                    .setUniqueId(me.getUniqueId(context))
+                    .build();
             if (useHostOverride) {
                 registerReplyFuture = me.registerClientFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
@@ -436,6 +402,9 @@ public class EngineCallTest {
             }
             reply = registerReplyFuture.get();
             assert(reply != null);
+        } catch (PackageManager.NameNotFoundException nnfe) {
+            Log.e(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("ExecutionException registering using PackageManager.", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("ExecutionException registering client.", true);
@@ -537,8 +506,8 @@ public class EngineCallTest {
             String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
-            AppClient.FindCloudletRequest findCloudletRequest = MockUtils.createMockFindCloudletRequest(
-                    carrierName, developerName, applicationName, appVersion, me, location);
+            AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(
+                    context, carrierName, location, 0, null);
             if (useHostOverride) {
                 response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, 10000);
             } else {
@@ -582,7 +551,9 @@ public class EngineCallTest {
             String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
-            AppClient.VerifyLocationRequest verifyLocationRequest = MockUtils.createMockVerifyLocationRequest(carrierName, me, location);
+            AppClient.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location)
+                    .setCarrierName(carrierName)
+                    .build();
 
             if (useHostOverride) {
                 verifyLocationReply = me.verifyLocation(verifyLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -631,12 +602,16 @@ public class EngineCallTest {
             enableMockLocation(context, true);
             Location mockLoc = MockUtils.createLocation("verifyLocationFutureTest", 122.3321, 47.6062);
             setMockLocation(context, mockLoc);
+            synchronized(mockLoc) {
+                mockLoc.wait(1000);
+            }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
-            AppClient.VerifyLocationRequest verifyLocationRequest = MockUtils.createMockVerifyLocationRequest(carrierName, me, location);
-
+            AppClient.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location)
+                    .setCarrierName(carrierName)
+                    .build();
             if (useHostOverride) {
                 verifyLocationReplyFuture = me.verifyLocationFuture(verifyLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
@@ -689,8 +664,9 @@ public class EngineCallTest {
 
             String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
-            AppClient.VerifyLocationRequest verifyLocationRequest = MockUtils.createMockVerifyLocationRequest(carrierName, me, location);
-
+            AppClient.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location)
+                    .setCarrierName(carrierName)
+                    .build();
             if (useHostOverride) {
                 verifyLocationReply = me.verifyLocation(verifyLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
@@ -741,7 +717,8 @@ public class EngineCallTest {
 
 
             registerClient(me);
-            AppClient.GetLocationRequest getLocationRequest = MockUtils.createMockGetLocationRequest(carrierName, me);
+            AppClient.GetLocationRequest getLocationRequest = me.createDefaultGetLocationRequest(context)
+                    .build();
 
             if (useHostOverride) {
                 getLocationReply = me.getLocation(getLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -803,7 +780,8 @@ public class EngineCallTest {
 
 
             registerClient(me);
-            AppClient.GetLocationRequest getLocationRequest = MockUtils.createMockGetLocationRequest(carrierName, me);
+            AppClient.GetLocationRequest getLocationRequest = me.createDefaultGetLocationRequest(context)
+                    .build();
 
             if (useHostOverride) {
                 getLocationReplyFuture = me.getLocationFuture(getLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -863,7 +841,10 @@ public class EngineCallTest {
 
             // FIXME: Need groupId source.
             long groupId = 1001L;
-            AppClient.DynamicLocGroupRequest dynamicLocGroupRequest = MockUtils.createMockDynamicLocGroupRequest(me,"");
+            AppClient.DynamicLocGroupRequest dynamicLocGroupRequest = me.createDefaultDynamicLocGroupRequest(
+                    context,
+                    AppClient.DynamicLocGroupRequest.DlgCommType.DLG_SECURE)
+                    .build();
 
             if (useHostOverride) {
                 dynamicLocGroupReply = me.addUserToGroup(dynamicLocGroupRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -916,7 +897,10 @@ public class EngineCallTest {
 
             // FIXME: Need groupId source.
             long groupId = 1001L;
-            AppClient.DynamicLocGroupRequest dynamicLocGroupRequest = MockUtils.createMockDynamicLocGroupRequest(me, "");
+            AppClient.DynamicLocGroupRequest dynamicLocGroupRequest = me.createDefaultDynamicLocGroupRequest(
+                    context,
+                    AppClient.DynamicLocGroupRequest.DlgCommType.DLG_SECURE)
+                    .build();
 
             Future<AppClient.DynamicLocGroupReply> responseFuture;
             if (useHostOverride) {
@@ -969,7 +953,8 @@ public class EngineCallTest {
             registerClient(me);
             AppClient.AppInstListRequest appInstListRequest;
             AppClient.AppInstListReply list;
-            appInstListRequest  = MockUtils.createMockAppInstListRequest(me.retrieveNetworkCarrierName(context), me, location);
+            appInstListRequest  = me.createDefaultAppInstListRequest(context, location)
+                    .build();
             if (useHostOverride) {
                 list = me.getAppInstList(appInstListRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
@@ -1019,7 +1004,8 @@ public class EngineCallTest {
             assertFalse("Mock'ed Location is missing!", location == null);
 
             registerClient(me);
-            AppClient.AppInstListRequest appInstListRequest = MockUtils.createMockAppInstListRequest(me.retrieveNetworkCarrierName(context), me, location);
+            AppClient.AppInstListRequest appInstListRequest = me.createDefaultAppInstListRequest(context, location)
+                    .build();
 
             Future<AppClient.AppInstListReply> listFuture;
             if (useHostOverride) {
@@ -1190,9 +1176,6 @@ public class EngineCallTest {
 
         MatchingEngine me = new MatchingEngine(context);
         AppConnectionManager appConnect = me.getAppConnectionManager();
-        //me.setNetworkSwitchingEnabled(false);
-        //me.setMatchingEngineLocationAllowed(true);
-        //me.setAllowSwitchIfNoSubscriberInfo(true);
 
         enableMockLocation(context, true);
 
@@ -1364,6 +1347,7 @@ public class EngineCallTest {
                     .build();
 
             AppClient.RegisterClientReply registerReply;
+            // FIXME: Need/want a secondary cloudlet for this AppInst test.
             if (true) {
                 registerReply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
@@ -1477,6 +1461,7 @@ public class EngineCallTest {
                     .setAppVers(appVersion)
                     .build();
             AppClient.RegisterClientReply registerClientReply;
+            // FIXME: Need/want a secondary cloudlet for this AppInst test.
             if (true) {
                 registerClientReply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
@@ -1514,7 +1499,7 @@ public class EngineCallTest {
             httpClientFuture = appConnect.getHttpClient(GRPC_TIMEOUT_MS);
             assertTrue("HttpClientFuture is NULL!", httpClientFuture != null);
 
-            // FIXME: UI Console exposes HTTP as TCP only, so test here use getTcpList().
+            // FIXME: UI Console exposes HTTP as TCP only, so the test here uses getTcpList().
             String url = null;
             HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
             // Choose the TCP port, and we happen to know our server is on one port only: 3001.
