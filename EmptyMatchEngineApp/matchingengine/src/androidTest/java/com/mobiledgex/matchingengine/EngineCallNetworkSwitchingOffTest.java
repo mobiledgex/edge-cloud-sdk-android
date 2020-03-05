@@ -19,6 +19,7 @@ package com.mobiledgex.matchingengine;
 
 import android.app.UiAutomation;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Looper;
@@ -44,6 +45,7 @@ import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.jar.Attributes;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
@@ -62,8 +64,9 @@ public class EngineCallNetworkSwitchingOffTest {
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
     public static final String developerName = "MobiledgeX";
+    // Other globals:
     public static final String applicationName = "MobiledgeX SDK Demo";
-
+    public static final String appVersion = "2.0";
     FusedLocationProviderClient fusedLocationClient;
 
     public static String hostOverride = "sdkdemo.dme.mobiledgex.net";
@@ -136,10 +139,22 @@ public class EngineCallNetworkSwitchingOffTest {
 
     // Every call needs registration to be called first at some point.
     public void registerClient(MatchingEngine me) {
+        Context context = InstrumentationRegistry.getTargetContext();
+
         AppClient.RegisterClientReply registerReply;
         AppClient.RegisterClientRequest regRequest;
-        regRequest = MockUtils.createMockRegisterClientRequest(developerName, applicationName, me);
+
         try {
+            // The app version will be null, but we can build from scratch for test
+            regRequest = AppClient.RegisterClientRequest.newBuilder()
+                    .setCarrierName(me.retrieveNetworkCarrierName(context))
+                    .setDevName(developerName)
+                    .setAppName(applicationName)
+                    .setAppVers(appVersion)
+                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
+                    .setUniqueIdType("applicationInstallId")
+                    .setUniqueId(me.getUniqueId(context))
+                    .build();
             if (useHostOverride) {
                 registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
@@ -157,7 +172,6 @@ public class EngineCallNetworkSwitchingOffTest {
             Log.e(TAG, Log.getStackTraceString(ioe));
             assertTrue("InterruptedException registering client", false);
         }
-
     }
 
     /**
@@ -174,15 +188,18 @@ public class EngineCallNetworkSwitchingOffTest {
 
         AppClient.RegisterClientReply registerClientReply = null;
         try {
-            AppClient.RegisterClientRequest registerClientRequest = MockUtils.createMockRegisterClientRequest(
-                    developerName,
-                    applicationName,
-                    me);
+            AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, developerName)
+                    .setAppName(applicationName)
+                    .setAppVers(appVersion)
+                    .build();
 
             registerClientReply = me.registerClient(registerClientRequest, GRPC_TIMEOUT_MS);
             if (registerClientReply.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {
                 assertFalse("mexNetworkDisabledTest: registerClient somehow succeeded!", true);
             }
+        } catch (PackageManager.NameNotFoundException nnfe) {
+            Log.e(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("meNetworkingDisabledTest: NameNotFoundException", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("meNetworkingDisabledTest: DmeDnsException", true);

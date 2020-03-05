@@ -19,6 +19,7 @@ package com.mobiledgex.emptymatchengineapp;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.Location;
 import android.os.AsyncTask;
@@ -330,31 +331,31 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         someText += dde.getMessage();
                         // Here, being unable to register to the Edge infrastructure, app should
                         // fall back to public cloud server. Edge is not available.
-                        // For Demo app, we use the eu-mexdemo dme server to continue to MobiledgeX.
-                        //dmeHostAddress = "eu-mexdemo." + MatchingEngine.baseDmeHost;
-                        dmeHostAddress = "sdkdemo." + MatchingEngine.baseDmeHost;
+                        // For Demo app, we use the wifi dme server to continue to MobiledgeX.
+                        dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
                     }
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
                     String devName = "MobiledgeX"; // Always supplied by application, and in the MobieldgeX web admin console.
+                    // For illustration, the matching engine can be used to programatically get the name of your application detials
+                    // so it can go to the correct appInst verision. That AppInst on the server side must match the application
+                    // version or else it won't be found and cannot be used.
                     String appName = mMatchingEngine.getAppName(ctx); // AppName must be added to the MobiledgeX web admin console.
                     appName = "MobiledgeX SDK Demo"; // override with a known registered appName.
 
                     // There is also createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
                     // like AuthToken or Tag key value pairs.
                     AppClient.RegisterClientRequest registerClientRequest =
-                            mMatchingEngine.createRegisterClientRequest(ctx,
-                                    devName, appName,
-                                    null, carrierName, null, 0, null, mMatchingEngine.getUniqueId(ctx), null);
+                            mMatchingEngine.createDefaultRegisterClientRequest(ctx, devName).build();
 
-                    AppClient.RegisterClientReply registerStatus =
+                    AppClient.RegisterClientReply registerClientReply =
                             mMatchingEngine.registerClient(registerClientRequest,
                                     dmeHostAddress, port, 10000);
-                    Log.i(TAG, "RegisterReply is " + registerStatus);
+                    Log.i(TAG, "RegisterReply status is " + registerClientReply.getStatus());
 
-                    if (registerStatus.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {
-                        someText += "Registration Failed. Error: " + registerStatus.getStatus();
+                    if (registerClientReply.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {
+                        someText += "Registration Failed. Error: " + registerClientReply.getStatus();
                         TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
                         tv.setText(someText);
                         return;
@@ -363,14 +364,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
                     // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
                     AppClient.FindCloudletRequest findCloudletRequest =
-                            mMatchingEngine.createFindCloudletRequest(ctx, carrierName, location, 0, null);
+                            mMatchingEngine.createDefaultFindCloudletRequest(ctx, devName, location)
+                            .build();
                     Log.i(TAG, "after create find cloudlet request" + findCloudletRequest);
                     AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
                             dmeHostAddress, port, 10000);
                     Log.i(TAG, "CloudletReply is " + closestCloudlet);
 
                     AppClient.VerifyLocationRequest verifyRequest =
-                            mMatchingEngine.createVerifyLocationRequest(ctx, carrierName, location, 0, null);
+                            mMatchingEngine.createDefaultVerifyLocationRequest(ctx, location).build();
                     Log.i(TAG, "verifyRequest is " + verifyRequest);
                     if (verifyRequest != null) {
                         // Location Verification (Blocking, or use verifyLocationFuture):
@@ -381,16 +383,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         someText += "[Location Verified: Tower: " + verifiedLocation.getTowerStatus() +
                                 ", GPS LocationStatus: " + verifiedLocation.getGpsLocationStatus() +
                                 ", Location Accuracy: " + verifiedLocation.getGpsLocationAccuracyKm() + " ]\n";
-
-                        // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
-                        // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
-                        /*AppClient.FindCloudletRequest findCloudletRequest =
-                                mMatchingEngine.createFindCloudletRequest(ctx, carrierName, location, 0, null);
-                        AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
-                                dmeHostAddress, port, 10000);
-                        Log.i(TAG, "CloudletReply is " + closestCloudlet);*/
-
-                        AppConnectionManager appManager = mMatchingEngine.getAppConnectionManager();
 
                         List<distributed_match_engine.Appcommon.AppPort> ports = closestCloudlet.getPortsList();
                         String portListStr = "";
@@ -408,11 +400,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                 aPort.getPathPrefix(),
                                 aPort.getEndPort());
 
-                            appManager.createUrl(closestCloudlet, aPort, 0);
-                            // Create a URL:
+                            //String l7Url = mMatchingEngine.getAppConnectionManager().createUrl(closestCloudlet, aPort, aPort.getPublicPort());
 
-                            String l7Url = mMatchingEngine.getAppConnectionManager().createUrl(closestCloudlet, aPort, aPort.getPublicPort());
-                            Site site = new Site(mMatchingEngine.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, l7Url);
+                            String host = aPort.getFqdnPrefix() + closestCloudlet.getFqdn();
+                            int serverport = aPort.getPublicPort();
+
+                            // Test from a particular network path. Here, the active one is Celluar since we switched the whole process over earlier.
+                            Site site = new Site(mMatchingEngine.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, host, serverport);
                             netTest.sites.add(site);
                         }
 
@@ -422,7 +416,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         someText += "[Cloudlet App Ports: [" + portListStr + "]\n";
 
                         String appInstListText = "";
-                        AppClient.AppInstListRequest appInstListRequest = mMatchingEngine.createAppInstListRequest(ctx, carrierName, location, 0, null);
+                        AppClient.AppInstListRequest appInstListRequest =
+                                mMatchingEngine.createDefaultAppInstListRequest(ctx, location).build();
 
                         AppClient.AppInstListReply appInstListReply = mMatchingEngine.getAppInstList(
                                 appInstListRequest, dmeHostAddress, port, 10000);
@@ -480,7 +475,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // Set network back to last default one, if desired:
                     mMatchingEngine.getNetworkManager().resetNetworkToDefault();
                 } catch (ExecutionException | StatusRuntimeException e) {
-                    e.printStackTrace();
+                    Log.e(TAG, e.getMessage());
+                    Log.e(TAG, Log.getStackTraceString(e));
                     if (e.getCause() instanceof NetworkRequestTimeoutException) {
                         String causeMessage = e.getCause().getMessage();
                         someText = "Network connection failed: " + causeMessage;
@@ -494,8 +490,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             }
                         });
                     }
-                } catch (IOException | InterruptedException | IllegalArgumentException | Resources.NotFoundException e) {
-                    e.printStackTrace();
+                } catch (IOException | InterruptedException | IllegalArgumentException | Resources.NotFoundException | PackageManager.NameNotFoundException e) {
+                    Log.e(TAG, e.getMessage());
+                    Log.e(TAG, Log.getStackTraceString(e));
                 }
             }
         });
