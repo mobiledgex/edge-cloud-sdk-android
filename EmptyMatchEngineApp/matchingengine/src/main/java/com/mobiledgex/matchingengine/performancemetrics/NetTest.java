@@ -245,7 +245,7 @@ public class NetTest
             if (site.L7Path == null) // Simple host and port.
             {
               elapsed = ConnectAndDisconnectHostAndPort(site);
-              Log.d(TAG, "site host: " + site.host + ", port" + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString());
+              Log.d(TAG, "site host: " + site.host + ", port: " + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString());
             }
             else // Use L7 Path.
             {
@@ -257,7 +257,7 @@ public class NetTest
           case PING:
             {
               elapsed = Ping(site);
-              Log.d(TAG, "site host: " + site.host + ", port" + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev);
+              Log.d(TAG, "site host: " + site.host + ", port: " + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev);
             }
             break;
         }

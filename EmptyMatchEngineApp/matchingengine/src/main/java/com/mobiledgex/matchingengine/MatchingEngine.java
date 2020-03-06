@@ -28,6 +28,7 @@ import android.provider.Settings;
 import android.provider.Settings.Secure;
 import android.support.annotation.RequiresApi;
 import android.telephony.CarrierConfigManager;
+import android.telephony.CellIdentity;
 import android.telephony.CellIdentityCdma;
 import android.telephony.CellIdentityGsm;
 import android.telephony.CellIdentityLte;
@@ -52,7 +53,6 @@ import java.net.UnknownHostException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -385,7 +385,7 @@ public class MatchingEngine {
     }
 
     /**
-     * Returns the Application Name.
+     * Returns the nonLocalizedLabel Application Name.
      * @param context
      * @return
      */
@@ -396,6 +396,17 @@ public class MatchingEngine {
         appName = appInfo.nonLocalizedLabel != null ? appInfo.nonLocalizedLabel.toString() : "";
 
         return stringId == 0 ? appName : context.getString(stringId);
+    }
+
+    /**
+     * Returns the Application Version.
+     * @param context
+     * @return
+     */
+    public String getAppVersion(Context context)
+            throws PackageManager.NameNotFoundException {
+        PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+        return pInfo.versionName;
     }
 
     /**
@@ -412,7 +423,7 @@ public class MatchingEngine {
             throws PackageManager.NameNotFoundException {
 
         if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create RegisterClientRequest disabled. Matching engine is not configured to allow use.");
+            Log.e(TAG, "Create RegisterClientRequest disabled. Matching engine is not configured to allow use.");
             return null;
         }
         if (context == null) {
@@ -424,12 +435,16 @@ public class MatchingEngine {
         }
 
         // App
-        PackageInfo pInfo;
-        String versionName;
         String appName = getAppName(context);
+        String versionName = getAppVersion(context);
 
-        pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-        versionName = pInfo.versionName;
+        // Invalid application version state
+        if (versionName == null || versionName.equals("")) {
+            versionName = "0"; // This will fail lookup at the server.
+            Log.e(TAG, "Error: No application versionName found! RegisterClientRequest requires an application version name.");
+        } else if (!BuildConfig.DEBUG){
+            throw new IllegalArgumentException("RegisterClientRequest requires an application version name.");
+        }
 
         String carrierName = retrieveNetworkCarrierName(context);
 
@@ -439,15 +454,20 @@ public class MatchingEngine {
                 .setAppVers(versionName)
                 .setCarrierName(carrierName)
                 .setAuthToken("")
+                .setUniqueId(getUniqueId(context))
+                .setUniqueIdType("applicationInstallId") // FIXME: proto enum type definition needed.
                 .setCellId(0);
     }
 
     public RegisterClientRequest createRegisterClientRequest(Context context, String developerName,
                                                              String applicationName, String appVersion,
-                                                             String carrierName, String authToken, int cellId, String uniqueIdType, String uniqueId, List<AppClient.Tag> tags)
+                                                             String carrierName, String authToken,
+                                                             int cellId, String uniqueIdType,
+                                                             String uniqueId, List<AppClient.Tag> tags)
+            throws PackageManager.NameNotFoundException
     {
         if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create RegisterClientRequest disabled. Matching engine is not configured to allow use.");
+            Log.e(TAG, "Create RegisterClientRequest disabled. Matching engine is not configured to allow use.");
             return null;
         }
         if (context == null) {
@@ -467,7 +487,7 @@ public class MatchingEngine {
             }
         }
         PackageInfo pInfo;
-        String versionName = "";
+        String versionName;
         String appName;
         if (applicationName == null || applicationName.equals("")) {
             appName = getAppName(context);
@@ -476,13 +496,7 @@ public class MatchingEngine {
             appName = applicationName;
         }
 
-        try {
-            pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-            versionName = (appVersion == null || appVersion.isEmpty()) ? pInfo.versionName : appVersion;
-        } catch (PackageManager.NameNotFoundException nfe) {
-            nfe.printStackTrace();
-            // Hard stop, or continue?
-        }
+        versionName = (appVersion == null || appVersion.isEmpty()) ? getAppVersion(context) : appVersion;
 
         RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder()
                 .setDevName((developerName == null) ? "" : developerName)
@@ -502,8 +516,8 @@ public class MatchingEngine {
         return builder.build();
     }
 
-    public VerifyLocationRequest createVerifyLocationRequest(Context context, String carrierName,
-                                                             android.location.Location location, int cellId, List<AppClient.Tag> tags) {
+    public VerifyLocationRequest.Builder createDefaultVerifyLocationRequest(Context context,
+                                                             android.location.Location location) {
         if (context == null) {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
@@ -517,28 +531,64 @@ public class MatchingEngine {
             throw new IllegalArgumentException("Location parameter is required.");
         }
 
-        String retrievedNetworkOperatorName = retrieveNetworkCarrierName(context);
-        if(carrierName == null || carrierName.equals("")) {
-            carrierName = retrievedNetworkOperatorName;
-        }
+        String carrierName = retrieveNetworkCarrierName(context);
         Loc aLoc = androidLocToMeLoc(location);
+
+        List<Pair<String, Long>> ids = retrieveCellId(context);
+        long cellId = 0;
+        if (ids.size() > 0) {
+            // FIXME: Need a preference, as we can't guess here.
+            if (ids.size() > 0) {
+                cellId = ids.get(0).second;
+            }
+        }
 
         VerifyLocationRequest.Builder builder = AppClient.VerifyLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(
-                        (carrierName == null || carrierName.equals(""))
-                            ? retrieveNetworkCarrierName(context) : carrierName)
+                .setCarrierName(carrierName)
                 .setGpsLocation(aLoc) // Latest token is unknown until retrieved.
-                .setCellId(cellId);
-
-        if (tags != null) {
-            builder.addAllTags(tags);
-        }
-
-        return builder.build();
+                .setCellId((int)cellId);
+        return builder;
     }
 
-    public AppClient.FindCloudletRequest.Builder createDefaultFindCloudletRequest(Context context, Location location) {
+    public VerifyLocationRequest createVerifyLocationRequest(Context context, String carrierName,
+                                                             android.location.Location location,
+                                                             int cellId, List<AppClient.Tag> tags) {
+
+        if (!mMatchingEngineLocationAllowed) {
+            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
+            return null;
+        }
+
+        if (cellId == 0) {
+            List<Pair<String, Long>> ids = retrieveCellId(context);
+            if (ids.size() > 0) {
+                // FIXME: Need a preference, as we can't guess here.
+                if (ids.size() > 0) {
+                    cellId = ids.get(0).second.intValue();
+                }
+            }
+        }
+
+        return createDefaultVerifyLocationRequest(context, location)
+                .setCarrierName(carrierName == null || carrierName.isEmpty() ?
+                        retrieveNetworkCarrierName(context) : carrierName)
+                .setCellId(cellId)
+                .addAllTags(tags)
+                .build();
+    }
+
+    /**
+     * Creates a Default FindCloudletRequest. If VersionName or AppName is missing (test code),
+     * the app will need to fill this in before sending to the server.
+     * @param context Activity Context
+     * @param developerName Developer Name that matches the value in MobiledgeX Console.
+     * @param location GPS location
+     * @return
+     * @throws PackageManager.NameNotFoundException
+     */
+    public AppClient.FindCloudletRequest.Builder createDefaultFindCloudletRequest(Context context, String developerName, Location location)
+            throws PackageManager.NameNotFoundException {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
             return null;
@@ -550,9 +600,29 @@ public class MatchingEngine {
         String carrierName = retrieveNetworkCarrierName(context);
         Loc aLoc = androidLocToMeLoc(location);
 
+        // App
+        PackageInfo pInfo;
+        String versionName;
+        String appName = getAppName(context);
+        if (appName == null || appName.isEmpty()) {
+            appName = "0";
+            Log.e(TAG, "Error: The required ApplicationName does not exist!");
+        }
+
+        // Version might not exist, but the App or server will have to handle this before calling build():
+        pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+        versionName = pInfo.versionName;
+        if (versionName == null || versionName.isEmpty()) {
+            versionName = "0";
+            Log.e(TAG, "Error: The required Application PackageInfo VersionName does not exist!");
+        }
+
         return FindCloudletRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(carrierName)
+                .setDevName(developerName)
+                .setAppName(appName)
+                .setAppVers(versionName)
                 .setGpsLocation(aLoc)
                 .setCellId(0);
     }
@@ -1283,7 +1353,7 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, location)
+                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, developerName, location)
                         .setCarrierName(carrierName)
                         .build();
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, me.getNetworkManager().getTimeout());
@@ -1324,8 +1394,10 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, location)
+                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, developerName, location)
                         .setCarrierName(carrierName)
+                        .setAppName(applicationName)
+                        .setAppVers(appVersion)
                         .build();
 
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest,

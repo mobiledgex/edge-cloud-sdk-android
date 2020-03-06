@@ -7,7 +7,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 1
-        versionName "1.0"
+        versionName "2.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -33,7 +33,7 @@ dependencies {
     implementation project(":matchingengine")
     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
     // Use maven:
-    //implementation 'com.mobiledgex:matchingengine:1.4.19'
+    //implementation 'com.mobiledgex:matchingengine:1.4.19.4'
     // Dependencies of Matching Engine, if using Maven:
     //implementation "io.grpc:grpc-okhttp:${grpcVersion}"
     //implementation "io.grpc:grpc-stub:${grpcVersion}"
