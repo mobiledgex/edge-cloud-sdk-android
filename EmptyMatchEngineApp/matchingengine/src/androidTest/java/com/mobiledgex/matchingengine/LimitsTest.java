@@ -19,6 +19,7 @@ package com.mobiledgex.matchingengine;
 
 import android.app.UiAutomation;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -54,11 +55,13 @@ public class LimitsTest {
     public static final long GRPC_TIMEOUT_MS = 10000;
 
     public static final String developerName = "MobiledgeX";
+    // Other globals:
     public static final String applicationName = "MobiledgeX SDK Demo";
+    public static final String appVersion = "2.0";
 
     FusedLocationProviderClient fusedLocationClient;
 
-    public static String hostOverride = "sdkdemo.dme.mobiledgex.net";
+    public static String hostOverride = "wifi.dme.mobiledgex.net";
     public static int portOverride = 50051;
 
     public boolean useHostOverride = true;
@@ -140,9 +143,14 @@ public class LimitsTest {
 
     // Every call needs registration to be called first at some point.
     public void registerClient(MatchingEngine me) {
+        Context context = InstrumentationRegistry.getTargetContext();
         AppClient.RegisterClientReply registerReply;
-        AppClient.RegisterClientRequest regRequest = MockUtils.createMockRegisterClientRequest(developerName, applicationName, me);
+
         try {
+            AppClient.RegisterClientRequest regRequest = me.createDefaultRegisterClientRequest(context, developerName)
+                    .setAppName(applicationName)
+                    .setAppVers(appVersion)
+                    .build();
             if (useHostOverride) {
                 registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
@@ -150,6 +158,10 @@ public class LimitsTest {
             }
             assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
                     registerReply.getSessionCookie(), me.getSessionCookie());
+        } catch (PackageManager.NameNotFoundException nnfe) {
+            Log.e(TAG, nnfe.getMessage());
+            Log.i(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("appConnectionTestTcp001: Package Info is missing!", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertTrue("ExecutionException registering client!", false);
@@ -187,13 +199,19 @@ public class LimitsTest {
         long elapsed2[] = new long[20];
         try {
             setMockLocation(context, loc);
+            synchronized (loc) {
+                loc.wait(1000);
+            }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
             long sum1 = 0, sum2 = 0;
             String carrierName = getCarrierName(context);
             registerClient(me);
-            AppClient.VerifyLocationRequest verifyLocationRequest1 = MockUtils.createMockVerifyLocationRequest(carrierName, me, location);
+            AppClient.VerifyLocationRequest verifyLocationRequest1 = me.createDefaultVerifyLocationRequest(context, location)
+                    .setCarrierName(carrierName)
+                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
+                    .build();
             for (int i = 0; i < elapsed1.length; i++) {
                 start = System.currentTimeMillis();
                 if (useHostOverride) {
@@ -213,7 +231,10 @@ public class LimitsTest {
 
             // Future
             registerClient(me);
-            AppClient.VerifyLocationRequest verifyLocationRequest2 = MockUtils.createMockVerifyLocationRequest(carrierName, me, location);
+            AppClient.VerifyLocationRequest verifyLocationRequest2 = me.createDefaultVerifyLocationRequest(context, location)
+                    .setCarrierName(carrierName)
+                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
+                    .build();
             try {
                 for (int i = 0; i < elapsed2.length; i++) {
                     start = System.currentTimeMillis();
@@ -279,6 +300,9 @@ public class LimitsTest {
         final AppClient.VerifyLocationReply responses[] = new AppClient.VerifyLocationReply[elapsed2.length];
         try {
             setMockLocation(context, loc);
+            synchronized (loc) {
+                loc.wait(1000);
+            }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -288,7 +312,10 @@ public class LimitsTest {
             AppClient.VerifyLocationRequest request;
 
             // Future
-            request = MockUtils.createMockVerifyLocationRequest(carrierName, me, location);
+            request = me.createDefaultVerifyLocationRequest(context, location)
+                    .setCarrierName(carrierName)
+                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
+                    .build();
             AppClient.VerifyLocationReply response2 = null;
             try {
                 // Background launch all:
@@ -376,7 +403,10 @@ public class LimitsTest {
     /**
      * This test is set at some high values for GRPC API threads and parallel Application ASync
      * Tasks, and in debug mode, prints latency numbers. This is closer to a stress test, and not
-     * realistic development practices. Can generate too many requests exceptions on system ConnectivityManager.
+     * realistic development practices.
+     *
+     * This test can generate too many requests exceptions on system ConnectivityManager. Disable
+     * other tests to help the overall system garbage collector out.
      */
     @Test
     public void parameterizedLatencyTest1() {
@@ -409,6 +439,9 @@ public class LimitsTest {
         final AppClient.VerifyLocationReply responses[] = new AppClient.VerifyLocationReply[elapsed.length];
         try {
             setMockLocation(context, loc);
+            synchronized (loc) {
+                loc.wait(1000);
+            }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -418,7 +451,9 @@ public class LimitsTest {
             AppClient.VerifyLocationRequest request;
 
             // Future
-            request = MockUtils.createMockVerifyLocationRequest(carrierName, me, location);
+            request = me.createDefaultVerifyLocationRequest(context, location)
+                    .setCarrierName(carrierName)
+                    .build();
 
             // Background launch all:
             for (int i = 0; i < elapsed.length; i++) {
