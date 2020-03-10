@@ -238,7 +238,7 @@ public class EngineCallTest {
             assertTrue(registerClientRequest == null);
 
             AppClient.FindCloudletRequest findCloudletRequest;
-            findCloudletRequest = me.createDefaultFindCloudletRequest(context, developerName, location).build();
+            findCloudletRequest = me.createDefaultFindCloudletRequest(context, location).build();
             assertTrue(findCloudletRequest == null);
 
             AppClient.GetLocationRequest locationRequest = me.createDefaultGetLocationRequest(context).build();
@@ -325,6 +325,9 @@ public class EngineCallTest {
 
         try {
             setMockLocation(context, loc);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -446,9 +449,7 @@ public class EngineCallTest {
             registerClient(me);
 
             // Set devName and location, then override the rest for testing:
-            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, developerName, location)
-                .setAppName(applicationName)
-                .setAppVers(appVersion)
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                 .build();
             if (useHostOverride) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -484,6 +485,128 @@ public class EngineCallTest {
         } else {
             assertFalse("No findCloudlet response!", false);
         }
+    }
+
+    @Test
+    public void findCloudletTestSetSomeDevNameAppOptionals() {
+        Context context = InstrumentationRegistry.getTargetContext();
+        AppClient.RegisterClientReply registerClientReply = null;
+        AppClient.FindCloudletReply findCloudletReply = null;
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+        MeLocation meLoc = new MeLocation(me);
+
+        Location loc = MockUtils.createLocation("findCloudletTestSetSomeDevNameAppOptionals", 122.3321, 47.6062);
+
+        boolean expectedExceptionHit = false;
+        try {
+            enableMockLocation(context, true);
+            setMockLocation(context, loc);
+            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
+
+            String carrierName = me.retrieveNetworkCarrierName(context);
+            registerClient(me);
+
+            // Set NO devName, then override the rest for testing:
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setAppName(applicationName)
+                    .setAppVers(appVersion)
+                    .build();
+            if (useHostOverride) {
+                findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
+            }
+
+            assertTrue(findCloudletReply != null);
+        }
+        catch (PackageManager.NameNotFoundException nnfe){
+            Log.e(TAG, nnfe.getMessage());
+            Log.e(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("FindCloudlet: NameNotFoundException", true);
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertFalse("FindCloudlet: DmeDnsException", true);
+        } catch (ExecutionException ee) {
+            Log.e(TAG, Log.getStackTraceString(ee));
+            assertFalse("FindCloudlet: ExecutionException!", true);
+        } catch (StatusRuntimeException sre) {
+            /* This is expected! */
+            Log.e(TAG, sre.getMessage());
+            Log.e(TAG, Log.getStackTraceString(sre));
+            expectedExceptionHit = true;
+            assertTrue("FindCloudlet: Expected StatusRunTimeException!", true);
+        } catch (InterruptedException ie) {
+            Log.e(TAG, Log.getStackTraceString(ie));
+            assertFalse("FindCloudlet: InterruptedException!", true);
+        } finally {
+            enableMockLocation(context,false);
+        }
+
+        assertTrue("FindCloudlet: Expected StatusRunTimeException about 'NO PERMISSION'", expectedExceptionHit);
+    }
+
+    @Test
+    public void findCloudletTestSetAllOptionalDevAppNameVers() {
+        Context context = InstrumentationRegistry.getTargetContext();
+        AppClient.RegisterClientReply registerClientReply = null;
+        AppClient.FindCloudletReply findCloudletReply = null;
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+        MeLocation meLoc = new MeLocation(me);
+
+        Location loc = MockUtils.createLocation("findCloudletTestSetAllOptionalDevAppNameVers", 122.3321, 47.6062);
+
+        boolean expectedExceptionHit = false;
+        try {
+            enableMockLocation(context, true);
+            setMockLocation(context, loc);
+            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
+
+            String carrierName = me.retrieveNetworkCarrierName(context);
+            registerClient(me);
+
+            // Set All devName, appName, AppVers:
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName(carrierName)
+                    .setDevName(developerName)
+                    .setAppName(applicationName)
+                    .setAppVers(appVersion)
+                    .build();
+            if (useHostOverride) {
+                findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
+            }
+
+            assertTrue(findCloudletReply != null);
+        }
+        catch (PackageManager.NameNotFoundException nnfe){
+            Log.e(TAG, nnfe.getMessage());
+            Log.e(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("FindCloudlet: NameNotFoundException", true);
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertFalse("FindCloudlet: DmeDnsException", true);
+        } catch (ExecutionException ee) {
+            Log.e(TAG, Log.getStackTraceString(ee));
+            assertFalse("FindCloudlet: ExecutionException!", true);
+        } catch (StatusRuntimeException sre) {
+            /* This is expected! */
+            Log.e(TAG, sre.getMessage());
+            Log.e(TAG, Log.getStackTraceString(sre));
+            expectedExceptionHit = true;
+            assertTrue("FindCloudlet: Expected StatusRunTimeException!", true);
+        } catch (InterruptedException ie) {
+            Log.e(TAG, Log.getStackTraceString(ie));
+            assertFalse("FindCloudlet: InterruptedException!", true);
+        } finally {
+            enableMockLocation(context,false);
+        }
+
+        assertFalse("findCloudletTestSetAllOptionalDevAppNameVers: NO Expected StatusRunTimeException about 'NO PERMISSION'", expectedExceptionHit);
     }
 
     @Test
@@ -1218,10 +1341,8 @@ public class EngineCallTest {
             }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            // Default, with test overrides:
-            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, devName, location)
-                    .setAppName(appName)
-                    .setAppVers(appVersion)
+            // Defaults:
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .build();
 
             AppClient.FindCloudletReply findCloudletReply;
@@ -1366,10 +1487,8 @@ public class EngineCallTest {
             }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, devName, location)
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setCarrierName(carrierName)
-                    .setAppName(appName)
-                    .setAppVers(appVersion)
                     .build();
             assertEquals("Session cookies don't match!", registerReply.getSessionCookie(), findCloudletRequest.getSessionCookie());
 
@@ -1480,10 +1599,7 @@ public class EngineCallTest {
             }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, developerName, location)
-                    //.setCarrierName(carrierName)
-                    .setAppName(appName)
-                    .setAppVers(appVersion)
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .build();
             assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
                     me.getSessionCookie(), findCloudletRequest.getSessionCookie());
@@ -1641,8 +1757,19 @@ public class EngineCallTest {
 
         MatchingEngine me = new MatchingEngine(context);
 
-        String appName = me.getAppName(context);
         // Under test, there is no app manifest or name.
-        assertTrue(appName != null && appName == "");
+        assertTrue(me.getAppName(context) == null);
+    }
+
+    @Test
+    public void getAppVersionNameTest() {
+        Context context = InstrumentationRegistry.getContext();
+
+        MatchingEngine me = new MatchingEngine(context);
+        try {
+            assertTrue(me.getAppVersion(context) == null);
+        } catch (PackageManager.NameNotFoundException nnfe) {
+            assertFalse("Should not be here: " + nnfe.getMessage(), false);
+        }
     }
 }
