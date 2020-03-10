@@ -364,7 +364,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
                     // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
                     AppClient.FindCloudletRequest findCloudletRequest =
-                            mMatchingEngine.createDefaultFindCloudletRequest(ctx, devName, location)
+                            mMatchingEngine.createDefaultFindCloudletRequest(ctx, location)
                             .build();
                     Log.i(TAG, "after create find cloudlet request" + findCloudletRequest);
                     AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
