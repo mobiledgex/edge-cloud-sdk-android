@@ -386,26 +386,29 @@ public class MatchingEngine {
 
     /**
      * Returns the nonLocalizedLabel Application Name.
+     *
      * @param context
-     * @return
+     * @return May return null.
      */
     public String getAppName(Context context) {
         String appName;
         ApplicationInfo appInfo = context.getApplicationInfo();
         int stringId = appInfo.labelRes;
-        appName = appInfo.nonLocalizedLabel != null ? appInfo.nonLocalizedLabel.toString() : "";
+        appName = appInfo.nonLocalizedLabel != null ? appInfo.nonLocalizedLabel.toString() : null;
 
         return stringId == 0 ? appName : context.getString(stringId);
     }
 
     /**
      * Returns the Application Version.
+     *
      * @param context
-     * @return
+     * @return May return null.
      */
     public String getAppVersion(Context context)
             throws PackageManager.NameNotFoundException {
         PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+
         return pInfo.versionName;
     }
 
@@ -438,25 +441,36 @@ public class MatchingEngine {
         String appName = getAppName(context);
         String versionName = getAppVersion(context);
 
-        // Invalid application version state
+        // Invalid application name state
+        if (appName == null || appName.equals("")) {
+            Log.w(TAG, "Warning: No application name found! RegisterClientRequest requires an application name.");
+            appName = "";
+        }
+
+        // Invalid application name state
         if (versionName == null || versionName.equals("")) {
-            versionName = "0"; // This will fail lookup at the server.
-            Log.e(TAG, "Error: No application versionName found! RegisterClientRequest requires an application version name.");
-        } else if (!BuildConfig.DEBUG){
-            throw new IllegalArgumentException("RegisterClientRequest requires an application version name.");
+            Log.w(TAG, "Warning: No application versionName found! RegisterClientRequest requires an application version name.");
+            versionName = "";
         }
 
         String carrierName = retrieveNetworkCarrierName(context);
 
-        return AppClient.RegisterClientRequest.newBuilder()
-                .setDevName(developerName)
-                .setAppName(appName)
-                .setAppVers(versionName)
-                .setCarrierName(carrierName)
+        RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder()
+                .setDevName(developerName);
+
+        if (appName != null) {
+            builder.setAppName(appName);
+        }
+        if (versionName != null) {
+            builder.setAppVers(versionName);
+        }
+
+        builder.setCarrierName(carrierName)
                 .setAuthToken("")
                 .setUniqueId(getUniqueId(context))
                 .setUniqueIdType("applicationInstallId") // FIXME: proto enum type definition needed.
                 .setCellId(0);
+                return builder;
     }
 
     public RegisterClientRequest createRegisterClientRequest(Context context, String developerName,
@@ -582,12 +596,11 @@ public class MatchingEngine {
      * Creates a Default FindCloudletRequest. If VersionName or AppName is missing (test code),
      * the app will need to fill this in before sending to the server.
      * @param context Activity Context
-     * @param developerName Developer Name that matches the value in MobiledgeX Console.
      * @param location GPS location
      * @return
      * @throws PackageManager.NameNotFoundException
      */
-    public AppClient.FindCloudletRequest.Builder createDefaultFindCloudletRequest(Context context, String developerName, Location location)
+    public AppClient.FindCloudletRequest.Builder createDefaultFindCloudletRequest(Context context, Location location)
             throws PackageManager.NameNotFoundException {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
@@ -600,29 +613,9 @@ public class MatchingEngine {
         String carrierName = retrieveNetworkCarrierName(context);
         Loc aLoc = androidLocToMeLoc(location);
 
-        // App
-        PackageInfo pInfo;
-        String versionName;
-        String appName = getAppName(context);
-        if (appName == null || appName.isEmpty()) {
-            appName = "0";
-            Log.e(TAG, "Error: The required ApplicationName does not exist!");
-        }
-
-        // Version might not exist, but the App or server will have to handle this before calling build():
-        pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-        versionName = pInfo.versionName;
-        if (versionName == null || versionName.isEmpty()) {
-            versionName = "0";
-            Log.e(TAG, "Error: The required Application PackageInfo VersionName does not exist!");
-        }
-
         return FindCloudletRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(carrierName)
-                .setDevName(developerName)
-                .setAppName(appName)
-                .setAppVers(versionName)
                 .setGpsLocation(aLoc)
                 .setCellId(0);
     }
@@ -1353,7 +1346,7 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, developerName, location)
+                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, location)
                         .setCarrierName(carrierName)
                         .build();
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, me.getNetworkManager().getTimeout());
@@ -1394,10 +1387,8 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, developerName, location)
+                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, location)
                         .setCarrierName(carrierName)
-                        .setAppName(applicationName)
-                        .setAppVers(appVersion)
                         .build();
 
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest,
