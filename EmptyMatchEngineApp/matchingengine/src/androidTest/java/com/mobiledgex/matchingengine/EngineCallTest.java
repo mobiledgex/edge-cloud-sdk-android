@@ -74,7 +74,7 @@ public class EngineCallTest {
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
-    public static final String developerName = "MobiledgeX";
+    public static final String organizationName = "MobiledgeX";
     // Other globals:
     public static final String applicationName = "MobiledgeX SDK Demo";
     public static final String appVersion = "2.0";
@@ -234,7 +234,7 @@ public class EngineCallTest {
             setMockLocation(context, loc);
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, developerName).build();
+            AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, organizationName).build();
             assertTrue(registerClientRequest == null);
 
             AppClient.FindCloudletRequest findCloudletRequest;
@@ -282,7 +282,7 @@ public class EngineCallTest {
             // The app version will be null, but we can build from scratch for test
             regRequest = AppClient.RegisterClientRequest.newBuilder()
                     .setCarrierName(me.retrieveNetworkCarrierName(context))
-                    .setDevName(developerName)
+                    .setOrgName(organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
                     .setCellId(me.retrieveCellId(context).get(0).second.intValue())
@@ -331,7 +331,7 @@ public class EngineCallTest {
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
-            AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, developerName)
+            AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
                     .setCellId(me.retrieveCellId(context).get(0).second.intValue())
@@ -391,7 +391,7 @@ public class EngineCallTest {
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
-            AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, developerName)
+            AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
                     .setCellId(me.retrieveCellId(context).get(0).second.intValue())
@@ -448,7 +448,7 @@ public class EngineCallTest {
             String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
-            // Set devName and location, then override the rest for testing:
+            // Set orgName and location, then override the rest for testing:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                 .build();
             if (useHostOverride) {
@@ -488,7 +488,7 @@ public class EngineCallTest {
     }
 
     @Test
-    public void findCloudletTestSetSomeDevNameAppOptionals() {
+    public void findCloudletTestSetSomeorgNameAppOptionals() {
         Context context = InstrumentationRegistry.getTargetContext();
         AppClient.RegisterClientReply registerClientReply = null;
         AppClient.FindCloudletReply findCloudletReply = null;
@@ -497,7 +497,7 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
         MeLocation meLoc = new MeLocation(me);
 
-        Location loc = MockUtils.createLocation("findCloudletTestSetSomeDevNameAppOptionals", 122.3321, 47.6062);
+        Location loc = MockUtils.createLocation("findCloudletTestSetSomeorgNameAppOptionals", 122.3321, 47.6062);
 
         boolean expectedExceptionHit = false;
         try {
@@ -508,7 +508,7 @@ public class EngineCallTest {
             String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
-            // Set NO devName, then override the rest for testing:
+            // Set NO orgName, then override the rest for testing:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
@@ -568,10 +568,10 @@ public class EngineCallTest {
             String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
-            // Set All devName, appName, AppVers:
+            // Set All orgName, appName, AppVers:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setCarrierName(carrierName)
-                    .setDevName(developerName)
+                    .setOrgName(organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
                     .build();
@@ -1309,14 +1309,14 @@ public class EngineCallTest {
             // Test against Http Echo.
             String carrierName = "TDG";
             String appName = "HttpEcho";
-            String devName = "MobiledgeX";
+            String orgName = "MobiledgeX";
             String appVersion = "20191204";
 
             // Exercise and override the default:
             // The app version will be null, but we can build from scratch for test
             AppClient.RegisterClientRequest regRequest = AppClient.RegisterClientRequest.newBuilder()
                     .setCarrierName(me.retrieveNetworkCarrierName(context))
-                    .setDevName(devName)
+                    .setOrgName(orgName)
                     .setAppName(appName)
                     .setAppVers(appVersion)
                     .build();
@@ -1456,12 +1456,12 @@ public class EngineCallTest {
         // Test against Http Echo.
         String carrierName = "TDG";
         String appName = "HttpEcho";
-        String devName = "MobiledgeX";
+        String orgName = "MobiledgeX";
         String appVersion = "20191204";
         try {
             String data = "{\"Data\": \"food\"}";
 
-            AppClient.RegisterClientRequest req = me.createDefaultRegisterClientRequest(context, devName)
+            AppClient.RegisterClientRequest req = me.createDefaultRegisterClientRequest(context, orgName)
                     .setCarrierName(carrierName)
                     .setAppName(appName)
                     .setAppVers(appVersion)
@@ -1570,11 +1570,11 @@ public class EngineCallTest {
         try {
             String data = "{\"Data\": \"food\"}";
             String carrierName = "TDG";
-            String devName = "MobiledgeX";
+            String orgName = "MobiledgeX";
             String appName = "HttpEcho";
             String appVersion = "20191204";
 
-            AppClient.RegisterClientRequest req = me.createDefaultRegisterClientRequest(context, devName)
+            AppClient.RegisterClientRequest req = me.createDefaultRegisterClientRequest(context, orgName)
                     .setCarrierName(carrierName)
                     .setAppName(appName)
                     .setAppVers(appVersion)
@@ -1701,7 +1701,7 @@ public class EngineCallTest {
         Location location;
         AppClient.RegisterClientReply registerClientReply = null;
         String carrierName = "TDG";
-        String developerName = "MobiledgeX";
+        String organizationName = "MobiledgeX";
         String appName = "HttpEcho";
         String appVersion = "20191204";
 
@@ -1719,7 +1719,7 @@ public class EngineCallTest {
             assertTrue("Required location is null!", location != null);
 
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
-                    developerName, appName,
+                    organizationName, appName,
                     appVersion, carrierName, location, "",
                     0, null, null, null); // FIXME: These parameters should be overloaded or optional.
             // Just wait:

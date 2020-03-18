@@ -417,12 +417,12 @@ public class MatchingEngine {
      * additional optional fields like AuthToken or Tags.
      *
      * @param context
-     * @param developerName
+     * @param organizationName
      * @return
      * @throws PackageManager.NameNotFoundException
      */
     public RegisterClientRequest.Builder createDefaultRegisterClientRequest(Context context,
-                                                                            String developerName)
+                                                                            String organizationName)
             throws PackageManager.NameNotFoundException {
 
         if (!mMatchingEngineLocationAllowed) {
@@ -433,8 +433,8 @@ public class MatchingEngine {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
 
-        if (developerName == null || developerName.equals("")) {
-            throw new IllegalArgumentException("RegisterClientRequest requires a developer name.");
+        if (organizationName == null || organizationName.equals("")) {
+            throw new IllegalArgumentException("RegisterClientRequest requires a organization name.");
         }
 
         // App
@@ -456,7 +456,7 @@ public class MatchingEngine {
         String carrierName = retrieveNetworkCarrierName(context);
 
         RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder()
-                .setDevName(developerName);
+                .setOrgName(organizationName);
 
         if (appName != null) {
             builder.setAppName(appName);
@@ -473,7 +473,7 @@ public class MatchingEngine {
                 return builder;
     }
 
-    public RegisterClientRequest createRegisterClientRequest(Context context, String developerName,
+    public RegisterClientRequest createRegisterClientRequest(Context context, String organizationName,
                                                              String applicationName, String appVersion,
                                                              String carrierName, String authToken,
                                                              int cellId, String uniqueIdType,
@@ -487,8 +487,8 @@ public class MatchingEngine {
         if (context == null) {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
-        if (developerName == null || developerName.equals("")) {
-            throw new IllegalArgumentException("RegisterClientRequest requires a developer name.");
+        if (organizationName == null || organizationName.equals("")) {
+            throw new IllegalArgumentException("RegisterClientRequest requires a organization name.");
         }
 
         // App
@@ -513,7 +513,7 @@ public class MatchingEngine {
         versionName = (appVersion == null || appVersion.isEmpty()) ? getAppVersion(context) : appVersion;
 
         RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder()
-                .setDevName((developerName == null) ? "" : developerName)
+                .setOrgName((organizationName == null) ? "" : organizationName)
                 .setAppName(appName)
                 .setAppVers(versionName)
                 .setCarrierName((carrierName == null || carrierName.equals(""))
@@ -1281,13 +1281,13 @@ public class MatchingEngine {
     /**
      * registerAndFindCloudlet with most defaults filled in.
      * @param context
-     * @param developerName
+     * @param organizationName
      * @param location
      * @param authToken
      * @return
      */
     public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
-                                                             final String developerName,
+                                                             final String organizationName,
                                                              final Location location,
                                                              final String authToken,
                                                              final int cellId,
@@ -1297,7 +1297,7 @@ public class MatchingEngine {
         Callable<FindCloudletReply> future = new Callable<FindCloudletReply>() {
             @Override
             public FindCloudletReply call() throws Exception {
-                RegisterClientRequest registerClientRequest = createDefaultRegisterClientRequest(context, developerName)
+                RegisterClientRequest registerClientRequest = createDefaultRegisterClientRequest(context, organizationName)
                         .setAuthToken(authToken)
                         .build();
                 RegisterClientReply registerClientReply = me.registerClient(registerClientRequest, me.getNetworkManager().getTimeout());
@@ -1321,7 +1321,7 @@ public class MatchingEngine {
      * Register and FindCloudlet to get FindCloudletReply for cloudlet AppInsts info all at once:
      */
     public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
-                                                             final String developerName,
+                                                             final String organizationName,
                                                              final String applicationName,
                                                              final String appVersion,
                                                              final String carrierName,
@@ -1338,7 +1338,7 @@ public class MatchingEngine {
             @Override
             public FindCloudletReply call() throws Exception {
                 RegisterClientRequest registerClientRequest = createRegisterClientRequest(context,
-                        developerName, applicationName, appVersion, carrierName, authToken, cellId, uniqueIdType, uniqueId, tags);
+                        organizationName, applicationName, appVersion, carrierName, authToken, cellId, uniqueIdType, uniqueId, tags);
 
                 RegisterClientReply registerClientReply = me.registerClient(registerClientRequest, me.getNetworkManager().getTimeout());
 
@@ -1361,7 +1361,7 @@ public class MatchingEngine {
     public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
                                                              final String host,
                                                              final int port,
-                                                             final String developerName,
+                                                             final String organizationName,
                                                              final String applicationName,
                                                              final String appVersion,
                                                              final String carrierName,
@@ -1378,7 +1378,7 @@ public class MatchingEngine {
             @Override
             public FindCloudletReply call() throws Exception {
                 RegisterClientRequest registerClientRequest = createRegisterClientRequest(context,
-                        developerName, applicationName, appVersion, carrierName, authToken, cellId, uniqueIdType, uniqueId, tags);
+                        organizationName, applicationName, appVersion, carrierName, authToken, cellId, uniqueIdType, uniqueId, tags);
 
                 RegisterClientReply registerClientReply = me.registerClient(registerClientRequest,
                         host, port, me.getNetworkManager().getTimeout());

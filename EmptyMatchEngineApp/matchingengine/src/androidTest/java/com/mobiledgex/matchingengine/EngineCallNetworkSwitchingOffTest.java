@@ -63,7 +63,7 @@ public class EngineCallNetworkSwitchingOffTest {
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
-    public static final String developerName = "MobiledgeX";
+    public static final String organizationName = "MobiledgeX";
     // Other globals:
     public static final String applicationName = "MobiledgeX SDK Demo";
     public static final String appVersion = "2.0";
@@ -148,7 +148,7 @@ public class EngineCallNetworkSwitchingOffTest {
             // The app version will be null, but we can build from scratch for test
             regRequest = AppClient.RegisterClientRequest.newBuilder()
                     .setCarrierName(me.retrieveNetworkCarrierName(context))
-                    .setDevName(developerName)
+                    .setOrgName(organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
                     .setCellId(me.retrieveCellId(context).get(0).second.intValue())
@@ -188,7 +188,7 @@ public class EngineCallNetworkSwitchingOffTest {
 
         AppClient.RegisterClientReply registerClientReply = null;
         try {
-            AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, developerName)
+            AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
                     .build();
