@@ -190,7 +190,7 @@ public class AppConnectionManager {
         if (!mNetworkManager.isNetworkSwitchingEnabled()) {
             return null;
         }
-        if(!appPort.getTls()) {
+        if (!appPort.getTls()) {
             return null;
         }
 
@@ -251,7 +251,7 @@ public class AppConnectionManager {
         if (!mNetworkManager.isNetworkSwitchingEnabled()) {
             return null;
         }
-        if(appPort.getTls()) {
+        if (appPort.getTls()) {
             return null;
         }
 
