@@ -190,6 +190,9 @@ public class AppConnectionManager {
         if (!mNetworkManager.isNetworkSwitchingEnabled()) {
             return null;
         }
+        if (!appPort.getTls()) {
+            return null;
+        }
 
         Callable<SSLSocket> sslSocketCallable = new Callable<SSLSocket>() {
             @Override
@@ -246,6 +249,9 @@ public class AppConnectionManager {
     public Future<Socket> getTcpSocket(final AppClient.FindCloudletReply findCloudletReply,
                                 final AppPort appPort, final int portNum, final int timeoutMs) {
         if (!mNetworkManager.isNetworkSwitchingEnabled()) {
+            return null;
+        }
+        if (appPort.getTls()) {
             return null;
         }
 
@@ -406,7 +412,8 @@ public class AppConnectionManager {
         if (foundPort == null) {
             return null;
         }
-        String url = "http://" +
+        String protocol = appPort.getTls() ? "https://" : "http://";
+        String url = protocol +
                 appPort.getFqdnPrefix() +
                 findCloudletReply.getFqdn() +
                 ":" +
