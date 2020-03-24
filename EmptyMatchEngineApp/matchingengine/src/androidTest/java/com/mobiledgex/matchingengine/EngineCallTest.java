@@ -84,8 +84,8 @@ public class EngineCallTest {
     public static String hostOverride = "wifi.dme.mobiledgex.net";
     public static int portOverride = 50051;
 
-    public boolean useHostOverride = false;
-    public boolean useWifiOnly = false; // This also disables network switching, since the android default is WiFi.
+    public boolean useHostOverride = true;
+    public boolean useWifiOnly = true; // This also disables network switching, since the android default is WiFi.
 
 
     @Before
@@ -106,6 +106,10 @@ public class EngineCallTest {
             uiAutomation.grantRuntimePermission(
                     InstrumentationRegistry.getTargetContext().getPackageName(),
                     "android.permission.ACCESS_COARSE_LOCATION");
+            uiAutomation.grantRuntimePermission(
+                    InstrumentationRegistry.getTargetContext().getPackageName(),
+                    "android.permission.ACCESS_FINE_LOCATION"
+            );
         }
     }
     // Mini test of wifi only:
@@ -232,6 +236,9 @@ public class EngineCallTest {
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, organizationName).build();
@@ -388,6 +395,9 @@ public class EngineCallTest {
 
         try {
             setMockLocation(context, loc);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -443,6 +453,9 @@ public class EngineCallTest {
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             String carrierName = me.retrieveNetworkCarrierName(context);
@@ -503,6 +516,9 @@ public class EngineCallTest {
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             String carrierName = me.retrieveNetworkCarrierName(context);
@@ -563,6 +579,9 @@ public class EngineCallTest {
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             String carrierName = me.retrieveNetworkCarrierName(context);
@@ -624,6 +643,9 @@ public class EngineCallTest {
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             Location location = meLoc.getBlocking(context, 10000);
 
             String carrierName = me.retrieveNetworkCarrierName(context);
@@ -669,6 +691,9 @@ public class EngineCallTest {
             enableMockLocation(context, true);
             Location mockLoc = MockUtils.createLocation("verifyLocationTest", 122.3321, 47.6062);
             setMockLocation(context, mockLoc);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             String carrierName = me.retrieveNetworkCarrierName(context);
@@ -782,6 +807,9 @@ public class EngineCallTest {
         AppClient.VerifyLocationReply verifyLocationReply = null;
         try {
             setMockLocation(context, mockLoc); // North Pole.
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -835,6 +863,9 @@ public class EngineCallTest {
         String carrierName = me.retrieveNetworkCarrierName(context);
         try {
             setMockLocation(context, loc);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -898,6 +929,9 @@ public class EngineCallTest {
             // Directly create request for testing:
             // Passed in Location (which is a callback interface)
             setMockLocation(context, loc);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -957,6 +991,9 @@ public class EngineCallTest {
         String carrierName = me.retrieveNetworkCarrierName(context);
         try {
             setMockLocation(context, location);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -1013,6 +1050,9 @@ public class EngineCallTest {
         String carrierName = me.retrieveNetworkCarrierName(context);
         try {
             setMockLocation(context, location);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -1070,6 +1110,9 @@ public class EngineCallTest {
 
         try {
             setMockLocation(context, location);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse("Mock'ed Location is missing!", location == null);
 
@@ -1123,6 +1166,9 @@ public class EngineCallTest {
 
         try {
             setMockLocation(context, location);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse("Mock'ed Location is missing!", location == null);
 

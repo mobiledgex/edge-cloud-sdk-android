@@ -337,7 +337,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
-                    String devName = "MobiledgeX"; // Always supplied by application, and in the MobieldgeX web admin console.
+                    String orgName = "MobiledgeX"; // Always supplied by application, and in the MobieldgeX web admin console.
                     // For illustration, the matching engine can be used to programatically get the name of your application detials
                     // so it can go to the correct appInst verision. That AppInst on the server side must match the application
                     // version or else it won't be found and cannot be used.
@@ -347,7 +347,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // There is also createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
                     // like AuthToken or Tag key value pairs.
                     AppClient.RegisterClientRequest registerClientRequest =
-                            mMatchingEngine.createDefaultRegisterClientRequest(ctx, devName).build();
+                            mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName).build();
+                    Log.i(TAG, "registerclient request is " + registerClientRequest);
 
                     AppClient.RegisterClientReply registerClientReply =
                             mMatchingEngine.registerClient(registerClientRequest,
@@ -366,10 +367,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     AppClient.FindCloudletRequest findCloudletRequest =
                             mMatchingEngine.createDefaultFindCloudletRequest(ctx, location)
                             .build();
-                    Log.i(TAG, "after create find cloudlet request" + findCloudletRequest);
                     AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
                             dmeHostAddress, port, 10000);
-                    Log.i(TAG, "CloudletReply is " + closestCloudlet);
+                    Log.i(TAG, "closeseCloudlet is " + closestCloudlet);
 
                     AppClient.VerifyLocationRequest verifyRequest =
                             mMatchingEngine.createDefaultVerifyLocationRequest(ctx, location).build();
