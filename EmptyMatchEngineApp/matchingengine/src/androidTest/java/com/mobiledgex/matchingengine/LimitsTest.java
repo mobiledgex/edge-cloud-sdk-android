@@ -54,7 +54,7 @@ public class LimitsTest {
     public static final String TAG = "LimitsTest";
     public static final long GRPC_TIMEOUT_MS = 10000;
 
-    public static final String developerName = "MobiledgeX";
+    public static final String organizationName = "MobiledgeX";
     // Other globals:
     public static final String applicationName = "MobiledgeX SDK Demo";
     public static final String appVersion = "2.0";
@@ -147,7 +147,7 @@ public class LimitsTest {
         AppClient.RegisterClientReply registerReply;
 
         try {
-            AppClient.RegisterClientRequest regRequest = me.createDefaultRegisterClientRequest(context, developerName)
+            AppClient.RegisterClientRequest regRequest = me.createDefaultRegisterClientRequest(context, organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
                     .build();
