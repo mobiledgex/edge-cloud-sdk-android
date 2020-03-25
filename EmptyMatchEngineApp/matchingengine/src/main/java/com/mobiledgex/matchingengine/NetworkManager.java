@@ -334,7 +334,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
                     @Override
                     public void onAvailable(Network network) {
                         Log.i(TAG, "requestNetwork onAvailable(), binding process to network.");
-                        mConnectivityManager.bindProcessToNetwork(network);
+                        //mConnectivityManager.bindProcessToNetwork(network);
                         activeListenerAdded = true;
                         mConnectivityManager.addDefaultNetworkActiveListener(activeListener);
                         mNetwork = network;
@@ -437,6 +437,21 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         } else {
             Log.i(TAG, " -- is Roaming Data: UNKNOWN");
         }
+    }
+
+    public boolean isNetworkInternetCellularDataCapable(Network network) {
+        boolean hasDataCellCapabilities = false;
+
+        if (mConnectivityManager != null) {
+            if (network != null) {
+                NetworkCapabilities networkCapabilities = mConnectivityManager.getNetworkCapabilities(network);
+                if (networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
+                        networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
+                    hasDataCellCapabilities = true;
+                }
+            }
+        }
+        return hasDataCellCapabilities;
     }
 
     public boolean isCurrentNetworkInternetCellularDataCapable() {
