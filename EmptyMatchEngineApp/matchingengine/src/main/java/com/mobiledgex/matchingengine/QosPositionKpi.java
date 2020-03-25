@@ -17,6 +17,7 @@
 
 package com.mobiledgex.matchingengine;
 
+import android.net.Network;
 import android.util.Log;
 
 import java.util.Iterator;
@@ -89,16 +90,16 @@ public class QosPositionKpi implements Callable {
         NetworkManager nm = null;
         try {
             nm = mMatchingEngine.getNetworkManager();
-            nm.switchToCellularInternetNetworkBlocking();
+            Network network = nm.switchToCellularInternetNetworkBlocking();
 
-            channel = mMatchingEngine.channelPicker(mHost, mPort);
+            channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
             response = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .getQosPositionKpi(mQosPositionKpiRequest);
         } finally {
             if (nm != null) {
-                nm.resetNetworkToDefault();
+                //nm.resetNetworkToDefault();
             }
         }
 

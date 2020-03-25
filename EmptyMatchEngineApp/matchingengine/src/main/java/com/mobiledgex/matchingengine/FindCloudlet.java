@@ -186,7 +186,7 @@ public class FindCloudlet implements Callable {
             nm = mMatchingEngine.getNetworkManager();
             Network network = nm.switchToCellularInternetNetworkBlocking();
 
-            channel = mMatchingEngine.channelPicker(mHost, mPort);
+            channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
             stopwatch.start();
@@ -246,7 +246,7 @@ public class FindCloudlet implements Callable {
                 channel.awaitTermination(timeout - stopwatch.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
             }
             if (nm != null) {
-                nm.resetNetworkToDefault();
+                //nm.resetNetworkToDefault();
             }
         }
 
