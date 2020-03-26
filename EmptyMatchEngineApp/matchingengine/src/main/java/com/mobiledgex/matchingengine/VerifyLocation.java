@@ -134,7 +134,7 @@ public class VerifyLocation implements Callable {
         try {
             // Make One time use of HTTP Request to Token Server:
             NetworkManager nm = mMatchingEngine.getNetworkManager();
-            Network network = nm.switchToCellularInternetNetworkBlocking();
+            Network network = nm.getCellularNetworkBlocking(false);
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
@@ -146,7 +146,6 @@ public class VerifyLocation implements Callable {
                 channel.shutdown();
                 channel.awaitTermination(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
             }
-            //nm.resetNetworkToDefault();
         }
         mRequest = null;
 

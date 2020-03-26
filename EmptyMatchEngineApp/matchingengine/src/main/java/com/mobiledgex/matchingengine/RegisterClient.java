@@ -75,12 +75,12 @@ public class RegisterClient implements Callable {
             throw new MissingRequestException("Usage error: RegisterClient() does not have a request object to make call!");
         }
 
-        AppClient.RegisterClientReply reply = null;
+        AppClient.RegisterClientReply reply;
         ManagedChannel channel = null;
-        NetworkManager nm = null;
+        NetworkManager nm;
         try {
             nm = mMatchingEngine.getNetworkManager();
-            Network network = nm.switchToCellularInternetNetworkBlocking();
+            Network network = nm.getCellularNetworkBlocking(false);
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
@@ -91,9 +91,6 @@ public class RegisterClient implements Callable {
             if (channel != null) {
                 channel.shutdown();
                 channel.awaitTermination(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
-            }
-            if (nm != null) {
-                //nm.resetNetworkToDefault();
             }
         }
         mRequest = null;
