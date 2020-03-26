@@ -79,7 +79,7 @@ public class AddUserToGroup implements Callable {
         NetworkManager nm = null;
         try {
             nm = mMatchingEngine.getNetworkManager();
-            Network network = nm.switchToCellularInternetNetworkBlocking();
+            Network network = nm.getCellularNetworkBlocking(false);
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
@@ -90,9 +90,6 @@ public class AddUserToGroup implements Callable {
             if (channel != null) {
                 channel.shutdown();
                 channel.awaitTermination(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
-            }
-            if (nm != null) {
-                //nm.resetNetworkToDefault();
             }
         }
 

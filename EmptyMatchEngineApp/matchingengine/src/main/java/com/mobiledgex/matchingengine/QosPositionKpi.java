@@ -87,10 +87,10 @@ public class QosPositionKpi implements Callable {
 
         Iterator<QosPositionKpiReply> response;
         ManagedChannel channel;
-        NetworkManager nm = null;
+        NetworkManager nm;
         try {
             nm = mMatchingEngine.getNetworkManager();
-            Network network = nm.switchToCellularInternetNetworkBlocking();
+            Network network = nm.getCellularNetworkBlocking(false);
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
@@ -98,9 +98,7 @@ public class QosPositionKpi implements Callable {
             response = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .getQosPositionKpi(mQosPositionKpiRequest);
         } finally {
-            if (nm != null) {
-                //nm.resetNetworkToDefault();
-            }
+
         }
 
         return new ChannelIterator<>(channel, response);
