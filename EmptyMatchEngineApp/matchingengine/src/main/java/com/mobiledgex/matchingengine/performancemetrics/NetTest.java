@@ -102,7 +102,7 @@ public class NetTest
 
   // Create a client and connect/disconnect on a raw TCP server port from a device network Interface.
   // Not quite ping ICMP.
-  public double ConnectAndDisconnectHostAndPort(Site site)
+  public long ConnectAndDisconnectHostAndPort(Site site)
   {
     Network sourceNetwork = site.network;
     SocketFactory sf = sourceNetwork.getSocketFactory();
@@ -270,6 +270,9 @@ public class NetTest
       }
       // Must run inside a thread:
       try {
+        synchronized(this) {
+          notifyAll(); // Notify all netTests that's waiting().
+        }
         Thread.sleep(PingIntervalMS);
       } catch (InterruptedException ie) {
         // Nothing.

@@ -19,6 +19,10 @@ package com.mobiledgex.matchingengine.performancemetrics;
 
 import android.net.Network;
 
+import com.mobiledgex.matchingengine.FindCloudlet;
+
+import distributed_match_engine.AppClient;
+
 public class Site
 {
   public Network network;
@@ -37,14 +41,9 @@ public class Site
   public double average;
   public double stddev;
 
-  private static final int DEFAULT_NUM_SAMPLES = 5;
+  public AppClient.Appinstance appInstance;
 
-  public Site(Network network, String host, int port)
-  {
-    this.network = network;
-    testType = NetTest.TestType.PING;
-    samples = new double[DEFAULT_NUM_SAMPLES];
-  }
+  private static final int DEFAULT_NUM_SAMPLES = 5;
 
   public Site(Network network, NetTest.TestType testType, int numSamples, String L7Path)
   {
@@ -61,6 +60,10 @@ public class Site
     this.host = host;
     this.port = port;
     samples = new double[numSamples];
+  }
+
+  public AppClient.Appinstance setAppInstance(AppClient.Appinstance appinstance) {
+     return  this.appInstance = appinstance;
   }
 
   public void addSample(double time)
