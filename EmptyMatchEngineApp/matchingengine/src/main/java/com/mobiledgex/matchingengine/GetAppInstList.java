@@ -23,6 +23,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import distributed_match_engine.AppClient;
 import distributed_match_engine.AppClient.AppInstListRequest;
 import distributed_match_engine.AppClient.AppInstListReply;
 import distributed_match_engine.MatchEngineApiGrpc;
@@ -65,6 +66,32 @@ public class GetAppInstList implements Callable {
         }
         mTimeoutInMilliseconds = timeoutInMilliseconds;
         return true;
+    }
+
+    static AppInstListRequest.Builder createFromFindCloudletRequest(AppClient.FindCloudletRequest findCloudletRequest) {
+        AppClient.AppInstListRequest.Builder appInstListRequestBuider = AppClient.AppInstListRequest.newBuilder();
+
+        if (findCloudletRequest.getVer() > 0) {
+            appInstListRequestBuider.setVer(findCloudletRequest.getVer());
+        }
+        if (findCloudletRequest.getSessionCookie() != null) {
+            appInstListRequestBuider.setSessionCookie(findCloudletRequest.getSessionCookie());
+        }
+
+        if (findCloudletRequest.getCarrierName() != null) {
+            appInstListRequestBuider.setVer(findCloudletRequest.getVer());
+        }
+        if (findCloudletRequest.hasGpsLocation()) {
+            appInstListRequestBuider.setGpsLocation(findCloudletRequest.getGpsLocation());
+        }
+        if (findCloudletRequest.getCellId() > 0) {
+            appInstListRequestBuider.setCellId(findCloudletRequest.getCellId());
+        }
+        if (findCloudletRequest.getTagsCount() > 0) {
+            appInstListRequestBuider.addAllTags(findCloudletRequest.getTagsList());
+        }
+
+        return appInstListRequestBuider;
     }
 
     @Override

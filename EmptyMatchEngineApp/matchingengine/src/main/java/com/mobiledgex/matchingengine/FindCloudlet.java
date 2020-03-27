@@ -19,6 +19,7 @@ package com.mobiledgex.matchingengine;
 
 import android.util.Log;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Callable;
@@ -73,7 +74,7 @@ public class FindCloudlet implements Callable {
             throw new MissingRequestException("Usage error: FindCloudlet does not have a request object to use MatchEngine!");
         }
 
-        AppClient.FindCloudletReply reply;
+        AppClient.FindCloudletReply fcreply;
         ManagedChannel channel = null;
         NetworkManager nm = null;
         try {
@@ -83,8 +84,42 @@ public class FindCloudlet implements Callable {
             channel = mMatchingEngine.channelPicker(mHost, mPort);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
-            reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
+            fcreply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .findCloudlet(mRequest);
+
+            // Keep a copy.
+            mMatchingEngine.setFindCloudletResponse(fcreply);
+
+            // GetAppInstList, using the same FindCloudlet Request values.
+            AppClient.AppInstListRequest appInstListRequest = GetAppInstList.createFromFindCloudletRequest(mRequest)
+                    // Do non-trivial transfer, stuffing Tag to do so.
+                    .build();
+
+            // Calc Timeout remainder.
+
+            AppClient.AppInstListReply appInstListReply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
+                .getAppInstList(appInstListRequest);
+
+            if (appInstListReply != null) {
+                List<AppClient.CloudletLocation> cloudletsList = appInstListReply.getCloudletsList();
+            }
+
+            // Calc Timeout remainder.
+
+            // MatchingEngine instance will store netStats.
+            // Lazy initNetStats.
+            // Add all appInsts, and individual sites. Test all, return when done. Timeout will need to be larger.
+
+            // Do non-trivial transfer, stuffing Tag to do so.
+
+            // One ping for each site only, as simutaneous as we can get it.
+            // get public port, and ping first port.
+
+            // Run Stats, sort, return "best" cloudlet
+
+            // Return!
+
+
         } finally {
             if (channel != null) {
                 channel.shutdown();
@@ -95,7 +130,7 @@ public class FindCloudlet implements Callable {
             }
         }
 
-        mMatchingEngine.setFindCloudletResponse(reply);
-        return reply;
+        mMatchingEngine.setFindCloudletResponse(fcreply);
+        return fcreply;
     }
 }
