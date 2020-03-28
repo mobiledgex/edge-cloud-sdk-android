@@ -309,6 +309,9 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         public Network call() throws InterruptedException, NetworkRequestTimeoutException, NetworkRequestNoSubscriptionInfoException {
             if (mNetworkSwitchingEnabled == false) {
                 Log.e(TAG, "NetworkManager is disabled.");
+                if (mNetwork == null) {
+                    mNetwork = mConnectivityManager.getActiveNetwork();
+                }
                 return mNetwork;
             }
 
@@ -347,7 +350,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
                 ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
                     @Override
                     public void onAvailable(Network network) {
-                        Log.i(TAG, "requestNetwork onAvailable(), binding process to network.");
+                        Log.i(TAG, "requestNetwork onAvailable(), binding process to network? " + bindProcess);
                         if (bindProcess) {
                             mConnectivityManager.bindProcessToNetwork(network);
                         }

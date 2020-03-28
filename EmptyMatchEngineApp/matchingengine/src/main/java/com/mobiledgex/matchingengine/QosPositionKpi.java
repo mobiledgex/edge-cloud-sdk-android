@@ -79,6 +79,14 @@ public class QosPositionKpi implements Callable {
         return true;
     }
 
+    /**
+     * Returns an Iterator that contains QosPositionKpiReply responses to the QOS query.
+     * @return
+     * @throws MissingRequestException
+     * @throws StatusRuntimeException
+     * @throws InterruptedException
+     * @throws ExecutionException
+     */
     @Override
     public ChannelIterator<QosPositionKpiReply> call() throws MissingRequestException, StatusRuntimeException, InterruptedException, ExecutionException {
         if (mQosPositionKpiRequest == null) {
@@ -88,18 +96,15 @@ public class QosPositionKpi implements Callable {
         Iterator<QosPositionKpiReply> response;
         ManagedChannel channel;
         NetworkManager nm;
-        try {
-            nm = mMatchingEngine.getNetworkManager();
-            Network network = nm.getCellularNetworkBlocking(false);
 
-            channel = mMatchingEngine.channelPicker(mHost, mPort, network);
-            MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+        nm = mMatchingEngine.getNetworkManager();
+        Network network = nm.getCellularNetworkBlocking(false);
 
-            response = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
-                    .getQosPositionKpi(mQosPositionKpiRequest);
-        } finally {
+        channel = mMatchingEngine.channelPicker(mHost, mPort, network);
+        MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
-        }
+        response = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
+                .getQosPositionKpi(mQosPositionKpiRequest);
 
         return new ChannelIterator<>(channel, response);
     }
