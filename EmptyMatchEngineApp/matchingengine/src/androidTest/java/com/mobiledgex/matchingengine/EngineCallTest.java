@@ -443,7 +443,6 @@ public class EngineCallTest {
     @Test
     public void findCloudletTest() {
         Context context = InstrumentationRegistry.getTargetContext();
-        AppClient.RegisterClientReply registerClientReply = null;
         AppClient.FindCloudletReply findCloudletReply = null;
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -472,11 +471,6 @@ public class EngineCallTest {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
             }
 
-        }
-        catch (PackageManager.NameNotFoundException nnfe){
-            Log.e(TAG, nnfe.getMessage());
-            Log.e(TAG, Log.getStackTraceString(nnfe));
-            assertFalse("FindCloudlet: NameNotFoundException", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("FindCloudlet: DmeDnsException", true);
@@ -1189,7 +1183,7 @@ public class EngineCallTest {
 
             assertEquals(0, list.getVer());
             assertEquals(AppClient.AppInstListReply.AIStatus.AI_SUCCESS, list.getStatus());
-            assertEquals(2, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
+            assertEquals(4, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
             for (int i = 0; i < list.getCloudletsCount(); i++) {
                 Log.v(TAG, "Cloudlet: " + list.getCloudlets(i).toString());
             }
@@ -1869,7 +1863,18 @@ public class EngineCallTest {
             // Using default comparator for selecting the current best.
             Site bestSite = netTest.sortSites().get(0);
 
-            assertTrue(true);
+            // Is it really "best"?
+            int count = 0;
+            for (Site s : netTest.sites) {
+                // Fail count.
+                if (bestSite.average > s.average) {
+                    count++;
+                } if (bestSite.average == s.average && bestSite.stddev > s.stddev) {
+                    count++;
+                }
+            }
+            Log.d(TAG, "Fastest site: " + bestSite.host + ":" + bestSite.port);
+            assertTrue("There were faster sites on this list. Count: " + count, count == 0);
 
         } catch (PackageManager.NameNotFoundException nnfe) {
             Log.e(TAG, nnfe.getMessage());

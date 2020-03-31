@@ -20,6 +20,7 @@ package com.mobiledgex.matchingengine.performancemetrics;
 
 import android.net.Network;
 import android.util.Log;
+
 import com.google.common.base.Stopwatch;
 
 import java.io.IOException;
@@ -30,6 +31,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import com.mobiledgex.matchingengine.MobiledgeXSSLSocketFactory;
 import com.squareup.okhttp.OkHttpClient;
@@ -55,7 +59,7 @@ public class NetTest
     public boolean runTest;
 
     private Thread pingThread;
-    public int PingIntervalMS = 1000;
+    public int PingIntervalMS = 200;
     public int TestTimeoutMS = 1000;
     public int ConnectTimeoutMS = 5000;
 
@@ -95,12 +99,22 @@ public class NetTest
     }
 
     public Comparator<Site> defaultComparator;
+    private ExecutorService mExecutorService;
 
     public NetTest()
     {
         stopWatch = Stopwatch.createUnstarted();
         sites = Collections.synchronizedList(new ArrayList<Site>());
         defaultComparator = getDefaultComparator();
+    }
+
+    /**
+     * Set the executorService to use if using the async Future versions.
+     * @param executorService
+     * @return
+     */
+    public ExecutorService setExecutorService(ExecutorService executorService) {
+        return this.mExecutorService = executorService;
     }
 
     private OkHttpClient getHttpClientOnNetwork(Network sourceNetwork) {
@@ -117,8 +131,11 @@ public class NetTest
         return httpClient;
     }
 
-    // Create a client and connect/disconnect on a raw TCP server port from a device network Interface.
-    // Not quite ping ICMP.
+    /**
+     * Create a client and connect/disconnect on a raw TCP server port from a device network Interface.
+     * @param site
+     * @return
+     */
     public long ConnectAndDisconnectHostAndPort(Site site)
     {
         Network sourceNetwork = site.network;
@@ -147,8 +164,11 @@ public class NetTest
         return elapsed;
     }
 
-    // Create a client and connect/disconnect from a device network Interface to a particular test
-    // site.
+    /**
+     * Test and gather stats on site using TCP connection to host.
+     * @param site
+     * @return
+     */
     public long ConnectAndDisconnect(Site site)
     {
         Response result;
@@ -187,7 +207,11 @@ public class NetTest
         return -1;
     }
 
-    // Basic ICMP ping. Does not set source network interface, it just pings to see if it is reachable along current default route.
+    /**
+     * Basic ICMP ping. Does not set source network interface, it just pings to see if it is reachable along current default route.
+     * @param site
+     * @return
+     */
     public long Ping(Site site)
     {
         InetAddress inetAddress = null;
@@ -264,6 +288,20 @@ public class NetTest
     public List<Site> sortSites(Comparator<Site> comparator) {
         Collections.sort(sites, comparator);
         return sites;
+    }
+
+    public Future<Double> testSiteFuture(final Site site) {
+        if (mExecutorService == null) {
+            return null;
+        }
+
+        Callable<Double> future = new Callable<Double>() {
+            @Override
+            public Double call() {
+                return testSite(site);
+            }
+        };
+        return mExecutorService.submit(future);
     }
 
     public double testSite(Site site) {
