@@ -86,6 +86,63 @@ public class FindCloudlet implements Callable {
                 .addAllTags(findCloudletReply.getTagsList());
     }
 
+    // If UDP, then ICMP must respond. TODO: Allow UDP "response"?
+    private List<Site> insertAppInstances(NetTest netTest, Network network, AppClient.AppInstListReply appInstListReply) {
+        int numSamples = Site.DEFAULT_NUM_SAMPLES;
+        if (appInstListReply != null) {
+            List<AppClient.CloudletLocation> cloudletsList = appInstListReply.getCloudletsList();
+            for (AppClient.CloudletLocation cloudletLocation : cloudletsList) {
+
+                List<AppClient.Appinstance> appInstances = cloudletLocation.getAppinstancesList();
+                if (appInstances == null) {
+                    continue;
+                }
+                for (AppClient.Appinstance appInstance : cloudletLocation.getAppinstancesList()) {
+                    if (appInstance.getPortsCount() <= 0) {
+                        continue; // Odd. Skip.
+                    }
+                    Appcommon.AppPort appPort = appInstance.getPorts(0);
+
+                    Site site = null;
+                    switch (appPort.getProto()) {
+                        case L_PROTO_TCP:
+                            if (appPort.getPathPrefix() == null || appPort.getPathPrefix().isEmpty()) {
+                                int port = appPort.getPublicPort();
+                                String host = appPort.getFqdnPrefix() + appInstance.getFqdn();
+                                site = new Site(network, NetTest.TestType.CONNECT, numSamples, host, port);
+                            } else {
+                                int port = appPort.getPublicPort();
+                                String l7path = appPort.getFqdnPrefix() + appInstance.getFqdn() + ":" + port + appPort.getPathPrefix();
+                                site = new Site(network, NetTest.TestType.CONNECT, numSamples, l7path);
+                            }
+                            break;
+                        case L_PROTO_UDP: {
+                            int port = appPort.getPublicPort();
+                            String host = appPort.getFqdnPrefix() + appInstance.getFqdn();
+                            site = new Site(network, NetTest.TestType.PING, numSamples, host, port);
+                            break;
+                        }
+                        case L_PROTO_HTTP: {
+                            int port = appPort.getPublicPort();
+                            String l7path = appPort.getFqdnPrefix() + appInstance.getFqdn() + ":" + port + appPort.getPathPrefix();
+                            site = new Site(network, NetTest.TestType.CONNECT, numSamples, l7path);
+                            break;
+                        }
+                        default:
+                            Log.e(TAG, "Unknown protocol: " + appPort.getProto() + "Cannot get statistics for site: " + appPort.getFqdnPrefix() + appInstance.getFqdn());
+                            break;
+                    }
+                    if (site != null) {
+                        site.setAppinstance(appInstance);
+                        netTest.sites.add(site);
+                    }
+                }
+            }
+        }
+
+        return netTest.sites;
+    }
+
     @Override
     public AppClient.FindCloudletReply call()
             throws MissingRequestException, StatusRuntimeException, InterruptedException, ExecutionException {
@@ -111,14 +168,22 @@ public class FindCloudlet implements Callable {
             stopwatch.start();
             fcreply = stub.withDeadlineAfter(timeout, TimeUnit.MILLISECONDS)
                     .findCloudlet(mRequest);
-            // Keep a copy.
-            mMatchingEngine.setFindCloudletResponse(fcreply);
 
-            // Check timeout:
-            if (stopwatch.elapsed(TimeUnit.MILLISECONDS) >= timeout) {
+            // Keep a copy.
+            if (fcreply != null) {
+                mMatchingEngine.setFindCloudletResponse(fcreply);
+            }
+
+            // Check timeout, fallback:
+            if (fcreply != null && stopwatch.elapsed(TimeUnit.MILLISECONDS) >= timeout) {
+                return fcreply;
+            }
+            // No result, and Timeout:
+            else if (stopwatch.elapsed(TimeUnit.MILLISECONDS) >= timeout) {
                 throw new StatusRuntimeException(Status.DEADLINE_EXCEEDED);
             }
 
+            // Have more time for AppInstList:
             // GetAppInstList, using the same FindCloudlet Request values.
             byte[] dummy = new byte[2048];
             AppClient.Tag dummyTag = AppClient.Tag.newBuilder().setType("Buffer").setData(new String(dummy)).build();
@@ -131,72 +196,35 @@ public class FindCloudlet implements Callable {
             AppClient.AppInstListReply appInstListReply = stub.withDeadlineAfter(remainder, TimeUnit.MILLISECONDS)
                 .getAppInstList(appInstListRequest);
 
-            // Check timeout:
-            if (stopwatch.elapsed(TimeUnit.MILLISECONDS) >= timeout) {
-                throw new StatusRuntimeException(Status.DEADLINE_EXCEEDED);
+            // Transient state handling, just return what we had before, if it fails, a new FindCloudlet is needed anyway:
+            if (appInstListReply == null || appInstListReply.getStatus() != AppClient.AppInstListReply.AIStatus.AI_SUCCESS) {
+                return fcreply;
             }
 
-            mMatchingEngine.getAppConnectionManager().getTCPMap(fcreply);
-
-            // If UDP, then for test to work, server MUST respond with something to be measured.
-            NetTest netTest = new NetTest(); // Just get stats and return, store for later use.
-
-            // CloudletList --> Cloudlet --> AppInstances --> AppInstance --> Site (publicPort) --> Test.
-
-            if (appInstListReply != null) {
-                List<AppClient.CloudletLocation> cloudletsList = appInstListReply.getCloudletsList();
-                for (AppClient.CloudletLocation cloudletLocation : cloudletsList) {
-
-                    List<AppClient.Appinstance> appInstances = cloudletLocation.getAppinstancesList();
-                    if (appInstances == null) {
-                        continue;
-                    }
-                    for (AppClient.Appinstance appInstance : cloudletLocation.getAppinstancesList()) {
-                        if (appInstance.getPortsCount() <= 0) {
-                            continue; // Odd. Skip.
-                        }
-                        Appcommon.AppPort appPort = appInstance.getPorts(0);
-                        // Type UDP (Ping) or TCP?
-                        Appcommon.LProto proto = L_PROTO_TCP;
-                        // TODO Assume TCP now:
-                        mMatchingEngine.getAppConnectionManager().getTCPMap(fcreply);
-
-                        Site site;
-                        int numSamples = 5;
-                        if (appPort.getPathPrefix() == null || appPort.getPathPrefix().isEmpty()) {
-                            String host = appPort.getFqdnPrefix() + appInstance.getFqdn();
-                            int port = appPort.getPublicPort();
-                            site = new Site(network, NetTest.TestType.CONNECT, numSamples, host, port);
-                            site.setAppInstance(appInstance);
-                        } else {
-                            String l7path = appPort.getFqdnPrefix() + appInstance.getFqdn() + appPort.getPathPrefix();
-                            site = new Site(network, NetTest.TestType.CONNECT, numSamples, l7path);
-                            site.setAppInstance(appInstance);
-                        }
-                        netTest.sites.add(site);
-                    }
-                    netTest.PingIntervalMS = 100;
-
-                }
-            }
+            NetTest netTest = mMatchingEngine.getNetTest();
+            insertAppInstances(netTest, network, appInstListReply);
             netTest.doTest(true);
+
+            // Sites is a link list, and has concurrent access.
             synchronized (netTest) {
-                // Wait for netTest monitor notify() or notifyAll() if test run completed.
+                // Wait with remaining timeout time for netTest monitor notifyAll() if test run completed.
                 try {
-                    netTest.wait(timeout - stopwatch.elapsed(TimeUnit.MILLISECONDS));
-                } catch (InterruptedException e) {
+                    // Wait for numSamples, or timeout.
+                    for (int i = 0; i < netTest.numSamples; i++) {
+                        remainder = timeout - stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                        if (remainder < 0) {
+                            break;
+                        }
+                        netTest.wait(remainder);
+                    }
                 } finally {
-                    netTest.runTest = false;
+                    netTest.doTest(false);
                 }
             }
 
-            // Who's best (before being timing out/interrupted)? stream(), .min() is in Android 24 only. Simple average only:
-            Site bestSite = netTest.sites.peek();
-            for (Site s : netTest.sites) {
-                if (s.average < bestSite.average) {
-                    bestSite = s;
-                }
-            }
+            // Using default NetTest comparator:
+            Site bestSite = netTest.sortSites().get(0);
+
             // Construct a findCloudlet return;
             AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletFromAppInstance(fcreply, bestSite.appInstance)
                     .build();
@@ -204,7 +232,7 @@ public class FindCloudlet implements Callable {
         } finally {
             if (channel != null) {
                 channel.shutdown();
-                channel.awaitTermination(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
+                channel.awaitTermination(timeout - stopwatch.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
             }
             if (nm != null) {
                 nm.resetNetworkToDefault();

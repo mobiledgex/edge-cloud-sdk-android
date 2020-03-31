@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,12 +20,15 @@ package com.mobiledgex.matchingengine;
 import android.app.UiAutomation;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.net.Network;
 import android.os.Environment;
 import android.os.Looper;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.mobiledgex.matchingengine.performancemetrics.NetTest;
+import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.MeLocation;
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
@@ -52,7 +55,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.jar.Attributes;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon.AppPort;
@@ -536,6 +538,7 @@ public class EngineCallTest {
             }
 
             assertTrue(findCloudletReply != null);
+            assertTrue(findCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_NOTFOUND);
         }
         catch (PackageManager.NameNotFoundException nnfe){
             Log.e(TAG, nnfe.getMessage());
@@ -1129,7 +1132,7 @@ public class EngineCallTest {
 
             assertEquals(0, list.getVer());
             assertEquals(AppClient.AppInstListReply.AIStatus.AI_SUCCESS, list.getStatus());
-            assertEquals(2, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
+            assertEquals(4, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
             for (int i = 0; i < list.getCloudletsCount(); i++) {
                 Log.v(TAG, "Cloudlet: " + list.getCloudlets(i).toString());
             }
@@ -1818,4 +1821,72 @@ public class EngineCallTest {
             assertFalse("Should not be here: " + nnfe.getMessage(), false);
         }
     }
+
+    @Test
+    public void NetTestAPItest() {
+        // Setup as usual, then grab netTest from MatchingEngine, and add well known test sites. Get the best one, test wise.
+        Context context = InstrumentationRegistry.getTargetContext();
+        AppClient.RegisterClientReply registerClientReply = null;
+        AppClient.FindCloudletReply findCloudletReply = null;
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+        MeLocation meLoc = new MeLocation(me);
+
+        Location loc = MockUtils.createLocation("findCloudletTest", 122.3321, 47.6062);
+
+        try {
+            enableMockLocation(context, true);
+            setMockLocation(context, loc);
+            synchronized (meLoc) {
+                meLoc.wait(1000);
+            }
+            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
+
+            String carrierName = me.retrieveNetworkCarrierName(context);
+            registerClient(me);
+
+            // Set orgName and location, then override the rest for testing:
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .build();
+            if (useHostOverride) {
+                findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
+            }
+
+            // Grab netTest, and use it:
+            NetTest netTest = me.getNetTest();
+            Network network = me.getNetworkManager().getActiveNetwork();
+            netTest.sites.add(new Site(network, NetTest.TestType.CONNECT, 5, "https://mobiledgex.com"));
+            netTest.doTest(true);
+            synchronized (netTest) {
+                netTest.wait(3000);
+                netTest.doTest(false);
+            }
+
+            netTest.sortSites(); // Default.
+            Site bestSite = netTest.sites.get(0);
+            assertTrue(true);
+
+        } catch (PackageManager.NameNotFoundException nnfe) {
+            Log.e(TAG, nnfe.getMessage());
+            Log.i(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("NetTestAPItest: Package Info is missing!", true);
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertFalse("NetTestAPItest: DmeDnsException", true);
+        }  catch (ExecutionException ee) {
+            Log.i(TAG, Log.getStackTraceString(ee));
+            assertFalse("NetTestAPItest: ExecutionException!", true);
+        } catch (StatusRuntimeException sre) {
+            Log.i(TAG, Log.getStackTraceString(sre));
+            assertFalse("NetTestAPItest: StatusRuntimeException!", true);
+        } catch (InterruptedException ie) {
+            Log.i(TAG, Log.getStackTraceString(ie));
+            assertFalse("NetTestAPItest: InterruptedException!", true);
+        }
+    }
+
 }
+
