@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,12 @@
  * limitations under the License.
  */
 
+
 package com.mobiledgex.matchingengine.performancemetrics;
 
 import android.net.Network;
 import android.util.Log;
+import com.google.common.base.Stopwatch;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -29,7 +31,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 import com.mobiledgex.matchingengine.MobiledgeXSSLSocketFactory;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -49,43 +50,20 @@ public class NetTest
         CONNECT,
     }
 
-    class Stopwatch {
-        long elapsed;
-        long startts;
-        long endts;
-
-        long reset() {
-            return elapsed = 0;
-        }
-        long start() {
-            startts = System.currentTimeMillis();
-            return startts;
-        }
-
-        long stop() {
-            endts = System.currentTimeMillis();
-            elapsed = endts - startts;
-            return elapsed;
-        }
-
-        long elapsed() {
-            return elapsed;
-        }
-
-    }
     private Stopwatch stopWatch;
 
     public boolean runTest;
 
     private Thread pingThread;
-    public int PingIntervalMS = 5000;
-    public int TestTimeoutMS = 5000;
+    public int PingIntervalMS = 1000;
+    public int TestTimeoutMS = 1000;
     public int ConnectTimeoutMS = 5000;
 
     /**
      * Synchronized List of Sites.
      */
     public List<Site> sites;
+    public Object sync = new Object();
 
     /**
      * Simple default comparator for Site.
@@ -120,7 +98,7 @@ public class NetTest
 
     public NetTest()
     {
-        stopWatch = new Stopwatch();
+        stopWatch = Stopwatch.createUnstarted();
         sites = Collections.synchronizedList(new ArrayList<Site>());
         defaultComparator = getDefaultComparator();
     }
@@ -152,7 +130,7 @@ public class NetTest
         try {
             stopWatch.start();
             s = sf.createSocket(site.host, site.port);
-            elapsed = stopWatch.stop();
+            elapsed = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
         }
         catch (IOException ioe) {
             elapsed = -1;
@@ -195,7 +173,7 @@ public class NetTest
             // stateless empty body return also 200 OK.
             stopWatch.start();
             result = httpClient.newCall(request).execute();
-            long elapsed = stopWatch.stop();
+            long elapsed = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
 
             if (result.isSuccessful()) {
                 return elapsed;
@@ -226,7 +204,7 @@ public class NetTest
             stopWatch.start();
             // Ping:
             if (inetAddress.isReachable(TestTimeoutMS)) {
-                elapsedMS = stopWatch.stop();
+                elapsedMS = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
             }
             else {
                 elapsedMS = -1;
@@ -260,7 +238,7 @@ public class NetTest
         else
         {
             try {
-                pingThread.join(PingIntervalMS);
+                pingThread.join(ConnectTimeoutMS);
             } catch (InterruptedException ie) {
                 // Nothing to do.
             } finally {
@@ -288,43 +266,49 @@ public class NetTest
         return sites;
     }
 
+    public double testSite(Site site) {
+        double elapsed = -1;
+        switch (site.testType) {
+            case CONNECT:
+                if (site.L7Path == null) // Simple host and port.
+                {
+                    elapsed = ConnectAndDisconnectHostAndPort(site);
+                    Log.d(TAG, "site host: " + site.host + ", port: " + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString());
+                } else // Use L7 Path.
+                {
+                    elapsed = ConnectAndDisconnect(site);
+                    Log.d(TAG, "site L7Path: " + site.L7Path + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString());
+
+                }
+                break;
+            case PING: {
+                elapsed = Ping(site);
+                Log.d(TAG, "site host: " + site.host + ", port: " + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev);
+            }
+            break;
+        }
+        site.lastPingMs = elapsed;
+        if (elapsed >= 0) {
+            site.addSample(elapsed);
+            site.recalculateStats();
+        }
+        return elapsed;
+    }
+
+
     // Basic utility function to connect and disconnect from any TCP port.
     public void RunNetTest()
     {
         while (runTest) {
             double elapsed = -1d;
             try {
-                synchronized (this) {
+                synchronized (sites) {
                     for (Site site : sites) {
-                        switch (site.testType) {
-                            case CONNECT:
-                                if (site.L7Path == null) // Simple host and port.
-                                {
-                                    elapsed = ConnectAndDisconnectHostAndPort(site);
-                                    Log.d(TAG, "site host: " + site.host + ", port: " + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString());
-                                } else // Use L7 Path.
-                                {
-                                    elapsed = ConnectAndDisconnect(site);
-                                    Log.d(TAG, "site L7Path: " + site.L7Path + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString());
-
-                                }
-                                break;
-                            case PING: {
-                                elapsed = Ping(site);
-                                Log.d(TAG, "site host: " + site.host + ", port: " + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev);
-                            }
-                            break;
-                        }
-                        site.lastPingMs = elapsed;
-                        if (elapsed >= 0) {
-                            site.addSample(elapsed);
-                            site.recalculateStats();
-                        }
-
+                        testSite(site);
                     }
-                    this.notifyAll(); // Notify all netTests that's waiting() a test run cycle is done. Those waiting can sort the Collection.
+                    sites.notifyAll(); // Notify all netTests that's waiting() a test run cycle is done.
                     // Must run inside a thread:
-                    //Thread.sleep(PingIntervalMS);
+                    Thread.sleep(PingIntervalMS);
                 }
             }
             catch (Exception ie) {
