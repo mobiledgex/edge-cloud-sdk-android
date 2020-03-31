@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@ import com.google.common.base.Stopwatch;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -38,8 +37,6 @@ import distributed_match_engine.MatchEngineApiGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-
-import static distributed_match_engine.Appcommon.LProto.L_PROTO_TCP;
 
 public class FindCloudlet implements Callable {
     public static final String TAG = "FindCloudlet";
@@ -77,7 +74,7 @@ public class FindCloudlet implements Callable {
         return true;
     }
 
-    private AppClient.FindCloudletReply.Builder createFindCloudletFromAppInstance(AppClient.FindCloudletReply findCloudletReply, AppClient.Appinstance appinstance) {
+    private AppClient.FindCloudletReply.Builder createFindCloudletReplyFromAppInstance(AppClient.FindCloudletReply findCloudletReply, AppClient.Appinstance appinstance) {
         return AppClient.FindCloudletReply.newBuilder()
                 .setVer(findCloudletReply.getVer())
                 .setStatus(findCloudletReply.getStatus())
@@ -190,6 +187,9 @@ public class FindCloudlet implements Callable {
 
             AppClient.AppInstListRequest appInstListRequest = GetAppInstList.createFromFindCloudletRequest(mRequest)
                     // Do non-trivial transfer, stuffing Tag to do so.
+                    .setCarrierName(mRequest.getCarrierName() == null ?
+                            mMatchingEngine.getLastRegisterClientRequest().getCarrierName() :
+                            mRequest.getCarrierName())
                     .addTags(dummyTag)
                     .build();
 
@@ -203,32 +203,25 @@ public class FindCloudlet implements Callable {
 
             NetTest netTest = mMatchingEngine.getNetTest();
             insertAppInstances(netTest, network, appInstListReply);
-            netTest.doTest(true);
 
-            // Sites is a link list, and has concurrent access.
-            synchronized (netTest) {
-                // Wait with remaining timeout time for netTest monitor notifyAll() if test run completed.
-                try {
-                    // Wait for numSamples, or timeout.
-                    for (int i = 0; i < netTest.numSamples; i++) {
-                        remainder = timeout - stopwatch.elapsed(TimeUnit.MILLISECONDS);
-                        if (remainder < 0) {
-                            break;
-                        }
-                        netTest.wait(remainder);
-                    }
-                } finally {
-                    netTest.doTest(false);
+            List<Site> sites = netTest.sites;
+
+            // Test numSample times, all sites in round robin style, at PingInterval time.
+            for (int n = 0; n < netTest.numSamples; n++) {
+                for (Site s : sites) {
+                    netTest.testSite(s);
                 }
             }
-
-            // Using default NetTest comparator:
+            // Using default comparator for selecting the current best.
             Site bestSite = netTest.sortSites().get(0);
 
-            // Construct a findCloudlet return;
-            AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletFromAppInstance(fcreply, bestSite.appInstance)
+            // Construct a findCloudlet return, as the return signature.
+            // NetTest statistics remain as field inside MatchingEngine instance. The associated AppInstance may be stale
+            // in the same way findCloudlet becomes stale.
+            AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletReplyFromAppInstance(fcreply, bestSite.appInstance)
                     .build();
             fcreply = bestFindCloudletReply;
+
         } finally {
             if (channel != null) {
                 channel.shutdown();

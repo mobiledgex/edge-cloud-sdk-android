@@ -1859,14 +1859,16 @@ public class EngineCallTest {
             NetTest netTest = me.getNetTest();
             Network network = me.getNetworkManager().getActiveNetwork();
             netTest.sites.add(new Site(network, NetTest.TestType.CONNECT, 5, "https://mobiledgex.com"));
-            netTest.doTest(true);
-            synchronized (netTest) {
-                netTest.wait(3000);
-                netTest.doTest(false);
-            }
 
-            netTest.sortSites(); // Default.
-            Site bestSite = netTest.sites.get(0);
+            // Test numSample times, all sites in round robin style, at PingInterval time.
+            for (int n = 0; n < netTest.numSamples; n++) {
+                for (Site s : netTest.sites) {
+                    netTest.testSite(s);
+                }
+            }
+            // Using default comparator for selecting the current best.
+            Site bestSite = netTest.sortSites().get(0);
+
             assertTrue(true);
 
         } catch (PackageManager.NameNotFoundException nnfe) {

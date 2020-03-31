@@ -112,6 +112,7 @@ public class MatchingEngine {
     private String mTokenServerURI;
     private String mTokenServerToken;
 
+    private RegisterClientRequest mRegisterClientRequest;
     private RegisterClientReply mRegisterClientReply;
     private FindCloudletReply mFindCloudletReply;
     private VerifyLocationReply mVerifyLocationReply;
@@ -226,6 +227,16 @@ public class MatchingEngine {
     String getSessionCookie() {
         return this.mSessionCookie;
     }
+
+
+    RegisterClientRequest getLastRegisterClientRequest() {
+        return mRegisterClientRequest;
+    }
+    void setLastRegisterClientRequest(AppClient.RegisterClientRequest registerRequest) {
+        mRegisterClientRequest = registerRequest;
+    }
+
+
 
     void setMatchEngineStatus(AppClient.RegisterClientReply status) {
         mRegisterClientReply = status;
