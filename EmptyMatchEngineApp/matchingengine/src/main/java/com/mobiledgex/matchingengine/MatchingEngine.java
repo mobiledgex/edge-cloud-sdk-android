@@ -1314,9 +1314,14 @@ public class MatchingEngine {
         Callable<FindCloudletReply> future = new Callable<FindCloudletReply>() {
             @Override
             public FindCloudletReply call() throws Exception {
-                RegisterClientRequest registerClientRequest = createDefaultRegisterClientRequest(context, organizationName)
+                RegisterClientRequest.Builder registerClientRequestBuilder = createDefaultRegisterClientRequest(context, organizationName)
                         .setAuthToken(authToken)
-                        .build();
+                        .setCellId(cellId);
+                if (tags != null) {
+                    registerClientRequestBuilder.addAllTags(tags);
+                }
+                RegisterClientRequest registerClientRequest = registerClientRequestBuilder.build();
+
                 RegisterClientReply registerClientReply = me.registerClient(registerClientRequest, me.getNetworkManager().getTimeout());
 
                 if (registerClientReply == null) {
@@ -1363,9 +1368,13 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, location)
-                        .setCarrierName(carrierName)
-                        .build();
+                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location)
+                        .setCellId(cellId);
+
+                if (tags != null) {
+                    findCloudletRequestBuilder.addAllTags(tags);
+                }
+                FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, me.getNetworkManager().getTimeout());
 
                 return findCloudletReply;
@@ -1404,9 +1413,12 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, location)
-                        .setCarrierName(carrierName)
-                        .build();
+                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location)
+                        .setCellId(cellId);
+                if (tags != null) {
+                    findCloudletRequestBuilder.addAllTags(tags);
+                }
+                FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
 
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest,
                         host, port, me.getNetworkManager().getTimeout());
