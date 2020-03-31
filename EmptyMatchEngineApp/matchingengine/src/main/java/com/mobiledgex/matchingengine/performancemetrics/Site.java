@@ -87,13 +87,12 @@ public class Site
         double acc = 0d;
         double vsum = 0d;
         double d;
-        for (int i = 0; i < size; i++)
-        {
+
+        for (int i = 0; i < size; i++) {
             acc += samples[i];
         }
         average = acc / size;
-        for (int i = 0; i < size; i++)
-        {
+        for (int i = 0; i < size; i++) {
             d = samples[i];
             vsum += (d - average) * (d - average);
         }
