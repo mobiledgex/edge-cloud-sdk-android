@@ -28,7 +28,6 @@ import android.provider.Settings;
 import android.provider.Settings.Secure;
 import android.support.annotation.RequiresApi;
 import android.telephony.CarrierConfigManager;
-import android.telephony.CellIdentity;
 import android.telephony.CellIdentityCdma;
 import android.telephony.CellIdentityGsm;
 import android.telephony.CellIdentityLte;
@@ -91,6 +90,8 @@ import android.util.Log;
 import android.util.Pair;
 
 
+import com.mobiledgex.matchingengine.performancemetrics.NetTest;
+
 import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
 
 public class MatchingEngine {
@@ -123,6 +124,7 @@ public class MatchingEngine {
     private boolean useOnlyWifi = false;
 
     private Context mContext;
+    private NetTest mNetTest;
 
     public MatchingEngine(Context context) {
         threadpool = Executors.newSingleThreadExecutor();
@@ -130,6 +132,8 @@ public class MatchingEngine {
         mNetworkManager = NetworkManager.getInstance(connectivityManager, getSubscriptionManager(context));
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
+        mNetTest = new NetTest();
+        mNetTest.PingIntervalMS = 100;
     }
     public MatchingEngine(Context context, ExecutorService executorService) {
         threadpool = executorService;
@@ -137,6 +141,8 @@ public class MatchingEngine {
         mNetworkManager = NetworkManager.getInstance(connectivityManager, getSubscriptionManager(context), threadpool);
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
+        mNetTest = new NetTest();
+        mNetTest.PingIntervalMS = 100;
     }
 
     // Application state Bundle Key.
@@ -1409,6 +1415,10 @@ public class MatchingEngine {
         return mAppConnectionManager;
     }
 
+    NetTest getNetTest() {
+        return mNetTest;
+    }
+
     // Network Wrappers:
     //
 
@@ -1495,5 +1505,4 @@ public class MatchingEngine {
                     .build();
         }
     }
-
 }
