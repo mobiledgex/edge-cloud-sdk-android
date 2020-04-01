@@ -25,16 +25,19 @@ import com.google.common.base.Stopwatch;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
 import com.mobiledgex.matchingengine.MobiledgeXSSLSocketFactory;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -46,7 +49,7 @@ import javax.net.SocketFactory;
 public class NetTest
 {
     public static final String TAG = "NetTest";
-    public int numSamples = 5;
+    public int testRounds = 5;
 
     public enum TestType
     {
@@ -54,58 +57,52 @@ public class NetTest
         CONNECT,
     }
 
-    private Stopwatch stopWatch;
-
     public boolean runTest;
 
-    private Thread pingThread;
-    public int PingIntervalMS = 200;
-    public int TestTimeoutMS = 1000;
-    public int ConnectTimeoutMS = 5000;
+    private Thread testThread;
+    public int TestIntervalMS = 100;
+    public int TestTimeoutMS = 2000;
 
     /**
      * Synchronized List of Sites.
      */
     public List<Site> sites;
-    public Object sync = new Object();
 
     /**
      * Simple default comparator for Site.
      * @return
      */
-    public Comparator<Site> getDefaultComparator() {
-        if (defaultComparator == null) {
-            defaultComparator = new Comparator<Site>() {
-                @Override
-                public int compare(Site o1, Site o2) {
-                    if (o1.average < o2.average) {
-                        return -1;
-                    }
-                    if (o1.average > o2.average) {
-                        return 1;
-                    }
-
-                    if (o1.stddev < o2.stddev) {
-                        return -1;
-                    }
-                    if (o1.stddev > o2.stddev) {
-                        return 1;
-                    }
-                    else return 0;
+    public Comparator<Site> getDefaultSiteComparator() {
+        return new Comparator<Site>() {
+            @Override
+            public int compare(Site o1, Site o2) {
+                if (o1.average < o2.average) {
+                    return -1;
                 }
-            };
-        }
-        return defaultComparator;
+                if (o1.average > o2.average) {
+                    return 1;
+                }
+
+                if (o1.stddev < o2.stddev) {
+                    return -1;
+                }
+                if (o1.stddev > o2.stddev) {
+                    return 1;
+                }
+                else {
+                    return 0;
+                }
+            }
+        };
     }
 
-    public Comparator<Site> defaultComparator;
+    public Comparator<Site> siteComparator;
     private ExecutorService mExecutorService;
 
     public NetTest()
     {
-        stopWatch = Stopwatch.createUnstarted();
         sites = Collections.synchronizedList(new ArrayList<Site>());
-        defaultComparator = getDefaultComparator();
+        siteComparator = getDefaultSiteComparator();
     }
 
     /**
@@ -123,7 +120,7 @@ public class NetTest
 
         // TODO: GetConnection to connect from a particular network interface endpoint
         httpClient = new OkHttpClient();
-        httpClient.setConnectTimeout(ConnectTimeoutMS, TimeUnit.MILLISECONDS);
+        httpClient.setConnectTimeout(TestTimeoutMS, TimeUnit.MILLISECONDS);
         // Read write Timeouts are on defaults.
 
         httpClient.setSslSocketFactory(mobiledgexSSLSocketFactory);
@@ -141,12 +138,14 @@ public class NetTest
         Network sourceNetwork = site.network;
         SocketFactory sf = sourceNetwork.getSocketFactory();
         long elapsed = 0;
-        stopWatch.reset();
+        Stopwatch stopWatch = Stopwatch.createUnstarted();
 
         Socket s = null;
         try {
             stopWatch.start();
-            s = sf.createSocket(site.host, site.port);
+            s = sf.createSocket();
+            SocketAddress socketAddress = new InetSocketAddress(site.host, site.port);
+            s.connect(socketAddress, TestTimeoutMS);
             elapsed = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
         }
         catch (IOException ioe) {
@@ -174,7 +173,7 @@ public class NetTest
         Response result;
 
         try {
-            stopWatch.reset();
+            Stopwatch stopWatch;
 
             Request request = new Request.Builder()
                     .url(site.L7Path)
@@ -191,7 +190,7 @@ public class NetTest
 
             // The nature of this app specific GET API call is to expect some kind of
             // stateless empty body return also 200 OK.
-            stopWatch.start();
+            stopWatch = Stopwatch.createStarted();
             result = httpClient.newCall(request).execute();
             long elapsed = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
 
@@ -214,7 +213,7 @@ public class NetTest
      */
     public long Ping(Site site)
     {
-        InetAddress inetAddress = null;
+        InetAddress inetAddress;
         try {
             inetAddress = InetAddress.getByName(site.host);
         } catch (UnknownHostException uhe) {
@@ -224,16 +223,21 @@ public class NetTest
         long elapsedMS = 0;
 
         try {
-            stopWatch.reset();
-            stopWatch.start();
+            Stopwatch stopWatch;
             // Ping:
-            if (inetAddress.isReachable(TestTimeoutMS)) {
+            stopWatch = Stopwatch.createStarted();
+            // SE Linux audit fails if the pinging from a specific network interface.
+            Log.e(TAG, "PING is for use if on a single active network only. Raw socket ping to internet from a particular NetworkInterface is not permitted.");
+            boolean reachable = inetAddress.isReachable(TestTimeoutMS);
+            if (reachable) {
                 elapsedMS = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
-            }
-            else {
+            } else {
                 elapsedMS = -1;
             }
         } catch (IOException ioe) {
+            Log.d(TAG, "IOException trying to ping: " + site.host + "Stack: " + ioe.getMessage());
+            return -1;
+        } catch (Exception e) {
             return -1;
         }
 
@@ -250,23 +254,23 @@ public class NetTest
         runTest = enable;
         if (runTest)
         {
-            pingThread = new Thread() {
+            testThread = new Thread() {
                 @Override
                 public void run() {
                     // Exits on runTest == false;
                     RunNetTest();
                 }
             };
-            pingThread.start();
+            testThread.start();
         }
         else
         {
             try {
-                pingThread.join(ConnectTimeoutMS);
+                testThread.join(TestTimeoutMS);
             } catch (InterruptedException ie) {
                 // Nothing to do.
             } finally {
-                pingThread = null;
+                testThread = null;
             }
         }
         return runTest;
@@ -277,7 +281,7 @@ public class NetTest
      * @return
      */
     public List<Site> sortSites() {
-        return sortSites(defaultComparator);
+        return sortSites(siteComparator);
     }
 
     /**
@@ -290,38 +294,24 @@ public class NetTest
         return sites;
     }
 
-    public Future<Double> testSiteFuture(final Site site) {
-        if (mExecutorService == null) {
-            return null;
-        }
-
-        Callable<Double> future = new Callable<Double>() {
-            @Override
-            public Double call() {
-                return testSite(site);
-            }
-        };
-        return mExecutorService.submit(future);
-    }
-
     public double testSite(Site site) {
         double elapsed = -1;
+        String msg = null;
         switch (site.testType) {
             case CONNECT:
                 if (site.L7Path == null) // Simple host and port.
                 {
                     elapsed = ConnectAndDisconnectHostAndPort(site);
-                    Log.d(TAG, "site host: " + site.host + ", port: " + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString());
-                } else // Use L7 Path.
-                {
+                    msg = "site host: " + site.host + ", port: " + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString();
+                } else {
                     elapsed = ConnectAndDisconnect(site);
-                    Log.d(TAG, "site L7Path: " + site.L7Path + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString());
+                    msg = "site L7Path: " + site.L7Path + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString();
 
                 }
                 break;
             case PING: {
                 elapsed = Ping(site);
-                Log.d(TAG, "site host: " + site.host + ", port: " + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev);
+                msg = "site host: " + site.host + ", port: " + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev;
             }
             break;
         }
@@ -329,10 +319,51 @@ public class NetTest
         if (elapsed >= 0) {
             site.addSample(elapsed);
             site.recalculateStats();
+            Log.d(TAG, msg);
         }
         return elapsed;
     }
 
+    /**
+     * Round robin parallel test of sites added to NetTest over on executorService configured in NetTest.
+     * @return
+     */
+    public void testSitesOnExecutor(long TimeoutMS) {
+        Stopwatch testStopwatch = Stopwatch.createStarted();
+
+        for (final Site s: sites) {
+            if (TimeoutMS - testStopwatch.elapsed(TimeUnit.MILLISECONDS) < 0) {
+                Log.d(TAG, "Timeout hit.");
+                return;
+            }
+
+            // Create some CompletableFutures per round of sites:
+            CompletableFuture<Double>[] cfArray = new CompletableFuture[testRounds];
+            int idx = 0;
+            for (int n = 0; n < testRounds; n++) {
+                CompletableFuture<Double> future;
+                if (mExecutorService == null) {
+                     future = CompletableFuture.supplyAsync(new Supplier<Double>() {
+                        @Override
+                        public Double get() {
+                            return testSite(s);
+                        }
+                    });
+                } else {
+                    future = CompletableFuture.supplyAsync(new Supplier<Double>() {
+                        @Override
+                        public Double get() {
+                            return testSite(s);
+                        }
+                    }, mExecutorService);
+                }
+                cfArray[idx++] = future;
+            }
+
+            // Wait for all to complete:
+            CompletableFuture.allOf(cfArray).join(); // Every test has TimeoutMS.
+        }
+    }
 
     // Basic utility function to connect and disconnect from any TCP port.
     public void RunNetTest()
@@ -346,7 +377,7 @@ public class NetTest
                     }
                     sites.notifyAll(); // Notify all netTests that's waiting() a test run cycle is done.
                     // Must run inside a thread:
-                    Thread.sleep(PingIntervalMS);
+                    Thread.sleep(TestIntervalMS);
                 }
             }
             catch (Exception ie) {

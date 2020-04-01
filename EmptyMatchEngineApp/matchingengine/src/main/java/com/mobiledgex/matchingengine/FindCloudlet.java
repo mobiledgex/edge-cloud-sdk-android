@@ -24,12 +24,10 @@ import com.google.common.base.Stopwatch;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Callable;
 
@@ -106,7 +104,7 @@ public class FindCloudlet implements Callable {
 
                     Site site = null;
                     switch (appPort.getProto()) {
-                        case L_PROTO_TCP:
+                        case L_PROTO_TCP: {
                             if (appPort.getPathPrefix() == null || appPort.getPathPrefix().isEmpty()) {
                                 int port = appPort.getPublicPort();
                                 String host = appPort.getFqdnPrefix() + appInstance.getFqdn();
@@ -117,6 +115,7 @@ public class FindCloudlet implements Callable {
                                 site = new Site(network, NetTest.TestType.CONNECT, numSamples, l7path);
                             }
                             break;
+                        }
                         case L_PROTO_UDP: {
                             int port = appPort.getPublicPort();
                             String host = appPort.getFqdnPrefix() + appInstance.getFqdn();
@@ -142,6 +141,34 @@ public class FindCloudlet implements Callable {
         }
 
         return netTest.sites;
+    }
+
+    private void rankSites(NetTest netTest, boolean threaded, long timeout, Stopwatch stopwatch) {
+        if (!threaded) {
+            List<Site> sites = netTest.sites;
+            for (Site s : sites) {
+                for (int n = 0; n < netTest.testRounds; n++) {
+                    netTest.testSite(s);
+                }
+            }
+        } else {
+            // Threaded version, which might finish faster:
+            ExecutorService executorService = null;
+            try {
+                int np = Runtime.getRuntime().availableProcessors() - 2;
+                executorService = (np > 1) ? Executors.newFixedThreadPool(np) : mMatchingEngine.threadpool;
+
+                netTest.setExecutorService(executorService);
+                netTest.testSitesOnExecutor(timeout - stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            } catch (Exception e) {
+                Log.e(TAG, "Excecution issue: " + e.getStackTrace());
+            } finally {
+                netTest.setExecutorService(null);
+                if (executorService != null && !executorService.isShutdown()) {
+                    executorService.shutdown();
+                }
+            }
+        }
     }
 
     @Override
@@ -207,52 +234,9 @@ public class FindCloudlet implements Callable {
 
             NetTest netTest = mMatchingEngine.getNetTest();
             insertAppInstances(netTest, network, appInstListReply);
+            rankSites(netTest, mMatchingEngine.isThreadedPerformanceTest(), timeout, stopwatch);
 
-            List<Site> sites = netTest.sites;
 
-            // Test numSample times, all sites in round robin style, at PingInterval time.
-            /**
-            for (int n = 0; n < netTest.numSamples; n++) {
-                for (Site s : sites) {
-                    netTest.testSite(s);
-                }
-            }*/
-            // Futures version, which takes more resources to run, and depends on execution pool size.
-            // Tasks are individually submitted.
-            ExecutorService executorService = null;
-            try {
-                executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-                netTest.setExecutorService(executorService);
-                for (int n = 0; n < netTest.numSamples; n++) {
-                    List<Future<Double>> tests = new ArrayList<>();
-                    for (Site s : sites) {
-                        Future<Double> aTest = netTest.testSiteFuture(s);
-                        if (aTest != null) {
-                            tests.add(aTest);
-                        }
-                    }
-                    // Success, or failure, each Site stores its own cumulative stats. Return is ignored.
-                    int count = 0;
-                    while (count < tests.size()) {
-                        for (Future<Double> f : tests) {
-                            if (f.isDone()) {
-                                count++;
-                            }
-                        }
-                        synchronized (tests) {
-                            tests.wait(netTest.PingIntervalMS); // Wait sane amount of time for executor threads.
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Excecution issue: " + e.getStackTrace());
-            } finally {
-                netTest.setExecutorService(null);
-                if (executorService != null && !executorService.isShutdown()) {
-                    executorService.shutdown();
-                }
-            }
 
             // Using default comparator for selecting the current best.
             Site bestSite = netTest.sortSites().get(0);

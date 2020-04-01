@@ -19,8 +19,6 @@ package com.mobiledgex.matchingengine.performancemetrics;
 
 import android.net.Network;
 
-import com.mobiledgex.matchingengine.FindCloudlet;
-
 import distributed_match_engine.AppClient;
 
 public class Site

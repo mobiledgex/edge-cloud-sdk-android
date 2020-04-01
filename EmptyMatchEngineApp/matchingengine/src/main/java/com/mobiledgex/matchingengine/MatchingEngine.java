@@ -108,7 +108,7 @@ public class MatchingEngine {
     final ExecutorService threadpool;
 
     // State info for engine
-    private String mSessionCookie;
+    private String mSessionCookie; // TODO: Session Map lookup for multiple Edge Apps.
     private String mTokenServerURI;
     private String mTokenServerToken;
 
@@ -126,6 +126,7 @@ public class MatchingEngine {
 
     private Context mContext;
     private NetTest mNetTest;
+    private boolean threadedPerformanceTest = false;
 
     public MatchingEngine(Context context) {
         threadpool = Executors.newSingleThreadExecutor();
@@ -134,7 +135,6 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-        mNetTest.PingIntervalMS = 100;
     }
     public MatchingEngine(Context context, ExecutorService executorService) {
         threadpool = executorService;
@@ -143,7 +143,6 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-        mNetTest.PingIntervalMS = 100;
     }
 
     // Application state Bundle Key.
@@ -1440,6 +1439,14 @@ public class MatchingEngine {
 
     NetTest getNetTest() {
         return mNetTest;
+    }
+
+    public boolean isThreadedPerformanceTest() {
+        return threadedPerformanceTest;
+    }
+
+    public void setThreadedPerformanceTest(boolean threadedPerformanceTest) {
+        this.threadedPerformanceTest = threadedPerformanceTest;
     }
 
     // Network Wrappers:

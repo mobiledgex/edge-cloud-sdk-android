@@ -27,6 +27,7 @@ import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.common.base.Stopwatch;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.MeLocation;
@@ -54,12 +55,16 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon.AppPort;
 import io.grpc.StatusRuntimeException;
 
+import static junit.framework.TestCase.assertNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -443,7 +448,8 @@ public class EngineCallTest {
     @Test
     public void findCloudletTest() {
         Context context = InstrumentationRegistry.getTargetContext();
-        AppClient.FindCloudletReply findCloudletReply = null;
+        AppClient.FindCloudletReply findCloudletReply1 = null;
+        AppClient.FindCloudletReply findCloudletReply2 = null;
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -457,6 +463,7 @@ public class EngineCallTest {
             synchronized (meLoc) {
                 meLoc.wait(1000);
             }
+
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             String carrierName = me.retrieveNetworkCarrierName(context);
@@ -466,11 +473,23 @@ public class EngineCallTest {
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                 .build();
             if (useHostOverride) {
-                findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+                findCloudletReply1 = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
-                findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
+                findCloudletReply1 = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
             }
 
+
+            // Second try:
+            me.setThreadedPerformanceTest(true);
+            if (useHostOverride) {
+                findCloudletReply2 = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                findCloudletReply2 = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
+            }
+
+        } catch (PackageManager.NameNotFoundException nnfe) {
+            Log.e(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("FindCloudlet: NameNotFoundException", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("FindCloudlet: DmeDnsException", true);
@@ -488,19 +507,19 @@ public class EngineCallTest {
             enableMockLocation(context,false);
         }
 
-        if (findCloudletReply != null) {
-            // Temporary.
-            assertEquals("App's expected test cloudlet FQDN doesn't match.", "mobiledgexmobiledgexsdkdemo20.mexdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net", findCloudletReply.getFqdn());
-        } else {
-            assertFalse("No findCloudlet response!", false);
-        }
+        assertNotNull("FindCloudlet is null!", findCloudletReply1);
+        assertNotNull("FindCloudlet2 is null!", findCloudletReply2);
+        assertTrue("Did not find same server based on performance ranking test single threaded or multithreaded!",
+                findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn()));
+
+        assertEquals("App's expected test cloudlet FQDN doesn't match.", "mobiledgexmobiledgexsdkdemo20.mexdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net", findCloudletReply1.getFqdn());
     }
 
     @Test
     public void findCloudletTestSetSomeorgNameAppOptionals() {
         Context context = InstrumentationRegistry.getTargetContext();
         AppClient.RegisterClientReply registerClientReply = null;
-        AppClient.FindCloudletReply findCloudletReply = null;
+        AppClient.FindCloudletReply findCloudletReply;
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -1820,7 +1839,6 @@ public class EngineCallTest {
     public void NetTestAPItest() {
         // Setup as usual, then grab netTest from MatchingEngine, and add well known test sites. Get the best one, test wise.
         Context context = InstrumentationRegistry.getTargetContext();
-        AppClient.RegisterClientReply registerClientReply = null;
         AppClient.FindCloudletReply findCloudletReply = null;
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -1837,10 +1855,8 @@ public class EngineCallTest {
             }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
-            // Set orgName and location, then override the rest for testing:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .build();
             if (useHostOverride) {
@@ -1849,21 +1865,61 @@ public class EngineCallTest {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
             }
 
-            // Grab netTest, and use it:
             NetTest netTest = me.getNetTest();
+            netTest.testRounds = 20;
             Network network = me.getNetworkManager().getActiveNetwork();
-            netTest.sites.add(new Site(network, NetTest.TestType.CONNECT, 5, "https://mobiledgex.com"));
+            netTest.sites.add(new Site(network, NetTest.TestType.CONNECT, 10, "https://mobiledgex.com"));
 
+            Log.d(TAG, "Executor version testing...");
+
+
+            // Threaded version unit test of executor:
+            ExecutorService executorService = null;
+            long threadRun = 0;
+            try {
+                executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+                netTest.setExecutorService(executorService);
+                Stopwatch stopWatch = Stopwatch.createStarted();
+                netTest.testSitesOnExecutor(GRPC_TIMEOUT_MS);
+                threadRun = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
+                Log.d(TAG, "Threads, Time to run: " + threadRun);
+            } catch (Exception e) {
+                Log.e(TAG, "Excecution issue: " + e.getStackTrace());
+            } finally {
+                netTest.setExecutorService(null);
+                if (executorService != null && !executorService.isShutdown()) {
+                    executorService.shutdown();
+                }
+            }
+            Site bestSite1 = netTest.sortSites().get(0);
+
+
+            Log.d(TAG, "Simple for loop...");
             // Test numSample times, all sites in round robin style, at PingInterval time.
-            for (int n = 0; n < netTest.numSamples; n++) {
-                for (Site s : netTest.sites) {
+            Stopwatch stopWatch = Stopwatch.createStarted();
+            for (Site s : netTest.sites) {
+                for (int n = 0; n < netTest.testRounds; n++) {
                     netTest.testSite(s);
                 }
             }
-            // Using default comparator for selecting the current best.
-            Site bestSite = netTest.sortSites().get(0);
 
-            // Is it really "best"?
+            long serialRun = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
+            Log.d(TAG, "Loop, Time to run: " + serialRun);
+            // Using default comparator for selecting the current best.
+            Site bestSite2 = netTest.sortSites().get(0);
+
+            // Some criteria in case a site is pretty close in performance:
+            if (bestSite1.host != bestSite2.host) {
+                double diff = bestSite1.average - bestSite2.average;
+                if (diff/bestSite2.average > 0.03d) { // 3%, arbitrary.
+                    assertEquals("The best site, should usually agree in a certain time span if nothing changed.", bestSite1.host, bestSite2.host);
+                }
+            }
+
+            assertTrue("Simple serial run was faster than threaded run!", serialRun > threadRun);
+
+            Site bestSite = bestSite2;
+            // Comparator results: Is it really "best"?
             int count = 0;
             for (Site s : netTest.sites) {
                 // Fail count.
@@ -1873,6 +1929,7 @@ public class EngineCallTest {
                     count++;
                 }
             }
+
             Log.d(TAG, "Fastest site: " + bestSite.host + ":" + bestSite.port);
             assertTrue("There were faster sites on this list. Count: " + count, count == 0);
 
