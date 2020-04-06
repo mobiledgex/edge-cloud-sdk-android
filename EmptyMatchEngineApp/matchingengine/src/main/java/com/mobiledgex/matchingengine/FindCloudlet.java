@@ -236,14 +236,9 @@ public class FindCloudlet implements Callable {
             insertAppInstances(netTest, network, appInstListReply);
             rankSites(netTest, mMatchingEngine.isThreadedPerformanceTest(), timeout, stopwatch);
 
-
-
             // Using default comparator for selecting the current best.
             Site bestSite = netTest.sortSites().get(0);
 
-            // Construct a findCloudlet return, as the return signature.
-            // NetTest statistics remain as field inside MatchingEngine instance. The associated AppInstance may be stale
-            // in the same way findCloudlet becomes stale.
             AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletReplyFromAppInstance(fcreply, bestSite.appInstance)
                     .build();
             fcreply = bestFindCloudletReply;
