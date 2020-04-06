@@ -105,6 +105,12 @@ public class NetTest
         siteComparator = getDefaultSiteComparator();
     }
 
+    public NetTest(Comparator<Site> siteComparator)
+    {
+        sites = Collections.synchronizedList(new ArrayList<Site>());
+        this.siteComparator = siteComparator;
+    }
+
     /**
      * Set the executorService to use if using the async Future versions.
      * @param executorService
@@ -277,21 +283,27 @@ public class NetTest
     }
 
     /**
-     * Sort sites for gathered performance stats based on default Comparator.
+     * Copy of sites for gathered performance stats based on default Comparator.
      * @return
      */
     public List<Site> sortSites() {
-        return sortSites(siteComparator);
+        List<Site> listSites = new ArrayList<Site>();
+        synchronized (sites) {
+            Collections.sort(sites, siteComparator);
+            listSites.addAll(sites);
+        }
+        return listSites;
     }
 
     /**
-     * Sort sites for gathered performance stats based on comparator parameter.
-     * @param comparator
+     * Best site, from the pre-sorted collection.
      * @return
      */
-    public List<Site> sortSites(Comparator<Site> comparator) {
-        Collections.sort(sites, comparator);
-        return sites;
+    public Site bestSite() {
+        if (sites.size() > 0) {
+            return sites.get(0);
+        }
+        return null;
     }
 
     public double testSite(Site site) {
@@ -325,7 +337,7 @@ public class NetTest
     }
 
     /**
-     * Round robin parallel test of sites added to NetTest over on executorService configured in NetTest.
+     * Parallel testing of sites added to NetTest over on executorService configured in NetTest.
      * @return
      */
     public void testSitesOnExecutor(long TimeoutMS) {
@@ -339,8 +351,7 @@ public class NetTest
 
             // Create some CompletableFutures per round of sites:
             CompletableFuture<Double>[] cfArray = new CompletableFuture[testRounds];
-            int idx = 0;
-            for (int n = 0; n < testRounds; n++) {
+            for (int n = 0; n < s.samples.length; n++) {
                 CompletableFuture<Double> future;
                 if (mExecutorService == null) {
                      future = CompletableFuture.supplyAsync(new Supplier<Double>() {
@@ -357,7 +368,7 @@ public class NetTest
                         }
                     }, mExecutorService);
                 }
-                cfArray[idx++] = future;
+                cfArray[n] = future;
             }
 
             // Wait for all to complete:

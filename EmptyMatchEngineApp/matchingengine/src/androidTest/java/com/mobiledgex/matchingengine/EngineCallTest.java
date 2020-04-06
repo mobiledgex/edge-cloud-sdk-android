@@ -509,8 +509,9 @@ public class EngineCallTest {
 
         assertNotNull("FindCloudlet is null!", findCloudletReply1);
         assertNotNull("FindCloudlet2 is null!", findCloudletReply2);
-        assertTrue("Did not find same server based on performance ranking test single threaded or multithreaded!",
-                findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn()));
+
+        assertEquals("Did not find same server based on performance ranking test single threaded or multithreaded!",
+                findCloudletReply1.getFqdn(), findCloudletReply2.getFqdn());
 
         assertEquals("App's expected test cloudlet FQDN doesn't match.", "mobiledgexmobiledgexsdkdemo20.mexdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net", findCloudletReply1.getFqdn());
     }
