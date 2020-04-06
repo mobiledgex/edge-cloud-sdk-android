@@ -233,16 +233,21 @@ public class FindCloudlet implements Callable {
             }
 
             NetTest netTest = mMatchingEngine.getNetTest();
-            insertAppInstances(netTest, network, appInstListReply);
-            rankSites(netTest, mMatchingEngine.isThreadedPerformanceTest(), timeout, stopwatch);
+            synchronized (netTest.sites) {
+                // TODO: Replacement policy TBD.
+                //netTest.sites.clear();
 
-            // Using default comparator for selecting the current best.
-            Site bestSite = netTest.sortSites().get(0);
+                insertAppInstances(netTest, network, appInstListReply);
+                rankSites(netTest, mMatchingEngine.isThreadedPerformanceTest(), timeout, stopwatch);
 
-            AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletReplyFromAppInstance(fcreply, bestSite.appInstance)
-                    .build();
-            fcreply = bestFindCloudletReply;
+                // Using default comparator for selecting the current best.
+                netTest.sortSites();
+                Site bestSite = netTest.bestSite();
 
+                AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletReplyFromAppInstance(fcreply, bestSite.appInstance)
+                        .build();
+                fcreply = bestFindCloudletReply;
+            }
         } finally {
             if (channel != null) {
                 channel.shutdown();
