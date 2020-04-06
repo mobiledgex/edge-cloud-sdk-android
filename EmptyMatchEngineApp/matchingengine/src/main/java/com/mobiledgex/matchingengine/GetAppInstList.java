@@ -69,29 +69,29 @@ public class GetAppInstList implements Callable {
     }
 
     static AppInstListRequest.Builder createFromFindCloudletRequest(AppClient.FindCloudletRequest findCloudletRequest) {
-        AppClient.AppInstListRequest.Builder appInstListRequestBuider = AppClient.AppInstListRequest.newBuilder();
+        AppClient.AppInstListRequest.Builder appInstListRequestBuilder = AppClient.AppInstListRequest.newBuilder();
 
         if (findCloudletRequest.getVer() > 0) {
-            appInstListRequestBuider.setVer(findCloudletRequest.getVer());
+            appInstListRequestBuilder.setVer(findCloudletRequest.getVer());
         }
         if (findCloudletRequest.getSessionCookie() != null) {
-            appInstListRequestBuider.setSessionCookie(findCloudletRequest.getSessionCookie());
+            appInstListRequestBuilder.setSessionCookie(findCloudletRequest.getSessionCookie());
         }
 
         if (findCloudletRequest.getCarrierName() != null) {
-            appInstListRequestBuider.setVer(findCloudletRequest.getVer());
+            appInstListRequestBuilder.setCarrierName(findCloudletRequest.getCarrierName());
         }
         if (findCloudletRequest.hasGpsLocation()) {
-            appInstListRequestBuider.setGpsLocation(findCloudletRequest.getGpsLocation());
+            appInstListRequestBuilder.setGpsLocation(findCloudletRequest.getGpsLocation());
         }
         if (findCloudletRequest.getCellId() > 0) {
-            appInstListRequestBuider.setCellId(findCloudletRequest.getCellId());
+            appInstListRequestBuilder.setCellId(findCloudletRequest.getCellId());
         }
         if (findCloudletRequest.getTagsCount() > 0) {
-            appInstListRequestBuider.addAllTags(findCloudletRequest.getTagsList());
+            appInstListRequestBuilder.addAllTags(findCloudletRequest.getTagsList());
         }
 
-        return appInstListRequestBuider;
+        return appInstListRequestBuilder;
     }
 
     @Override
