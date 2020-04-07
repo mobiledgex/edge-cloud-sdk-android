@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import distributed_match_engine.AppClient;
 import distributed_match_engine.AppClient.AppInstListRequest;
 import distributed_match_engine.AppClient.AppInstListReply;
 import distributed_match_engine.MatchEngineApiGrpc;
@@ -65,6 +66,32 @@ public class GetAppInstList implements Callable {
         }
         mTimeoutInMilliseconds = timeoutInMilliseconds;
         return true;
+    }
+
+    static AppInstListRequest.Builder createFromFindCloudletRequest(AppClient.FindCloudletRequest findCloudletRequest) {
+        AppClient.AppInstListRequest.Builder appInstListRequestBuilder = AppClient.AppInstListRequest.newBuilder();
+
+        if (findCloudletRequest.getVer() > 0) {
+            appInstListRequestBuilder.setVer(findCloudletRequest.getVer());
+        }
+        if (findCloudletRequest.getSessionCookie() != null) {
+            appInstListRequestBuilder.setSessionCookie(findCloudletRequest.getSessionCookie());
+        }
+
+        if (findCloudletRequest.getCarrierName() != null) {
+            appInstListRequestBuilder.setCarrierName(findCloudletRequest.getCarrierName());
+        }
+        if (findCloudletRequest.hasGpsLocation()) {
+            appInstListRequestBuilder.setGpsLocation(findCloudletRequest.getGpsLocation());
+        }
+        if (findCloudletRequest.getCellId() > 0) {
+            appInstListRequestBuilder.setCellId(findCloudletRequest.getCellId());
+        }
+        if (findCloudletRequest.getTagsCount() > 0) {
+            appInstListRequestBuilder.addAllTags(findCloudletRequest.getTagsList());
+        }
+
+        return appInstListRequestBuilder;
     }
 
     @Override

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,8 +30,6 @@ import io.grpc.StatusRuntimeException;
 
 public class RegisterClient implements Callable {
     public static final String TAG = "RegisterClient";
-    public static final String SESSION_COOKIE_KEY = "session_cookie";
-    public static final String TOKEN_SERVER_URI_KEY = "token_server_u_r_i";
 
     private MatchingEngine mMatchingEngine;
     private AppClient.RegisterClientRequest mRequest;
@@ -110,6 +108,7 @@ public class RegisterClient implements Callable {
         mMatchingEngine.setSessionCookie(reply.getSessionCookie());
         mMatchingEngine.setTokenServerURI(reply.getTokenServerUri());
 
+        mMatchingEngine.setLastRegisterClientRequest(mRequest);
         mMatchingEngine.setMatchEngineStatus(reply);
 
 
