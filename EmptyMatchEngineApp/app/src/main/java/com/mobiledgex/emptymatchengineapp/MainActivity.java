@@ -205,14 +205,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         if (mDoLocationUpdates) {
             startLocationUpdates();
         }
-        netTest.doTest(true);
     }
 
     @Override
     public void onPause() {
         super.onPause();
         stopLocationUpdates();
-        netTest.doTest(false);
     }
 
     @Override
