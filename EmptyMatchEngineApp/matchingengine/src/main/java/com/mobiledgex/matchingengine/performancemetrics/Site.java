@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,77 +19,99 @@ package com.mobiledgex.matchingengine.performancemetrics;
 
 import android.net.Network;
 
+import distributed_match_engine.AppClient;
+
 public class Site
 {
-  public Network network;
+    public Network network;
 
-  public String host;
-  public int port;
-  public String L7Path; // This may be load balanced.
-  public double lastPingMs;
+    public String host;
+    public int port;
+    public String L7Path; // This may be load balanced.
+    public double lastPingMs;
 
-  public NetTest.TestType testType;
+    public NetTest.TestType testType;
 
-  int idx;
-  int size;
-  public double[] samples;
+    int idx;
+    int size;
+    public double[] samples;
 
-  public double average;
-  public double stddev;
+    public double average;
+    public double stddev;
 
-  private static final int DEFAULT_NUM_SAMPLES = 5;
+    public AppClient.Appinstance appInstance;
 
-  public Site(Network network, String host, int port)
-  {
-    this.network = network;
-    testType = NetTest.TestType.PING;
-    samples = new double[DEFAULT_NUM_SAMPLES];
-  }
+    public static final int DEFAULT_NUM_SAMPLES = 5;
 
-  public Site(Network network, NetTest.TestType testType, int numSamples, String L7Path)
-  {
-    this.network = network;
-    this.testType = testType;
-    this.L7Path = L7Path;
-    samples = new double[numSamples];
-  }
-
-  public Site(Network network, NetTest.TestType testType, int numSamples, String host, int port)
-  {
-    this.network = network;
-    this.testType = testType;
-    this.host = host;
-    this.port = port;
-    samples = new double[numSamples];
-  }
-
-  public void addSample(double time)
-  {
-    samples[idx] = time;
-    idx++;
-    if (size < samples.length) size++;
-    idx = idx % samples.length;
-  }
-
-  public void recalculateStats()
-  {
-    double acc = 0d;
-    double vsum = 0d;
-    double d;
-    for (int i = 0; i < size; i++)
+    public Site(Network network, NetTest.TestType testType, int numSamples, String L7Path)
     {
-      acc += samples[i];
+        this.network = network;
+        this.testType = testType;
+        this.L7Path = L7Path;
+        if (numSamples <= 0) {
+            numSamples = DEFAULT_NUM_SAMPLES;
+        }
+        samples = new double[numSamples];
     }
-    average = acc / size;
-    for (int i = 0; i < size; i++)
+
+    public Site(Network network, NetTest.TestType testType, int numSamples, String host, int port)
     {
-      d = samples[i];
-      vsum += (d - average) * (d - average);
+        this.network = network;
+        this.testType = testType;
+        this.host = host;
+        this.port = port;
+        if (numSamples <= 0) {
+            numSamples = DEFAULT_NUM_SAMPLES;
+        }
+        samples = new double[numSamples];
     }
-    if (size > 1) {
-      // Bias Corrected Sample Variance
-      vsum /= (size - 1);
+
+    // Appinstance data for the site.
+    public AppClient.Appinstance setAppinstance(AppClient.Appinstance appinstance) {
+        return this.appInstance = appinstance;
     }
-    stddev = Math.sqrt(vsum);
-  }
+
+
+    public void addSample(double time)
+    {
+        samples[idx] = time;
+        idx++;
+        if (size < samples.length) size++;
+        idx = idx % samples.length;
+    }
+
+    public void recalculateStats()
+    {
+        double acc = 0d;
+        double vsum = 0d;
+        double d;
+
+        for (int i = 0; i < size; i++) {
+            acc += samples[i];
+        }
+        average = acc / size;
+        for (int i = 0; i < size; i++) {
+            d = samples[i];
+            vsum += (d - average) * (d - average);
+        }
+        if (size > 1) {
+            // Bias Corrected Sample Variance
+            vsum /= (size - 1);
+        }
+        stddev = Math.sqrt(vsum);
+    }
+
+    public boolean sameSite(Site o) {
+
+        if (L7Path != null && android.text.TextUtils.equals(L7Path, o.L7Path)) {
+            return true;
+        }
+
+        if (android.text.TextUtils.equals(host, o.host) && port == o.port) {
+            return true;
+        }
+
+        return false;
+    }
+
 }

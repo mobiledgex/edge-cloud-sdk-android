@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,6 @@ import android.provider.Settings;
 import android.provider.Settings.Secure;
 import android.support.annotation.RequiresApi;
 import android.telephony.CarrierConfigManager;
-import android.telephony.CellIdentity;
 import android.telephony.CellIdentityCdma;
 import android.telephony.CellIdentityGsm;
 import android.telephony.CellIdentityLte;
@@ -91,6 +90,8 @@ import android.util.Log;
 import android.util.Pair;
 
 
+import com.mobiledgex.matchingengine.performancemetrics.NetTest;
+
 import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
 
 public class MatchingEngine {
@@ -107,10 +108,11 @@ public class MatchingEngine {
     final ExecutorService threadpool;
 
     // State info for engine
-    private String mSessionCookie;
+    private String mSessionCookie; // TODO: Session Map lookup for multiple Edge Apps.
     private String mTokenServerURI;
     private String mTokenServerToken;
 
+    private RegisterClientRequest mRegisterClientRequest;
     private RegisterClientReply mRegisterClientReply;
     private FindCloudletReply mFindCloudletReply;
     private VerifyLocationReply mVerifyLocationReply;
@@ -123,6 +125,8 @@ public class MatchingEngine {
     private boolean useOnlyWifi = false;
 
     private Context mContext;
+    private NetTest mNetTest;
+    private boolean threadedPerformanceTest = false;
 
     public MatchingEngine(Context context) {
         threadpool = Executors.newSingleThreadExecutor();
@@ -130,6 +134,7 @@ public class MatchingEngine {
         mNetworkManager = NetworkManager.getInstance(connectivityManager, getSubscriptionManager(context));
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
+        mNetTest = new NetTest();
     }
     public MatchingEngine(Context context, ExecutorService executorService) {
         threadpool = executorService;
@@ -137,6 +142,7 @@ public class MatchingEngine {
         mNetworkManager = NetworkManager.getInstance(connectivityManager, getSubscriptionManager(context), threadpool);
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
+        mNetTest = new NetTest();
     }
 
     // Application state Bundle Key.
@@ -220,6 +226,16 @@ public class MatchingEngine {
     String getSessionCookie() {
         return this.mSessionCookie;
     }
+
+
+    RegisterClientRequest getLastRegisterClientRequest() {
+        return mRegisterClientRequest;
+    }
+    void setLastRegisterClientRequest(AppClient.RegisterClientRequest registerRequest) {
+        mRegisterClientRequest = registerRequest;
+    }
+
+
 
     void setMatchEngineStatus(AppClient.RegisterClientReply status) {
         mRegisterClientReply = status;
@@ -1297,9 +1313,14 @@ public class MatchingEngine {
         Callable<FindCloudletReply> future = new Callable<FindCloudletReply>() {
             @Override
             public FindCloudletReply call() throws Exception {
-                RegisterClientRequest registerClientRequest = createDefaultRegisterClientRequest(context, organizationName)
+                RegisterClientRequest.Builder registerClientRequestBuilder = createDefaultRegisterClientRequest(context, organizationName)
                         .setAuthToken(authToken)
-                        .build();
+                        .setCellId(cellId);
+                if (tags != null) {
+                    registerClientRequestBuilder.addAllTags(tags);
+                }
+                RegisterClientRequest registerClientRequest = registerClientRequestBuilder.build();
+
                 RegisterClientReply registerClientReply = me.registerClient(registerClientRequest, me.getNetworkManager().getTimeout());
 
                 if (registerClientReply == null) {
@@ -1346,9 +1367,13 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, location)
-                        .setCarrierName(carrierName)
-                        .build();
+                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location)
+                        .setCellId(cellId);
+
+                if (tags != null) {
+                    findCloudletRequestBuilder.addAllTags(tags);
+                }
+                FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, me.getNetworkManager().getTimeout());
 
                 return findCloudletReply;
@@ -1387,9 +1412,12 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, location)
-                        .setCarrierName(carrierName)
-                        .build();
+                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location)
+                        .setCellId(cellId);
+                if (tags != null) {
+                    findCloudletRequestBuilder.addAllTags(tags);
+                }
+                FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
 
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest,
                         host, port, me.getNetworkManager().getTimeout());
@@ -1407,6 +1435,18 @@ public class MatchingEngine {
      */
     public AppConnectionManager getAppConnectionManager() {
         return mAppConnectionManager;
+    }
+
+    NetTest getNetTest() {
+        return mNetTest;
+    }
+
+    public boolean isThreadedPerformanceTest() {
+        return threadedPerformanceTest;
+    }
+
+    public void setThreadedPerformanceTest(boolean threadedPerformanceTest) {
+        this.threadedPerformanceTest = threadedPerformanceTest;
     }
 
     // Network Wrappers:
@@ -1495,5 +1535,4 @@ public class MatchingEngine {
                     .build();
         }
     }
-
 }
