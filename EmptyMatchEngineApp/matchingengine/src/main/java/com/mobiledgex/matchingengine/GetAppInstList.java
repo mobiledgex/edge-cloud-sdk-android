@@ -17,6 +17,7 @@
 
 package com.mobiledgex.matchingengine;
 
+import android.net.Network;
 import android.util.Log;
 
 import java.util.concurrent.Callable;
@@ -106,9 +107,9 @@ public class GetAppInstList implements Callable {
         NetworkManager nm = null;
         try {
             nm = mMatchingEngine.getNetworkManager();
-            nm.switchToCellularInternetNetworkBlocking();
+            Network network = nm.getCellularNetworkBlocking(false);
 
-            channel = mMatchingEngine.channelPicker(mHost, mPort);
+            channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
@@ -117,9 +118,6 @@ public class GetAppInstList implements Callable {
             if (channel != null) {
                 channel.shutdown();
                 channel.awaitTermination(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
-            }
-            if (nm != null) {
-                nm.resetNetworkToDefault();
             }
         }
         mRequest = null;

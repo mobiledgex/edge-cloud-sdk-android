@@ -22,6 +22,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.ConnectivityManager;
+import android.net.Network;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
@@ -1522,11 +1523,18 @@ public class MatchingEngine {
      * @param port
      * @return
      */
-    ManagedChannel channelPicker(String host, int port) {
+    ManagedChannel channelPicker(String host, int port, Network network) {
+
+        MobiledgeXSSLSocketFactory mobiledgexSSLSocketFactory = (MobiledgeXSSLSocketFactory)MobiledgeXSSLSocketFactory.getDefault(network);
+        if (mobiledgexSSLSocketFactory == null) {
+            return null;
+        }
 
         if (isSSLEnabled()) {
             return OkHttpChannelBuilder // Public certs only.
                     .forAddress(host, port)
+                    .socketFactory(network.getSocketFactory())
+                    .sslSocketFactory(mobiledgexSSLSocketFactory)
                     .build();
         } else {
             return ManagedChannelBuilder
