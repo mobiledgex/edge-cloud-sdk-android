@@ -85,7 +85,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
             return;
         }
 
-        switchToNetworkBlocking(networkRequest);
+        switchToNetworkBlocking(networkRequest, false);
         Future<Callable> future = mThreadPool.submit(callable);
         future.get();
         resetNetworkToDefault();
@@ -233,6 +233,15 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return isWifiCalling;
     }
 
+    /**
+     * Sets the request for the default network to reset to. It does not modify the network.
+     * @param defaultNetworkRequest
+     */
+    public void setDefaulNetwork(NetworkRequest defaultNetworkRequest) {
+        mDefaultRequest = defaultNetworkRequest;
+    }
+
+    // Reset process level default network.
     public void resetNetworkToDefault() throws InterruptedException, ExecutionException {
         if (mNetworkSwitchingEnabled == false) {
             Log.e(TAG, "NetworkManager is disabled.");
@@ -242,12 +251,11 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         if (mDefaultRequest == null) {
             mConnectivityManager.bindProcessToNetwork(null);
         } else {
-            switchToNetworkBlocking(mDefaultRequest);
+            switchToNetworkBlocking(mDefaultRequest, true);
         }
 
         NetworkCapabilities networkCapabilities = mConnectivityManager.getNetworkCapabilities(mConnectivityManager.getActiveNetwork());
         logTransportCapabilities(networkCapabilities);
-
     }
 
     public boolean isSSLEnabled() {
@@ -286,15 +294,24 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     class NetworkSwitcherCallable implements Callable {
         NetworkRequest mNetworkRequest;
         boolean activeListenerAdded = false;
+        boolean bindProcess = false;
         final long start = System.currentTimeMillis();
 
         NetworkSwitcherCallable(NetworkRequest networkRequest) {
             mNetworkRequest = networkRequest;
+            this.bindProcess = false;
+        }
+        NetworkSwitcherCallable(NetworkRequest networkRequest, boolean bindProcess) {
+            mNetworkRequest = networkRequest;
+            this.bindProcess = bindProcess;
         }
         @Override
         public Network call() throws InterruptedException, NetworkRequestTimeoutException, NetworkRequestNoSubscriptionInfoException {
             if (mNetworkSwitchingEnabled == false) {
                 Log.e(TAG, "NetworkManager is disabled.");
+                if (mNetwork == null) {
+                    mNetwork = mConnectivityManager.getActiveNetwork();
+                }
                 return mNetwork;
             }
 
@@ -333,8 +350,10 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
                 ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
                     @Override
                     public void onAvailable(Network network) {
-                        Log.i(TAG, "requestNetwork onAvailable(), binding process to network.");
-                        mConnectivityManager.bindProcessToNetwork(network);
+                        Log.i(TAG, "requestNetwork onAvailable(), binding process to network? " + bindProcess);
+                        if (bindProcess) {
+                            mConnectivityManager.bindProcessToNetwork(network);
+                        }
                         activeListenerAdded = true;
                         mConnectivityManager.addDefaultNetworkActiveListener(activeListener);
                         mNetwork = network;
@@ -364,7 +383,9 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
                     @Override
                     public void onLost(Network network) {
                         // unbind lost network.
-                        mConnectivityManager.bindProcessToNetwork(null);
+                        if (bindProcess) {
+                            mConnectivityManager.bindProcessToNetwork(null);
+                        }
                         Log.i(TAG, "requestNetwork onLost(): " + network.toString());
                     }
 
@@ -439,6 +460,21 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         }
     }
 
+    public boolean isNetworkInternetCellularDataCapable(Network network) {
+        boolean hasDataCellCapabilities = false;
+
+        if (mConnectivityManager != null) {
+            if (network != null) {
+                NetworkCapabilities networkCapabilities = mConnectivityManager.getNetworkCapabilities(network);
+                if (networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
+                        networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
+                    hasDataCellCapabilities = true;
+                }
+            }
+        }
+        return hasDataCellCapabilities;
+    }
+
     public boolean isCurrentNetworkInternetCellularDataCapable() {
         boolean hasDataCellCapabilities = false;
 
@@ -472,8 +508,19 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         switchToNetwork(networkRequest, networkCallback);
     }
 
+    public Network getCellularNetworkBlocking(boolean bindProcess) throws InterruptedException, ExecutionException {
+        boolean isCellularData = isCurrentNetworkInternetCellularDataCapable();
+        if (isCellularData) {
+            return mNetwork;
+        }
+
+        NetworkRequest request = getCellularNetworkRequest();
+
+        mNetwork = switchToNetworkBlocking(request, bindProcess);
+        return mNetwork;
+    }
     /**
-     * Switch to a particular network type. This is a synchronous call.
+     * Switch entire process to a Cellular network type. This is a synchronous call.
      * @return
      */
     public Network switchToCellularInternetNetworkBlocking() throws InterruptedException, ExecutionException {
@@ -484,7 +531,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
 
         NetworkRequest request = getCellularNetworkRequest();
 
-        mNetwork = switchToNetworkBlocking(request);
+        mNetwork = switchToNetworkBlocking(request, true);
         return mNetwork;
     }
 
@@ -496,7 +543,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         NetworkRequest networkRequest = getCellularNetworkRequest();
         Future<Network> cellNetworkFuture;
 
-        cellNetworkFuture = mThreadPool.submit(new NetworkSwitcherCallable(networkRequest));
+        cellNetworkFuture = mThreadPool.submit(new NetworkSwitcherCallable(networkRequest, true));
         return cellNetworkFuture;
     }
 
@@ -504,22 +551,11 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
      * Switch to a particular network type in a blocking fashion for synchronous execution blocks.
      * @return
      */
-    public Network switchToNetworkBlocking(NetworkRequest networkRequest) throws InterruptedException, ExecutionException {
+    public Network switchToNetworkBlocking(NetworkRequest networkRequest, boolean bindProcess) throws InterruptedException, ExecutionException {
         Future<Network> networkFuture;
 
-        networkFuture = mThreadPool.submit(new NetworkSwitcherCallable(networkRequest));
+        networkFuture = mThreadPool.submit(new NetworkSwitcherCallable(networkRequest, bindProcess));
         return networkFuture.get();
-    }
-
-    /**
-     * Switch to a particular network type. Returns a Future.
-     * @return
-     */
-    public Future<Network> switchToDefaultInternetNetworkFuture(NetworkRequest networkRequest) {
-        Future<Network> cellNetworkFuture;
-
-        cellNetworkFuture = mThreadPool.submit(new NetworkSwitcherCallable(networkRequest));
-        return cellNetworkFuture;
     }
 
     /**

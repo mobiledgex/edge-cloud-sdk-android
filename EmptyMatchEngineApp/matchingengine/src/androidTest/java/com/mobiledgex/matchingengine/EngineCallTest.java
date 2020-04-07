@@ -460,8 +460,8 @@ public class EngineCallTest {
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
+            synchronized (loc) {
+                loc.wait(1000);
             }
 
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
@@ -861,8 +861,8 @@ public class EngineCallTest {
         AppClient.VerifyLocationReply verifyLocationReply = null;
         try {
             setMockLocation(context, mockLoc); // North Pole.
-            synchronized (meLoc) {
-                meLoc.wait(1000);
+            synchronized (mockLoc) {
+                mockLoc.wait(1000);
             }
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
@@ -1164,8 +1164,8 @@ public class EngineCallTest {
 
         try {
             setMockLocation(context, location);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
+            synchronized (location) {
+                location.wait(1000); // Wait for system mock.
             }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse("Mock'ed Location is missing!", location == null);
@@ -1220,8 +1220,8 @@ public class EngineCallTest {
 
         try {
             setMockLocation(context, location);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
+            synchronized (location) {
+                location.wait(1000);
             }
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse("Mock'ed Location is missing!", location == null);

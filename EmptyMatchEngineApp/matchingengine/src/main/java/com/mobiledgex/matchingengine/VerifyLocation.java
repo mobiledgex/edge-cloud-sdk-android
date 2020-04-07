@@ -17,6 +17,7 @@
 
 package com.mobiledgex.matchingengine;
 
+import android.net.Network;
 import android.util.Log;
 
 import com.squareup.okhttp.Headers;
@@ -125,16 +126,17 @@ public class VerifyLocation implements Callable {
         VerifyLocationRequest grpcRequest;
 
         // Make One time use of HTTP Request to Token Server:
-        NetworkManager nm = mMatchingEngine.getNetworkManager();
-        nm.switchToCellularInternetNetworkBlocking();
-
         String token = getToken(); // This token is short lived.
         grpcRequest = addTokenToRequest(token);
 
         VerifyLocationReply reply;
         ManagedChannel channel = null;
         try {
-            channel = mMatchingEngine.channelPicker(mHost, mPort);
+            // Make One time use of HTTP Request to Token Server:
+            NetworkManager nm = mMatchingEngine.getNetworkManager();
+            Network network = nm.getCellularNetworkBlocking(false);
+
+            channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
@@ -144,7 +146,6 @@ public class VerifyLocation implements Callable {
                 channel.shutdown();
                 channel.awaitTermination(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
             }
-            nm.resetNetworkToDefault();
         }
         mRequest = null;
 

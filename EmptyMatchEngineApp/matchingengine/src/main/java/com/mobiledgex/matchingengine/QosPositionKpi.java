@@ -17,6 +17,7 @@
 
 package com.mobiledgex.matchingengine;
 
+import android.net.Network;
 import android.util.Log;
 
 import java.util.Iterator;
@@ -78,6 +79,14 @@ public class QosPositionKpi implements Callable {
         return true;
     }
 
+    /**
+     * Returns an Iterator that contains QosPositionKpiReply responses to the QOS query.
+     * @return
+     * @throws MissingRequestException
+     * @throws StatusRuntimeException
+     * @throws InterruptedException
+     * @throws ExecutionException
+     */
     @Override
     public ChannelIterator<QosPositionKpiReply> call() throws MissingRequestException, StatusRuntimeException, InterruptedException, ExecutionException {
         if (mQosPositionKpiRequest == null) {
@@ -86,21 +95,16 @@ public class QosPositionKpi implements Callable {
 
         Iterator<QosPositionKpiReply> response;
         ManagedChannel channel;
-        NetworkManager nm = null;
-        try {
-            nm = mMatchingEngine.getNetworkManager();
-            nm.switchToCellularInternetNetworkBlocking();
+        NetworkManager nm;
 
-            channel = mMatchingEngine.channelPicker(mHost, mPort);
-            MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+        nm = mMatchingEngine.getNetworkManager();
+        Network network = nm.getCellularNetworkBlocking(false);
 
-            response = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
-                    .getQosPositionKpi(mQosPositionKpiRequest);
-        } finally {
-            if (nm != null) {
-                nm.resetNetworkToDefault();
-            }
-        }
+        channel = mMatchingEngine.channelPicker(mHost, mPort, network);
+        MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+
+        response = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
+                .getQosPositionKpi(mQosPositionKpiRequest);
 
         return new ChannelIterator<>(channel, response);
     }
