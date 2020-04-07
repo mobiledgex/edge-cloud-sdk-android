@@ -86,7 +86,7 @@ public class FindCloudlet implements Callable {
     }
 
     // If UDP, then ICMP must respond. TODO: Allow UDP "response"?
-    private List<Site> insertAppInstances(NetTest netTest, Network network, AppClient.AppInstListReply appInstListReply) {
+    private void insertAppInstances(NetTest netTest, Network network, AppClient.AppInstListReply appInstListReply) {
         int numSamples = Site.DEFAULT_NUM_SAMPLES;
         if (appInstListReply != null) {
             List<AppClient.CloudletLocation> cloudletsList = appInstListReply.getCloudletsList();
@@ -134,23 +134,18 @@ public class FindCloudlet implements Callable {
                     }
                     if (site != null) {
                         site.setAppinstance(appInstance);
-                        netTest.sites.add(site);
+                        netTest.addSite(site);
                     }
                 }
             }
         }
 
-        return netTest.sites;
+        return;
     }
 
     private void rankSites(NetTest netTest, boolean threaded, long timeout, Stopwatch stopwatch) {
         if (!threaded) {
-            List<Site> sites = netTest.sites;
-            for (Site s : sites) {
-                for (int n = 0; n < netTest.testRounds; n++) {
-                    netTest.testSite(s);
-                }
-            }
+            netTest.testSites(timeout - stopwatch.elapsed((TimeUnit.MILLISECONDS)));
         } else {
             // Threaded version, which might finish faster:
             ExecutorService executorService = null;
@@ -161,7 +156,8 @@ public class FindCloudlet implements Callable {
                 netTest.setExecutorService(executorService);
                 netTest.testSitesOnExecutor(timeout - stopwatch.elapsed(TimeUnit.MILLISECONDS));
             } catch (Exception e) {
-                Log.e(TAG, "Excecution issue: " + e.getStackTrace());
+                // Allow continuation.
+                Log.e(TAG, "Threaded Excecution issue testing site performance: " + "Cause: " + e.getCause() + "Stack: " + e.getStackTrace());
             } finally {
                 netTest.setExecutorService(null);
                 if (executorService != null && !executorService.isShutdown()) {
@@ -233,21 +229,17 @@ public class FindCloudlet implements Callable {
             }
 
             NetTest netTest = mMatchingEngine.getNetTest();
-            synchronized (netTest.sites) {
-                // TODO: Replacement policy TBD.
-                //netTest.sites.clear();
 
-                insertAppInstances(netTest, network, appInstListReply);
-                rankSites(netTest, mMatchingEngine.isThreadedPerformanceTest(), timeout, stopwatch);
+            insertAppInstances(netTest, network, appInstListReply);
+            rankSites(netTest, mMatchingEngine.isThreadedPerformanceTest(), timeout, stopwatch);
 
-                // Using default comparator for selecting the current best.
-                netTest.sortSites();
-                Site bestSite = netTest.bestSite();
+            // Using default comparator for selecting the current best.
+            Site bestSite = netTest.bestSite();
 
-                AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletReplyFromAppInstance(fcreply, bestSite.appInstance)
-                        .build();
-                fcreply = bestFindCloudletReply;
-            }
+            AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletReplyFromAppInstance(fcreply, bestSite.appInstance)
+                    .build();
+            fcreply = bestFindCloudletReply;
+
         } finally {
             if (channel != null) {
                 channel.shutdown();

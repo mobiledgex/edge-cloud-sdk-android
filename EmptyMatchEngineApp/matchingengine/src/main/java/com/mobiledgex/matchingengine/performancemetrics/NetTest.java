@@ -30,6 +30,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -66,48 +67,46 @@ public class NetTest
     /**
      * Synchronized List of Sites.
      */
-    public List<Site> sites;
+    private List<Site> sites;
+    private Comparator<Site> siteComparator;
 
-    /**
-     * Simple default comparator for Site.
-     * @return
-     */
-    public Comparator<Site> getDefaultSiteComparator() {
-        return new Comparator<Site>() {
-            @Override
-            public int compare(Site o1, Site o2) {
-                if (o1.average < o2.average) {
-                    return -1;
-                }
-                if (o1.average > o2.average) {
-                    return 1;
-                }
+    class DefaultSiteComparator implements Comparator<Site>{
 
-                if (o1.stddev < o2.stddev) {
-                    return -1;
-                }
-                if (o1.stddev > o2.stddev) {
-                    return 1;
-                }
-                else {
-                    return 0;
-                }
+        @Override
+        public int compare(Site s1, Site s2) {
+            if (s1.average < s2.average) {
+                return -1;
             }
-        };
+            if (s1.average > s2.average) {
+                return 1;
+            }
+
+            if (s1.stddev < s2.stddev) {
+                return -1;
+            }
+            if (s1.stddev > s2.stddev) {
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        }
     }
 
-    public Comparator<Site> siteComparator;
     private ExecutorService mExecutorService;
 
     public NetTest()
     {
-        sites = Collections.synchronizedList(new ArrayList<Site>());
-        siteComparator = getDefaultSiteComparator();
+        siteComparator = new DefaultSiteComparator();
+        List<Site> list = new ArrayList<Site>();
+        sites = Collections.synchronizedList(list);
     }
 
-    public NetTest(Comparator<Site> siteComparator)
-    {
-        sites = Collections.synchronizedList(new ArrayList<Site>());
+    public Comparator<Site> getSiteComparator() {
+        return siteComparator;
+    }
+
+    public void setSiteComparator(Comparator<Site> siteComparator) {
         this.siteComparator = siteComparator;
     }
 
@@ -142,6 +141,10 @@ public class NetTest
     public long ConnectAndDisconnectHostAndPort(Site site)
     {
         Network sourceNetwork = site.network;
+        if (sourceNetwork == null) {
+            return -1;
+        }
+
         SocketFactory sf = sourceNetwork.getSocketFactory();
         long elapsed = 0;
         Stopwatch stopWatch = Stopwatch.createUnstarted();
@@ -150,6 +153,9 @@ public class NetTest
         try {
             stopWatch.start();
             s = sf.createSocket();
+            if (s == null) {
+                return -1;
+            }
             SocketAddress socketAddress = new InetSocketAddress(site.host, site.port);
             s.connect(socketAddress, TestTimeoutMS);
             elapsed = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
@@ -190,8 +196,7 @@ public class NetTest
             if (site.network != null) {
                 httpClient = getHttpClientOnNetwork(site.network);
             } else {
-                httpClient = new OkHttpClient();
-                httpClient.setConnectTimeout(TestTimeoutMS, TimeUnit.MILLISECONDS);
+                return -1;
             }
 
             // The nature of this app specific GET API call is to expect some kind of
@@ -233,7 +238,7 @@ public class NetTest
             // Ping:
             stopWatch = Stopwatch.createStarted();
             // SE Linux audit fails if the pinging from a specific network interface.
-            Log.e(TAG, "PING is for use if on a single active network only. Raw socket ping to internet from a particular NetworkInterface is not permitted.");
+            Log.i(TAG, "PING is for use if on a single active network only. Raw socket ping to internet from a particular NetworkInterface is not permitted.");
             boolean reachable = inetAddress.isReachable(TestTimeoutMS);
             if (reachable) {
                 elapsedMS = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
@@ -282,26 +287,57 @@ public class NetTest
         return runTest;
     }
 
+
+    public Site getSite(String hostOrL7Path) {
+        for (Site s : sites) {
+            if ((s.L7Path != null && s.L7Path.equals(hostOrL7Path)) ||
+                (s.host != null && s.host.equals(hostOrL7Path))) {
+                return s;
+            }
+        }
+        return null;
+    }
+
+    public boolean addSite(Site site) {
+
+        for (Site s : sites) {
+            if (s.sameSite(site)) {
+                return false;
+            }
+        }
+
+        int size = sites.size();
+        if (site.L7Path == null) {
+            sites.add(site);
+        } else {
+            sites.add(site);
+        }
+
+        return true;
+    }
+
     /**
      * Copy of sites for gathered performance stats based on default Comparator.
      * @return
      */
-    public List<Site> sortSites() {
-        List<Site> listSites = new ArrayList<Site>();
+    public List<Site> sortedSiteList() {
+        List<Site> listSites = new ArrayList<>();
         synchronized (sites) {
-            Collections.sort(sites, siteComparator);
-            listSites.addAll(sites);
+            listSites.addAll(sites); // Pre-sorted.
         }
         return listSites;
     }
 
     /**
-     * Best site, from the pre-sorted collection.
+     * Best site, from collection.
      * @return
      */
     public Site bestSite() {
-        if (sites.size() > 0) {
-            return sites.get(0);
+        synchronized (sites) {
+            sites.sort(siteComparator); // Sort after testing, or for current best.
+            if (sites.size() > 0) {
+                return sites.get(0);
+            }
         }
         return null;
     }
@@ -309,35 +345,53 @@ public class NetTest
     public double testSite(Site site) {
         double elapsed = -1;
         String msg = null;
+
         switch (site.testType) {
             case CONNECT:
                 if (site.L7Path == null) // Simple host and port.
                 {
                     elapsed = ConnectAndDisconnectHostAndPort(site);
-                    msg = "site host: " + site.host + ", port: " + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString();
                 } else {
                     elapsed = ConnectAndDisconnect(site);
-                    msg = "site L7Path: " + site.L7Path + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString();
-
                 }
                 break;
             case PING: {
                 elapsed = Ping(site);
-                msg = "site host: " + site.host + ", port: " + site.port + ", round-trip: " + elapsed + ", average:  " + site.average + ", stddev: " + site.stddev;
             }
             break;
         }
-        site.lastPingMs = elapsed;
-        if (elapsed >= 0) {
-            site.addSample(elapsed);
-            site.recalculateStats();
-            Log.d(TAG, msg);
+        synchronized (site) {
+            site.lastPingMs = elapsed;
+            if (elapsed >= 0) {
+                site.addSample(elapsed);
+                site.recalculateStats();
+                msg = "site host: " + site.host + ", port: " + site.port + ", L7Path: " + site.L7Path + ", rtt: " + elapsed + ", avg: " + site.average + ", stddev: " + site.stddev + ", from net interface id: " + site.network.toString();
+                Log.d(TAG, msg);
+            }
         }
+
         return elapsed;
     }
 
     /**
-     * Parallel testing of sites added to NetTest over on executorService configured in NetTest.
+     * Gather metrics for sites
+     */
+    public void testSites(long TimeoutMS) {
+        Stopwatch testStopwatch = Stopwatch.createStarted();
+
+        for (Site s : sites) {
+            if (TimeoutMS - testStopwatch.elapsed(TimeUnit.MILLISECONDS) < 0) {
+                Log.d(TAG, "Timeout hit.");
+                return;
+            }
+            for (int n = 0; n < s.samples.length; n++) {
+                testSite(s);
+            }
+        }
+    }
+
+    /**
+     * Parallel gather of sites added to NetTest over on executorService configured in NetTest.
      * @return
      */
     public void testSitesOnExecutor(long TimeoutMS) {
@@ -350,7 +404,7 @@ public class NetTest
             }
 
             // Create some CompletableFutures per round of sites:
-            CompletableFuture<Double>[] cfArray = new CompletableFuture[testRounds];
+            CompletableFuture<Double>[] cfArray = new CompletableFuture[s.samples.length];
             for (int n = 0; n < s.samples.length; n++) {
                 CompletableFuture<Double> future;
                 if (mExecutorService == null) {

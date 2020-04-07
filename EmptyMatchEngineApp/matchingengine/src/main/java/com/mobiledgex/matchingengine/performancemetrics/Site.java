@@ -100,4 +100,18 @@ public class Site
         }
         stddev = Math.sqrt(vsum);
     }
+
+    public boolean sameSite(Site o) {
+
+        if (L7Path != null && android.text.TextUtils.equals(L7Path, o.L7Path)) {
+            return true;
+        }
+
+        if (android.text.TextUtils.equals(host, o.host) && port == o.port) {
+            return true;
+        }
+
+        return false;
+    }
+
 }

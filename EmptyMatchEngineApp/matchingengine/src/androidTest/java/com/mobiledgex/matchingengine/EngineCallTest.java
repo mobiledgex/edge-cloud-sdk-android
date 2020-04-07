@@ -478,6 +478,7 @@ public class EngineCallTest {
                 findCloudletReply1 = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
             }
 
+            long size1 = me.getNetTest().sortedSiteList().size();
 
             // Second try:
             me.setThreadedPerformanceTest(true);
@@ -486,6 +487,10 @@ public class EngineCallTest {
             } else {
                 findCloudletReply2 = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
             }
+
+            long size2 = me.getNetTest().sortedSiteList().size();
+
+            assertEquals("Sizes should match!", size1, size2);
 
         } catch (PackageManager.NameNotFoundException nnfe) {
             Log.e(TAG, Log.getStackTraceString(nnfe));
@@ -507,13 +512,20 @@ public class EngineCallTest {
             enableMockLocation(context,false);
         }
 
-        assertNotNull("FindCloudlet is null!", findCloudletReply1);
-        assertNotNull("FindCloudlet2 is null!", findCloudletReply2);
+        assertNotNull("FindCloudletReply1 is null!", findCloudletReply1);
+        assertNotNull("FindCloudletReply2 is null!", findCloudletReply2);
 
-        assertEquals("Did not find same server based on performance ranking test single threaded or multithreaded!",
-                findCloudletReply1.getFqdn(), findCloudletReply2.getFqdn());
+        NetTest netTest = me.getNetTest();
+        if (!findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn())) {
+            Site site1 = netTest.getSite(findCloudletReply1.getPorts(0).getFqdnPrefix() + findCloudletReply1.getFqdn());
+            Site site2 = netTest.getSite(findCloudletReply2.getPorts(0).getFqdnPrefix() + findCloudletReply2.getFqdn());
+            double margin = Math.abs(site1.average-site2.average)/site2.average;
+            assertTrue("Winner Not within 15% margin: " + margin, margin < .15d);
+        }
 
-        assertEquals("App's expected test cloudlet FQDN doesn't match.", "mobiledgexmobiledgexsdkdemo20.mexdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net", findCloudletReply1.getFqdn());
+
+        // Might also fail, since the network is not under test control:
+        assertEquals("App's expected test cloudlet FQDN doesn't match.", "sdkdemo-app-cluster.fairview-main.gddt.mobiledgex.net", findCloudletReply1.getFqdn());
     }
 
     @Test
@@ -649,7 +661,8 @@ public class EngineCallTest {
     public void findCloudletFutureTest() {
         Context context = InstrumentationRegistry.getTargetContext();
         Future<AppClient.FindCloudletReply> response;
-        AppClient.FindCloudletReply result = null;
+        AppClient.FindCloudletReply findCloudletReply1 = null;
+        AppClient.FindCloudletReply findCloudletReply2 = null;
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -675,7 +688,20 @@ public class EngineCallTest {
             } else {
                 response = me.findCloudletFuture(findCloudletRequest, 10000);
             }
-            result = response.get();
+            findCloudletReply1 = response.get();
+            long size1 = me.getNetTest().sortedSiteList().size();
+
+            // Second try:
+            me.setThreadedPerformanceTest(true);
+            if (useHostOverride) {
+                response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                response = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS);
+            }
+            findCloudletReply2 = response.get();
+            long size2 = me.getNetTest().sortedSiteList().size();
+
+            assertEquals("Sizes should match!", size1, size2);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("FindCloudletFuture: DmeDnsException", true);
@@ -689,9 +715,20 @@ public class EngineCallTest {
             enableMockLocation(context,false);
         }
 
-        // Temporary.
-        assertEquals("Fully qualified domain name not expected.", "mobiledgexmobiledgexsdkdemo20.mexdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net", result.getFqdn());
 
+        assertNotNull("FindCloudletReply1 is null!", findCloudletReply1);
+        assertNotNull("FindCloudletReply2 is null!", findCloudletReply2);
+
+        NetTest netTest = me.getNetTest();
+        if (!findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn())) {
+            Site site1 = netTest.getSite(findCloudletReply1.getPorts(0).getFqdnPrefix() + findCloudletReply1.getFqdn());
+            Site site2 = netTest.getSite(findCloudletReply2.getPorts(0).getFqdnPrefix() + findCloudletReply2.getFqdn());
+            double margin = Math.abs(site1.average-site2.average)/site2.average;
+            assertTrue("Winner Not within 15% margin: " + margin, margin < .15d);
+        }
+
+        // Might also fail, since the network is not under test control:
+        assertEquals("App's expected test cloudlet FQDN doesn't match.", "sdkdemo-app-cluster.fairview-main.gddt.mobiledgex.net", findCloudletReply1.getFqdn());
     }
 
     @Test
@@ -1867,9 +1904,8 @@ public class EngineCallTest {
             }
 
             NetTest netTest = me.getNetTest();
-            netTest.testRounds = 20;
+            netTest.testRounds = 10;
             Network network = me.getNetworkManager().getActiveNetwork();
-            netTest.sites.add(new Site(network, NetTest.TestType.CONNECT, 10, "https://mobiledgex.com"));
 
             Log.d(TAG, "Executor version testing...");
 
@@ -1884,45 +1920,46 @@ public class EngineCallTest {
                 netTest.testSitesOnExecutor(GRPC_TIMEOUT_MS);
                 threadRun = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
                 Log.d(TAG, "Threads, Time to run: " + threadRun);
-            } catch (Exception e) {
-                Log.e(TAG, "Excecution issue: " + e.getStackTrace());
             } finally {
                 netTest.setExecutorService(null);
                 if (executorService != null && !executorService.isShutdown()) {
                     executorService.shutdown();
                 }
             }
-            Site bestSite1 = netTest.sortSites().get(0);
-
+            Site bestSite1 = netTest.bestSite();
 
             Log.d(TAG, "Simple for loop...");
             // Test numSample times, all sites in round robin style, at PingInterval time.
             Stopwatch stopWatch = Stopwatch.createStarted();
-            for (Site s : netTest.sites) {
-                for (int n = 0; n < netTest.testRounds; n++) {
+            for (Site s : netTest.sortedSiteList()) {
+                for (int n = 0; n < s.samples.length; n++) {
                     netTest.testSite(s);
                 }
             }
 
+            long size1 = netTest.sortedSiteList().size();
+
             long serialRun = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
             Log.d(TAG, "Loop, Time to run: " + serialRun);
             // Using default comparator for selecting the current best.
-            Site bestSite2 = netTest.sortSites().get(0);
+            Site bestSite2 = netTest.bestSite();
 
             // Some criteria in case a site is pretty close in performance:
             if (bestSite1.host != bestSite2.host) {
                 double diff = bestSite1.average - bestSite2.average;
-                if (diff/bestSite2.average > 0.03d) { // 3%, arbitrary.
+                if (diff/bestSite2.average > 0.05d) { // 3%, arbitrary.
                     assertEquals("The best site, should usually agree in a certain time span if nothing changed.", bestSite1.host, bestSite2.host);
                 }
             }
+            long size2 = netTest.sortedSiteList().size();
 
+            assertEquals("Test sizes should have been the same!", size1, size2);
             assertTrue("Simple serial run was faster than threaded run!", serialRun > threadRun);
 
             Site bestSite = bestSite2;
             // Comparator results: Is it really "best"?
             int count = 0;
-            for (Site s : netTest.sites) {
+            for (Site s : netTest.sortedSiteList()) {
                 // Fail count.
                 if (bestSite.average > s.average) {
                     count++;
