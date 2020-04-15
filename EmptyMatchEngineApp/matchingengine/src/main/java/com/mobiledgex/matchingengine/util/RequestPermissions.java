@@ -19,22 +19,22 @@ package com.mobiledgex.matchingengine.util;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+
+import com.mobiledgex.matchingengine.R;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import com.mobiledgex.matchingengine.R;
 
 /**
  * Android UI Permissions helper. Activity contexts are needed.
@@ -49,7 +49,7 @@ public class RequestPermissions {
 
     public static boolean permissionsDeniedShown = false;
 
-    public List<String> getNeededPermissions(Activity activity) {
+    public List<String> getNeededPermissions(AppCompatActivity activity) {
         List<String> permissionsNeeded = new ArrayList<>();
 
         for (String pStr : permissions) {

@@ -17,7 +17,7 @@
 
 package com.mobiledgex.emptymatchengineapp;
 
-import android.app.Activity;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
@@ -30,43 +30,35 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.telephony.CarrierConfigManager;
 import android.telephony.SubscriptionInfo;
-import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 
-import android.content.Intent;
-
-// Matching Engine API:
-import com.mobiledgex.matchingengine.AppConnectionManager;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.mobiledgex.matchingengine.DmeDnsException;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.NetworkManager;
 import com.mobiledgex.matchingengine.NetworkRequestTimeoutException;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
-import com.mobiledgex.matchingengine.util.RequestPermissions;
-
-import distributed_match_engine.AppClient;
-import distributed_match_engine.Appcommon;
-import io.grpc.StatusRuntimeException;
-
-
-// Location API:
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
+import com.mobiledgex.matchingengine.util.RequestPermissions;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
+
+import distributed_match_engine.AppClient;
+import distributed_match_engine.Appcommon;
+import io.grpc.StatusRuntimeException;
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String TAG = "MainActivity";
@@ -263,7 +255,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     public void doEnhancedLocationVerification() throws SecurityException {
-        final Activity ctx = this;
+        final AppCompatActivity ctx = this;
 
         // Run in the background and post text results to the UI thread.
         mFusedLocationClient.getLastLocation().addOnCompleteListener(new OnCompleteListener<Location>() {
@@ -282,7 +274,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         });
     }
 
-    private void doEnhancedLocationUpdateInBackground(final Task<Location> aTask, final Activity ctx) {
+    private void doEnhancedLocationUpdateInBackground(final Task<Location> aTask, final AppCompatActivity ctx) {
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
@@ -405,7 +397,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                             // Test from a particular network path. Here, the active one is Celluar since we switched the whole process over earlier.
                             Site site = new Site(mMatchingEngine.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, host, serverport);
-                            netTest.sites.add(site);
+                            netTest.addSite(site);
                         }
 
                         // This ping from the cellular network, provided the site network set to a cellular edge network.
