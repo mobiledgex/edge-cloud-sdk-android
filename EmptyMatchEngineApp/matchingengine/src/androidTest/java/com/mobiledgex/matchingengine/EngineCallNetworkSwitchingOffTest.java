@@ -23,31 +23,17 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Looper;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.runner.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.mobiledgex.matchingengine.util.MeLocation;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.Socket;
-import java.nio.channels.FileChannel;
-import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.jar.Attributes;
-
-import javax.net.ssl.SSLPeerUnverifiedException;
 
 import distributed_match_engine.AppClient;
 import io.grpc.StatusRuntimeException;
@@ -87,10 +73,10 @@ public class EngineCallNetworkSwitchingOffTest {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
             uiAutomation.grantRuntimePermission(
-                    InstrumentationRegistry.getTargetContext().getPackageName(),
+                    InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
                     "android.permission.READ_PHONE_STATE");
             uiAutomation.grantRuntimePermission(
-                    InstrumentationRegistry.getTargetContext().getPackageName(),
+                    InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
                     "android.permission.ACCESS_COARSE_LOCATION");
         }
     }
@@ -128,10 +114,12 @@ public class EngineCallNetworkSwitchingOffTest {
         location.setElapsedRealtimeNanos(1000);
         location.setAccuracy(3f);
         fusedLocationClient.setMockLocation(location);
-        try {
-            Thread.sleep(100); // Give Mock a bit of time to take effect.
-        } catch (InterruptedException ie) {
-            throw ie;
+        synchronized (location) {
+            try {
+                location.wait(500); // Give Mock a bit of time to take effect.
+          } catch (InterruptedException ie) {
+              throw ie;
+          }
         }
         fusedLocationClient.flushLocations();
     }
@@ -139,7 +127,7 @@ public class EngineCallNetworkSwitchingOffTest {
 
     // Every call needs registration to be called first at some point.
     public void registerClient(MatchingEngine me) {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         AppClient.RegisterClientReply registerReply;
         AppClient.RegisterClientRequest regRequest;
@@ -180,7 +168,7 @@ public class EngineCallNetworkSwitchingOffTest {
      */
     @Test
     public void meNetworkingDisabledTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
         me.setNetworkSwitchingEnabled(false);
         me.setMatchingEngineLocationAllowed(true);

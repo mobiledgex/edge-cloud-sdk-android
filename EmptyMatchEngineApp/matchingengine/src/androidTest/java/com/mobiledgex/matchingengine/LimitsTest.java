@@ -24,8 +24,8 @@ import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Looper;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.runner.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
@@ -79,10 +79,10 @@ public class LimitsTest {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
             uiAutomation.grantRuntimePermission(
-                    InstrumentationRegistry.getTargetContext().getPackageName(),
+                    InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
                     "android.permission.READ_PHONE_STATE");
             uiAutomation.grantRuntimePermission(
-                    InstrumentationRegistry.getTargetContext().getPackageName(),
+                    InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
                     "android.permission.ACCESS_COARSE_LOCATION");
         }
     }
@@ -127,10 +127,12 @@ public class LimitsTest {
         location.setElapsedRealtimeNanos(1000);
         location.setAccuracy(3f);
         fusedLocationClient.setMockLocation(location);
-        try {
-            Thread.sleep(100); // Give Mock a bit of time to take effect.
-        } catch (InterruptedException ie) {
+        synchronized (location) {
+          try {
+            location.wait(500); // Give Mock a bit of time to take effect.
+          } catch (InterruptedException ie) {
             throw ie;
+          }
         }
         fusedLocationClient.flushLocations();
     }
@@ -143,7 +145,7 @@ public class LimitsTest {
 
     // Every call needs registration to be called first at some point.
     public void registerClient(MatchingEngine me) {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         AppClient.RegisterClientReply registerReply;
 
         try {
@@ -181,7 +183,7 @@ public class LimitsTest {
      */
     @Test
     public void basicLatencyTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context, Executors.newFixedThreadPool(20));
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -199,9 +201,7 @@ public class LimitsTest {
         long elapsed2[] = new long[20];
         try {
             setMockLocation(context, loc);
-            synchronized (loc) {
-                loc.wait(1000);
-            }
+
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -282,7 +282,7 @@ public class LimitsTest {
     @Test
     public void basicLatencyTestConcurrent() {
         final String TAG = "basicLatencyTestConcurrent";
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -300,9 +300,7 @@ public class LimitsTest {
         final AppClient.VerifyLocationReply responses[] = new AppClient.VerifyLocationReply[elapsed2.length];
         try {
             setMockLocation(context, loc);
-            synchronized (loc) {
-                loc.wait(1000);
-            }
+
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -421,7 +419,7 @@ public class LimitsTest {
      * @param concurrency This setting can use a lot of memory due to parallel tasks.
      */
     public void parameterizedLatencyTestConcurrent(final String TAG, final int threadPoolSize, final int concurrency, long timeoutMs) {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context, Executors.newWorkStealingPool(threadPoolSize));
 
         final long start = System.currentTimeMillis();
@@ -439,9 +437,7 @@ public class LimitsTest {
         final AppClient.VerifyLocationReply responses[] = new AppClient.VerifyLocationReply[elapsed.length];
         try {
             setMockLocation(context, loc);
-            synchronized (loc) {
-                loc.wait(1000);
-            }
+
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
