@@ -328,8 +328,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
                     String orgName = "MobiledgeX"; // Always supplied by application, and in the MobieldgeX web admin console.
-                    // For illustration, the matching engine can be used to programatically get the name of your application detials
-                    // so it can go to the correct appInst verision. That AppInst on the server side must match the application
+                    // For illustration, the matching engine can be used to programatically get the name of your application details
+                    // so it can go to the correct appInst version. That AppInst on the server side must match the application
                     // version or else it won't be found and cannot be used.
                     String appName = mMatchingEngine.getAppName(ctx); // AppName must be added to the MobiledgeX web admin console.
                     appName = "MobiledgeX SDK Demo"; // override with a known registered appName.
@@ -399,9 +399,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             Site site = new Site(mMatchingEngine.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, host, serverport);
                             netTest.addSite(site);
                         }
-
-                        // This ping from the cellular network, provided the site network set to a cellular edge network.
-                        netTest.doTest(true);
 
                         someText += "[Cloudlet App Ports: [" + portListStr + "]\n";
 
