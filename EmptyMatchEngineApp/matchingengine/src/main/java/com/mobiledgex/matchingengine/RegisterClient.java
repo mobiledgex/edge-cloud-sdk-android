@@ -20,6 +20,8 @@ package com.mobiledgex.matchingengine;
 import android.net.Network;
 import android.util.Log;
 
+import com.mobiledgex.mel.MelMessaging;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -75,6 +77,19 @@ public class RegisterClient implements Callable {
             throw new MissingRequestException("Usage error: RegisterClient() does not have a request object to make call!");
         }
 
+        if (MelMessaging.isMelReady()) {
+            mMatchingEngine.setSessionCookie(MelMessaging.getToken());
+            return AppClient.RegisterClientReply.newBuilder()
+              .setStatus(AppClient.ReplyStatus.RS_SUCCESS)
+              .build();
+        } else if (MelMessaging.isMelEnabled()) {
+            return AppClient.RegisterClientReply.newBuilder()
+                    .setStatus(AppClient.ReplyStatus.RS_FAIL)
+                    .build();
+        }
+
+        // Not ready, not enabled. Not MEL device at all. Regular SDK App:
+
         AppClient.RegisterClientReply reply;
         ManagedChannel channel = null;
         NetworkManager nm;
@@ -108,7 +123,6 @@ public class RegisterClient implements Callable {
 
         mMatchingEngine.setLastRegisterClientRequest(mRequest);
         mMatchingEngine.setMatchEngineStatus(reply);
-
 
         return reply;
     }

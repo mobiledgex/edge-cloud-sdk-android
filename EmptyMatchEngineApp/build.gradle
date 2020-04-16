@@ -36,7 +36,7 @@ allprojects {
                 username artifactory_user
                 password artifactory_password
             }
-            url "https://artifactory.mobiledgex.net/artifactory/maven-releases/"
+            url "https://artifactory-qa.mobiledgex.net/artifactory/maven-releases/"
         }
         mavenLocal()
         google()
@@ -45,7 +45,7 @@ allprojects {
 }
 
 artifactory {
-    contextUrl = "https://artifactory.mobiledgex.net/"
+    contextUrl = "https://artifactory-qa.mobiledgex.net/"
     publish {
         repository {
             repoKey = 'maven-releases' // The Artifactory repository key to publish to

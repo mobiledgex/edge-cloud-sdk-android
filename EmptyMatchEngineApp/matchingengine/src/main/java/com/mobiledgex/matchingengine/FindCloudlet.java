@@ -20,20 +20,26 @@ package com.mobiledgex.matchingengine;
 import android.net.Network;
 import android.util.Log;
 
+import com.google.android.gms.tasks.SuccessContinuation;
 import com.google.common.base.Stopwatch;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
+import com.mobiledgex.mel.MelMessaging;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.AppClient.FindCloudletRequest;
 import distributed_match_engine.Appcommon;
+import distributed_match_engine.LocOuterClass;
 import distributed_match_engine.MatchEngineApiGrpc;
 
 import io.grpc.ManagedChannel;
@@ -44,7 +50,7 @@ public class FindCloudlet implements Callable {
     public static final String TAG = "FindCloudlet";
 
     private MatchingEngine mMatchingEngine;
-    private FindCloudletRequest mRequest; // Singleton.
+    private FindCloudletRequest mRequest;
     private String mHost;
     private int mPort;
     private long mTimeoutInMilliseconds = -1;
@@ -167,12 +173,8 @@ public class FindCloudlet implements Callable {
         }
     }
 
-    @Override
-    public AppClient.FindCloudletReply call()
-            throws MissingRequestException, StatusRuntimeException, InterruptedException, ExecutionException {
-        if (mRequest == null) {
-            throw new MissingRequestException("Usage error: FindCloudlet does not have a request object to use MatchEngine!");
-        }
+    private AppClient.FindCloudletReply performanceTestMode()
+        throws InterruptedException, ExecutionException{
 
         AppClient.FindCloudletReply fcreply;
         ManagedChannel channel = null;
@@ -191,7 +193,7 @@ public class FindCloudlet implements Callable {
 
             stopwatch.start();
             fcreply = stub.withDeadlineAfter(timeout, TimeUnit.MILLISECONDS)
-                    .findCloudlet(mRequest);
+                .findCloudlet(mRequest);
 
             // Keep a copy.
             if (fcreply != null) {
@@ -217,15 +219,15 @@ public class FindCloudlet implements Callable {
             AppClient.Tag dummyTag = AppClient.Tag.newBuilder().setType("Buffer").setData(new String(dummy)).build();
 
             AppClient.AppInstListRequest appInstListRequest = GetAppInstList.createFromFindCloudletRequest(mRequest)
-                    // Do non-trivial transfer, stuffing Tag to do so.
-                    .setCarrierName(mRequest.getCarrierName() == null ?
-                            mMatchingEngine.getLastRegisterClientRequest().getCarrierName() :
-                            mRequest.getCarrierName())
-                    .addTags(dummyTag)
-                    .build();
+                // Do non-trivial transfer, stuffing Tag to do so.
+                .setCarrierName(mRequest.getCarrierName() == null ?
+                  mMatchingEngine.getLastRegisterClientRequest().getCarrierName() :
+                  mRequest.getCarrierName())
+                .addTags(dummyTag)
+                .build();
 
             AppClient.AppInstListReply appInstListReply = stub.withDeadlineAfter(remainder, TimeUnit.MILLISECONDS)
-                .getAppInstList(appInstListRequest);
+              .getAppInstList(appInstListRequest);
 
             // Transient state handling, just return what we had before, if it fails, a new FindCloudlet is needed anyway:
             if (appInstListReply == null || appInstListReply.getStatus() != AppClient.AppInstListReply.AIStatus.AI_SUCCESS) {
@@ -241,7 +243,7 @@ public class FindCloudlet implements Callable {
             Site bestSite = netTest.bestSite();
 
             AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletReplyFromAppInstance(fcreply, bestSite.appInstance)
-                    .build();
+              .build();
             fcreply = bestFindCloudletReply;
 
         } finally {
@@ -250,6 +252,104 @@ public class FindCloudlet implements Callable {
                 channel.awaitTermination(timeout - stopwatch.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
             }
         }
+
+        mMatchingEngine.setFindCloudletResponse(fcreply);
+        return fcreply;
+    }
+
+    // Mel Mode, token or not, get the official FQDN:
+    private AppClient.FindCloudletReply melMode(String sessionCookie, LocOuterClass.Loc location, final long remainderMs)
+        throws ExecutionException, InterruptedException {
+
+        AppClient.FindCloudletReply fcReply;
+        ManagedChannel channel = null;
+        NetworkManager nm = null;
+
+        AppClient.FindCloudletReply fcreply = null;
+
+        if (sessionCookie == null || sessionCookie.isEmpty()) {
+        nm = mMatchingEngine.getNetworkManager();
+        Network network = nm.getCellularNetworkBlocking(false);
+
+        final AppClient.AppOfficialFqdnRequest appOfficialFqdnRequest = AppClient.AppOfficialFqdnRequest.newBuilder()
+            .setSessionCookie(sessionCookie)
+            .setGpsLocation(location)
+            .build();
+
+        channel = mMatchingEngine.channelPicker(mHost, mPort, network);
+        final MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+
+        AppClient.AppOfficialFqdnReply reply = stub.withDeadlineAfter(remainderMs, TimeUnit.MILLISECONDS)
+          .getAppOfficialFqdn(appOfficialFqdnRequest);
+
+
+        // Create a very basic FindCloudletReply from AppOfficialFqdn reply:
+        fcReply = AppClient.FindCloudletReply.newBuilder()
+          .setFqdn(reply.getAppOfficialFqdn())
+          .setStatus(AppClient.FindCloudletReply.FindStatus.FIND_FOUND)
+          .addPorts(Appcommon.AppPort.newBuilder().build()) // Port is unknown here.
+          .build();
+
+        mMatchingEngine.setFindCloudletResponse(fcReply);
+        mMatchingEngine.setAppOfficialFqdnReply(reply); // has client location token
+      } else { // 12. PlatformFindCloudlet
+        return platformFindCloudlet(sessionCookie, remainderMs);
+      }
+
+      return fcreply;
+    }
+
+    // No location params: 8.
+    AppClient.FindCloudletReply platformFindCloudlet(String sessionCookie, long remainderMs)
+        throws ExecutionException, InterruptedException {
+
+        AppClient.FindCloudletReply fcReply;
+        ManagedChannel channel = null;
+        NetworkManager nm = null;
+
+        nm = mMatchingEngine.getNetworkManager();
+        Network network = nm.getCellularNetworkBlocking(false);
+
+        final AppClient.PlatformFindCloudletRequest platformFindCloudletRequest = AppClient.PlatformFindCloudletRequest.newBuilder()
+            .setSessionCookie(sessionCookie)
+            .setAppName(mMatchingEngine.getLastRegisterClientRequest().getAppName())
+            .setAppVers(mMatchingEngine.getLastRegisterClientRequest().getAppName())
+            .setOrgName(mMatchingEngine.getLastRegisterClientRequest().getOrgName())
+            .build();
+
+        channel = mMatchingEngine.channelPicker(mHost, mPort, network);
+        final MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+
+        // PlatformFindCloudletReply gets a normal FindCloudletReply back.
+        AppClient.FindCloudletReply reply = stub.withDeadlineAfter(remainderMs, TimeUnit.MILLISECONDS)
+          .platformFindCloudlet(platformFindCloudletRequest);
+
+        return reply;
+    }
+
+    @Override
+    public AppClient.FindCloudletReply call()
+            throws MissingRequestException, StatusRuntimeException, InterruptedException, ExecutionException {
+        if (mRequest == null) {
+            throw new MissingRequestException("Usage error: FindCloudlet does not have a request object to use MatchEngine!");
+        }
+
+        AppClient.FindCloudletReply fcreply = null;
+        if (!MelMessaging.isMelEnabled()) {
+          synchronized (this) {
+            wait(200); // One shot wait to get MEL intents.
+          }
+        }
+
+        if (!MelMessaging.isMelEnabled()) { // 7.
+          fcreply = performanceTestMode(); // 8.
+          mMatchingEngine.setFindCloudletResponse(fcreply); // Done.
+          return fcreply;
+        }
+
+        // MEL is enabled.
+        fcreply = melMode(MelMessaging.getToken(), mRequest.getGpsLocation(), mTimeoutInMilliseconds);
+
 
         mMatchingEngine.setFindCloudletResponse(fcreply);
         return fcreply;

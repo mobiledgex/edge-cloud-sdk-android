@@ -74,7 +74,7 @@ import distributed_match_engine.AppClient.QosPositionRequest;
 import distributed_match_engine.AppClient.QosPositionKpiReply;
 import distributed_match_engine.AppClient.QosPosition;
 import distributed_match_engine.AppClient.BandSelection;
-
+import distributed_match_engine.AppClient.AppOfficialFqdnReply;
 
 import distributed_match_engine.AppClient.DynamicLocGroupRequest;
 import distributed_match_engine.AppClient.DynamicLocGroupReply;
@@ -92,6 +92,7 @@ import android.util.Pair;
 
 
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
+import com.mobiledgex.mel.MelMessaging;
 
 import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
 
@@ -119,6 +120,7 @@ public class MatchingEngine {
     private VerifyLocationReply mVerifyLocationReply;
     private GetLocationReply mGetLocationReply;
     private DynamicLocGroupReply mDynamicLocGroupReply;
+    private AppOfficialFqdnReply mAppOfficialFqdnReply;
 
     private LocOuterClass.Loc mMatchEngineLocation;
 
@@ -136,6 +138,10 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
+
+        if (!MelMessaging.isMelReady()) {
+          MelMessaging.sendForMelStatus(context, getAppName(context));
+        }
     }
     public MatchingEngine(Context context, ExecutorService executorService) {
         threadpool = executorService;
@@ -257,6 +263,10 @@ public class MatchingEngine {
 
     void setDynamicLocGroupReply(DynamicLocGroupReply reply) {
         mDynamicLocGroupReply = reply;
+    }
+
+    void setAppOfficialFqdnReply(AppClient.AppOfficialFqdnReply reply) {
+        mAppOfficialFqdnReply = reply;
     }
 
     /**
@@ -609,8 +619,7 @@ public class MatchingEngine {
      * @return
      * @throws PackageManager.NameNotFoundException
      */
-    public AppClient.FindCloudletRequest.Builder createDefaultFindCloudletRequest(Context context, Location location)
-            throws PackageManager.NameNotFoundException {
+    public AppClient.FindCloudletRequest.Builder createDefaultFindCloudletRequest(Context context, Location location) {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
             return null;
@@ -918,7 +927,11 @@ public class MatchingEngine {
                                           long timeoutInMilliseconds)
             throws StatusRuntimeException, InterruptedException, ExecutionException {
         FindCloudlet findCloudlet = new FindCloudlet(this);
+
+        // This also needs some info for MEL.
         findCloudlet.setRequest(request, host, port, timeoutInMilliseconds);
+
+
         return findCloudlet.call();
     }
 
