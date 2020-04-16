@@ -19,7 +19,7 @@ package com.mobiledgex.matchingengine;
 import android.content.Context;
 import android.net.Network;
 import android.os.Looper;
-import android.support.test.InstrumentationRegistry;
+import androidx.test.platform.app.InstrumentationRegistry;
 import android.util.Log;
 
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
@@ -47,7 +47,7 @@ public class NetMetricsTest {
     @Test
     public void testMetrics1() {
         NetTest netTest = new NetTest();
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
 
         Network network = me.getNetworkManager().getActiveNetwork();
