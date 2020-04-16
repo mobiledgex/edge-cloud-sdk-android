@@ -23,8 +23,6 @@ import android.content.pm.PackageManager;
 import android.net.Network;
 import android.os.Environment;
 import android.os.Looper;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.runner.AndroidJUnit4;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.common.base.Stopwatch;
@@ -72,6 +70,9 @@ import static org.junit.Assert.assertTrue;
 import android.location.Location;
 import android.util.Log;
 
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
+
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 @RunWith(AndroidJUnit4.class)
@@ -108,13 +109,13 @@ public class EngineCallTest {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
             uiAutomation.grantRuntimePermission(
-                    InstrumentationRegistry.getTargetContext().getPackageName(),
+                    InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
                     "android.permission.READ_PHONE_STATE");
             uiAutomation.grantRuntimePermission(
-                    InstrumentationRegistry.getTargetContext().getPackageName(),
+                    InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
                     "android.permission.ACCESS_COARSE_LOCATION");
             uiAutomation.grantRuntimePermission(
-                    InstrumentationRegistry.getTargetContext().getPackageName(),
+                    InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
                     "android.permission.ACCESS_FINE_LOCATION"
             );
         }
@@ -124,7 +125,7 @@ public class EngineCallTest {
     public void testWiFiOnly() {
         useWifiOnly = true;
 
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
         me.setUseWifiOnly(useWifiOnly);
         assertEquals(true, me.isUseWifiOnly());
@@ -168,7 +169,7 @@ public class EngineCallTest {
     }
 
     public void installTestCertificates() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // Open and write some certs the test "App" needs.
         File filesDir = context.getFilesDir();
@@ -222,17 +223,19 @@ public class EngineCallTest {
         location.setElapsedRealtimeNanos(1000);
         location.setAccuracy(3f);
         fusedLocationClient.setMockLocation(location);
-        try {
-            Thread.sleep(100); // Give Mock a bit of time to take effect.
-        } catch (InterruptedException ie) {
-            throw ie;
+        synchronized (location) {
+            try {
+                location.wait(500); // Give Mock a bit of time to take effect.
+            } catch (InterruptedException ie) {
+                throw ie;
+            }
         }
         fusedLocationClient.flushLocations();
     }
 
     @Test
     public void mexDisabledTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(false);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -287,7 +290,7 @@ public class EngineCallTest {
     // Every call needs registration to be called first at some point.
     // Test only!
     public void registerClient(MatchingEngine me) {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         AppClient.RegisterClientReply registerReply;
         AppClient.RegisterClientRequest regRequest;
@@ -324,7 +327,7 @@ public class EngineCallTest {
 
     @Test
     public void registerClientTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -339,9 +342,7 @@ public class EngineCallTest {
 
         try {
             setMockLocation(context, loc);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
-            }
+
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -387,7 +388,7 @@ public class EngineCallTest {
 
     @Test
     public void registerClientFutureTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -402,9 +403,7 @@ public class EngineCallTest {
 
         try {
             setMockLocation(context, loc);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
-            }
+
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -447,7 +446,7 @@ public class EngineCallTest {
 
     @Test
     public void findCloudletTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         AppClient.FindCloudletReply findCloudletReply1 = null;
         AppClient.FindCloudletReply findCloudletReply2 = null;
         MatchingEngine me = new MatchingEngine(context);
@@ -460,9 +459,6 @@ public class EngineCallTest {
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
-            synchronized (loc) {
-                loc.wait(1000);
-            }
 
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
@@ -529,72 +525,8 @@ public class EngineCallTest {
     }
 
     @Test
-    public void findCloudletTestSetSomeorgNameAppOptionals() {
-        Context context = InstrumentationRegistry.getTargetContext();
-        AppClient.RegisterClientReply registerClientReply = null;
-        AppClient.FindCloudletReply findCloudletReply;
-        MatchingEngine me = new MatchingEngine(context);
-        me.setMatchingEngineLocationAllowed(true);
-        me.setAllowSwitchIfNoSubscriberInfo(true);
-        MeLocation meLoc = new MeLocation(me);
-
-        Location loc = MockUtils.createLocation("findCloudletTestSetSomeorgNameAppOptionals", 122.3321, 47.6062);
-
-        boolean expectedExceptionHit = false;
-        try {
-            enableMockLocation(context, true);
-            setMockLocation(context, loc);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
-            }
-            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-
-            String carrierName = me.retrieveNetworkCarrierName(context);
-            registerClient(me);
-
-            // Set NO orgName, then override the rest for testing:
-            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
-                    .setAppName(applicationName)
-                    .setAppVers(appVersion)
-                    .build();
-            if (useHostOverride) {
-                findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            } else {
-                findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
-            }
-
-            assertTrue(findCloudletReply != null);
-            assertTrue(findCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_NOTFOUND);
-        }
-        catch (PackageManager.NameNotFoundException nnfe){
-            Log.e(TAG, nnfe.getMessage());
-            Log.e(TAG, Log.getStackTraceString(nnfe));
-            assertFalse("FindCloudlet: NameNotFoundException", true);
-        } catch (DmeDnsException dde) {
-            Log.e(TAG, Log.getStackTraceString(dde));
-            assertFalse("FindCloudlet: DmeDnsException", true);
-        } catch (ExecutionException ee) {
-            Log.e(TAG, Log.getStackTraceString(ee));
-            assertFalse("FindCloudlet: ExecutionException!", true);
-        } catch (StatusRuntimeException sre) {
-            /* This is expected! */
-            Log.e(TAG, sre.getMessage());
-            Log.e(TAG, Log.getStackTraceString(sre));
-            expectedExceptionHit = true;
-            assertTrue("FindCloudlet: Expected StatusRunTimeException!", true);
-        } catch (InterruptedException ie) {
-            Log.e(TAG, Log.getStackTraceString(ie));
-            assertFalse("FindCloudlet: InterruptedException!", true);
-        } finally {
-            enableMockLocation(context,false);
-        }
-
-        assertTrue("FindCloudlet: Expected StatusRunTimeException about 'NO PERMISSION'", expectedExceptionHit);
-    }
-
-    @Test
-    public void findCloudletTestSetAllOptionalDevAppNameVers() {
-        Context context = InstrumentationRegistry.getTargetContext();
+    public void findCloudletTestSetCarrierNameOverride() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         AppClient.RegisterClientReply registerClientReply = null;
         AppClient.FindCloudletReply findCloudletReply = null;
         MatchingEngine me = new MatchingEngine(context);
@@ -602,15 +534,13 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
         MeLocation meLoc = new MeLocation(me);
 
-        Location loc = MockUtils.createLocation("findCloudletTestSetAllOptionalDevAppNameVers", 122.3321, 47.6062);
+        Location loc = MockUtils.createLocation("findCloudletTestSetCarrierNameOverride", 122.3321, 47.6062);
 
         boolean expectedExceptionHit = false;
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
-            }
+
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             String carrierName = me.retrieveNetworkCarrierName(context);
@@ -619,9 +549,6 @@ public class EngineCallTest {
             // Set All orgName, appName, AppVers:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setCarrierName(carrierName)
-                    .setOrgName(organizationName)
-                    .setAppName(applicationName)
-                    .setAppVers(appVersion)
                     .build();
             if (useHostOverride) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -659,7 +586,7 @@ public class EngineCallTest {
 
     @Test
     public void findCloudletFutureTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         Future<AppClient.FindCloudletReply> response;
         AppClient.FindCloudletReply findCloudletReply1 = null;
         AppClient.FindCloudletReply findCloudletReply2 = null;
@@ -673,9 +600,7 @@ public class EngineCallTest {
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
-            }
+
             Location location = meLoc.getBlocking(context, 10000);
 
             String carrierName = me.retrieveNetworkCarrierName(context);
@@ -733,7 +658,7 @@ public class EngineCallTest {
 
     @Test
     public void verifyLocationTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -745,9 +670,7 @@ public class EngineCallTest {
             enableMockLocation(context, true);
             Location mockLoc = MockUtils.createLocation("verifyLocationTest", 122.3321, 47.6062);
             setMockLocation(context, mockLoc);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
-            }
+
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             String carrierName = me.retrieveNetworkCarrierName(context);
@@ -791,7 +714,7 @@ public class EngineCallTest {
 
     @Test
     public void verifyLocationFutureTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -804,9 +727,7 @@ public class EngineCallTest {
             enableMockLocation(context, true);
             Location mockLoc = MockUtils.createLocation("verifyLocationFutureTest", 122.3321, 47.6062);
             setMockLocation(context, mockLoc);
-            synchronized(mockLoc) {
-                mockLoc.wait(1000);
-            }
+
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             String carrierName = me.retrieveNetworkCarrierName(context);
@@ -847,7 +768,7 @@ public class EngineCallTest {
      */
     @Test
     public void verifyMockedLocationTest_NorthPole() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         enableMockLocation(context,true);
 
         Location mockLoc = MockUtils.createLocation("verifyMockedLocationTest_NorthPole", 90d, 1d);
@@ -861,9 +782,7 @@ public class EngineCallTest {
         AppClient.VerifyLocationReply verifyLocationReply = null;
         try {
             setMockLocation(context, mockLoc); // North Pole.
-            synchronized (mockLoc) {
-                mockLoc.wait(1000);
-            }
+
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -903,7 +822,7 @@ public class EngineCallTest {
 
     @Test
     public void getLocationTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -917,9 +836,7 @@ public class EngineCallTest {
         String carrierName = me.retrieveNetworkCarrierName(context);
         try {
             setMockLocation(context, loc);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
-            }
+
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -965,7 +882,7 @@ public class EngineCallTest {
 
     @Test
     public void getLocationFutureTest() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -983,9 +900,7 @@ public class EngineCallTest {
             // Directly create request for testing:
             // Passed in Location (which is a callback interface)
             setMockLocation(context, loc);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
-            }
+
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -1030,7 +945,7 @@ public class EngineCallTest {
 
     @Test
     public void dynamicLocationGroupAddTest() {
-        Context context = InstrumentationRegistry.getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -1045,9 +960,7 @@ public class EngineCallTest {
         String carrierName = me.retrieveNetworkCarrierName(context);
         try {
             setMockLocation(context, location);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
-            }
+
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -1089,7 +1002,7 @@ public class EngineCallTest {
 
     @Test
     public void dynamicLocationGroupAddFutureTest() {
-        Context context = InstrumentationRegistry.getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -1104,9 +1017,7 @@ public class EngineCallTest {
         String carrierName = me.retrieveNetworkCarrierName(context);
         try {
             setMockLocation(context, location);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
-            }
+
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
@@ -1150,7 +1061,7 @@ public class EngineCallTest {
 
     @Test
     public void getAppInstListTest() {
-        Context context = InstrumentationRegistry.getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -1164,9 +1075,7 @@ public class EngineCallTest {
 
         try {
             setMockLocation(context, location);
-            synchronized (location) {
-                location.wait(1000); // Wait for system mock.
-            }
+
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse("Mock'ed Location is missing!", location == null);
 
@@ -1208,7 +1117,7 @@ public class EngineCallTest {
 
     @Test
     public void getAppInstListFutureTest() {
-        Context context = InstrumentationRegistry.getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -1220,9 +1129,7 @@ public class EngineCallTest {
 
         try {
             setMockLocation(context, location);
-            synchronized (location) {
-                location.wait(1000);
-            }
+
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse("Mock'ed Location is missing!", location == null);
 
@@ -1265,7 +1172,7 @@ public class EngineCallTest {
 
     @Test
     public void getQosPositionKpiTest() {
-        Context context = InstrumentationRegistry.getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -1328,7 +1235,7 @@ public class EngineCallTest {
 
     @Test
     public void getQosPositionKpiFutureTest() {
-        Context context = InstrumentationRegistry.getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -1395,7 +1302,7 @@ public class EngineCallTest {
      */
     @Test
     public void appConnectionTestTcp001() {
-        Context context = InstrumentationRegistry.getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
         AppConnectionManager appConnect = me.getAppConnectionManager();
@@ -1436,9 +1343,7 @@ public class EngineCallTest {
             Location mockLoc = MockUtils.createLocation("appConnectionTestTcp001", 122.3321, 47.6062);
             Location loc = MockUtils.createLocation("registerClientTest", 122.3321, 47.6062);
             setMockLocation(context, mockLoc);
-            synchronized (meLoc) {
-                meLoc.wait(1000); // Give some time for system to pick up change.
-            }
+
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             // Defaults:
@@ -1543,7 +1448,7 @@ public class EngineCallTest {
 
     @Test
     public void appConnectionTestTcp002() {
-        Context context = InstrumentationRegistry.getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
         AppConnectionManager appConnect = me.getAppConnectionManager();
@@ -1582,9 +1487,7 @@ public class EngineCallTest {
             enableMockLocation(context, true);
             Location mockLoc = MockUtils.createLocation("verifyLocationFutureTest", 122.3321, 47.6062);
             setMockLocation(context, mockLoc);
-            synchronized (mockLoc) {
-                mockLoc.wait(1000);
-            }
+
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
@@ -1658,7 +1561,7 @@ public class EngineCallTest {
      */
     @Test
     public void appConnectionTestTcp_Http_001() {
-        Context context = InstrumentationRegistry.getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
         AppConnectionManager appConnect = me.getAppConnectionManager();
@@ -1790,7 +1693,7 @@ public class EngineCallTest {
 
     @Test
     public void testRegisterAndFindCloudlet_001() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -1853,7 +1756,7 @@ public class EngineCallTest {
 
     @Test
     public void getAppNameTest() {
-        Context context = InstrumentationRegistry.getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
 
@@ -1863,7 +1766,7 @@ public class EngineCallTest {
 
     @Test
     public void getAppVersionNameTest() {
-        Context context = InstrumentationRegistry.getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         MatchingEngine me = new MatchingEngine(context);
         try {
@@ -1876,7 +1779,7 @@ public class EngineCallTest {
     @Test
     public void NetTestAPItest() {
         // Setup as usual, then grab netTest from MatchingEngine, and add well known test sites. Get the best one, test wise.
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         AppClient.FindCloudletReply findCloudletReply = null;
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -1888,9 +1791,7 @@ public class EngineCallTest {
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
-            }
+
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             registerClient(me);

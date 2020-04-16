@@ -24,7 +24,7 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.os.Parcel;
 import android.os.PersistableBundle;
-import android.support.annotation.RequiresApi;
+import androidx.annotation.RequiresApi;
 import android.telephony.CarrierConfigManager;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
