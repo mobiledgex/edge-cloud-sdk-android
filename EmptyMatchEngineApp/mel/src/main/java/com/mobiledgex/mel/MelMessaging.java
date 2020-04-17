@@ -29,12 +29,13 @@ public class MelMessaging {
     private static ComponentName melServiceComponentName = mockServiceComponentName;
 
     // Action Filters to declare on the Service side (TBD):
-    public static final String ACTION_SET_TOKEN = "com.mobiledgex.mel.action.SET_TOKEN";
-    public static final String ACTION_GET_TOKEN = "com.mobiledgex.mel.action.GET_TOKEN";
+    public static final String ACTION_SET_LOCATION_TOKEN = "com.mobiledgex.mel.action.SET_LOCATION_TOKEN";
+    public static final String ACTION_GET_UUID = "com.mobiledgex.mel.action.GET_UUID";
     public static final String ACTION_IS_MEL = "com.mobiledgex.mel.action.IS_MEL";
 
     // TODO: Rename parameters
-    public static final String EXTRA_PARAM_TOKEN = "com.mobiledgex.mel.extra.PARAM_TOKEN";
+    public static final String EXTRA_PARAM_LOCATION_TOKEN = "com.mobiledgex.mel.extra.PARAM_LOCATION_TOKEN";
+    public static final String EXTRA_PARAM_UUID = "com.mobiledgex.mel.extra.PARAM_UUID";
     public static final String EXTRA_PARAM_IS_MEL = "com.mobiledgex.mel.extra.PARAM_IS_MEL";
 
     // Parcel Keys
@@ -51,7 +52,7 @@ public class MelMessaging {
             return false;
         }
 
-        if (mMelStateReceiver.isMelEnabled && !mMelStateReceiver.token.isEmpty()) {
+        if (mMelStateReceiver.isMelEnabled && !mMelStateReceiver.uuid.isEmpty()) {
             return true;
         }
         return false;
@@ -65,8 +66,12 @@ public class MelMessaging {
         return mMelStateReceiver.isMelEnabled;
     }
 
-    static public String getToken() {
-        return mMelStateReceiver.token;
+    static public String getUuid() {
+        return mMelStateReceiver.uuid;
+    }
+
+    static public String getLocationToken() {
+      return mMelStateReceiver.client_location_token;
     }
 
     /**
@@ -116,11 +121,11 @@ public class MelMessaging {
         filter.addCategory(Intent.CATEGORY_DEFAULT);
         context.registerReceiver(mMelStateReceiver, filter);
 
-        filter = new IntentFilter(ACTION_GET_TOKEN);
+        filter = new IntentFilter(ACTION_GET_UUID);
         filter.addCategory(Intent.CATEGORY_DEFAULT);
         context.registerReceiver(mMelStateReceiver, filter);
 
-        filter = new IntentFilter(ACTION_SET_TOKEN);
+        filter = new IntentFilter(ACTION_SET_LOCATION_TOKEN);
         filter.addCategory(Intent.CATEGORY_DEFAULT);
         context.registerReceiver(mMelStateReceiver, filter);
     }
@@ -136,18 +141,18 @@ public class MelMessaging {
         if (!MelStateReceiver.isMelEnabled) {
             sendIsMelEnabled(context);
 
-            sendSetToken(context, UUID.randomUUID().toString(), appName);
-            sendGetToken(context, appName);
+            sendSetLocationToken(context, UUID.randomUUID().toString(), appName);
+            sendGetUuidToken(context, appName);
         }
     }
 
-    public static void sendSetToken(Context context, String token, String appName) {
+    public static void sendSetLocationToken(Context context, String token, String appName) {
         Intent intent = new Intent();
 
         intent.setComponent(melServiceComponentName);
-        intent.setAction(ACTION_SET_TOKEN);
+        intent.setAction(ACTION_SET_LOCATION_TOKEN);
         intent.putExtra(APP_NAME_KEY, appName);
-        intent.putExtra(EXTRA_PARAM_TOKEN, token);
+        intent.putExtra(EXTRA_PARAM_LOCATION_TOKEN, token);
 
         context.startService(intent);
     }
@@ -156,12 +161,12 @@ public class MelMessaging {
    * Get UID, provided MEL is enabled.
    * @param context
    */
-  public static void sendGetToken(Context context, String appName) {
+  public static void sendGetUuidToken(Context context, String appName) {
 
         Intent intent = new Intent();
 
         intent.setComponent(melServiceComponentName);
-        intent.setAction(ACTION_GET_TOKEN);
+        intent.setAction(ACTION_GET_UUID);
         intent.putExtra(APP_NAME_KEY, appName);
 
         context.startService(intent);

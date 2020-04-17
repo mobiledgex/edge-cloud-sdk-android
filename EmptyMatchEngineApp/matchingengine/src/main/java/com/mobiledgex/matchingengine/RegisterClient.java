@@ -77,19 +77,6 @@ public class RegisterClient implements Callable {
             throw new MissingRequestException("Usage error: RegisterClient() does not have a request object to make call!");
         }
 
-        if (MelMessaging.isMelReady()) {
-            mMatchingEngine.setSessionCookie(MelMessaging.getToken());
-            return AppClient.RegisterClientReply.newBuilder()
-              .setStatus(AppClient.ReplyStatus.RS_SUCCESS)
-              .build();
-        } else if (MelMessaging.isMelEnabled()) {
-            return AppClient.RegisterClientReply.newBuilder()
-                    .setStatus(AppClient.ReplyStatus.RS_FAIL)
-                    .build();
-        }
-
-        // Not ready, not enabled. Not MEL device at all. Regular SDK App:
-
         AppClient.RegisterClientReply reply;
         ManagedChannel channel = null;
         NetworkManager nm;
@@ -99,6 +86,13 @@ public class RegisterClient implements Callable {
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+
+            // MEL platform should have a UUID from a previous platform level registration, include it for App registration.
+            if (MelMessaging.isMelEnabled()) {
+                mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
+                .setUniqueId(MelMessaging.getUuid())
+                .build();
+            }
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .registerClient(mRequest);

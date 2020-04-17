@@ -127,7 +127,7 @@ public class MatchingEngine {
     private boolean isSSLEnabled = true;
     private boolean useOnlyWifi = false;
 
-    private Context mContext;
+    Context mContext;
     private NetTest mNetTest;
     private boolean threadedPerformanceTest = false;
 
@@ -150,6 +150,9 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
+        if (!MelMessaging.isMelReady()) {
+          MelMessaging.sendForMelStatus(context, getAppName(context));
+        }
     }
 
     // Application state Bundle Key.

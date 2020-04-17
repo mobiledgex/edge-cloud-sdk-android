@@ -258,22 +258,18 @@ public class FindCloudlet implements Callable {
     }
 
     // Mel Mode, token or not, get the official FQDN:
-    private AppClient.FindCloudletReply melMode(String sessionCookie, LocOuterClass.Loc location, final long remainderMs)
+    private AppClient.FindCloudletReply melMode(final long remainderMs)
         throws ExecutionException, InterruptedException {
 
         AppClient.FindCloudletReply fcReply;
-        ManagedChannel channel = null;
-        NetworkManager nm = null;
+        ManagedChannel channel ;
+        NetworkManager nm;
 
-        AppClient.FindCloudletReply fcreply = null;
-
-        if (sessionCookie == null || sessionCookie.isEmpty()) {
         nm = mMatchingEngine.getNetworkManager();
         Network network = nm.getCellularNetworkBlocking(false);
 
-        final AppClient.AppOfficialFqdnRequest appOfficialFqdnRequest = AppClient.AppOfficialFqdnRequest.newBuilder()
-            .setSessionCookie(sessionCookie)
-            .setGpsLocation(location)
+          final AppClient.AppOfficialFqdnRequest appOfficialFqdnRequest = AppClient.AppOfficialFqdnRequest.newBuilder()
+            .setSessionCookie(mMatchingEngine.getSessionCookie())
             .build();
 
         channel = mMatchingEngine.channelPicker(mHost, mPort, network);
@@ -282,49 +278,23 @@ public class FindCloudlet implements Callable {
         AppClient.AppOfficialFqdnReply reply = stub.withDeadlineAfter(remainderMs, TimeUnit.MILLISECONDS)
           .getAppOfficialFqdn(appOfficialFqdnRequest);
 
-
         // Create a very basic FindCloudletReply from AppOfficialFqdn reply:
         fcReply = AppClient.FindCloudletReply.newBuilder()
-          .setFqdn(reply.getAppOfficialFqdn())
-          .setStatus(AppClient.FindCloudletReply.FindStatus.FIND_FOUND)
-          .addPorts(Appcommon.AppPort.newBuilder().build()) // Port is unknown here.
-          .build();
+            .setFqdn(reply.getAppOfficialFqdn())
+            .setStatus(AppClient.FindCloudletReply.FindStatus.FIND_FOUND)
+            .addPorts(Appcommon.AppPort.newBuilder().build()) // Port is unknown here.
+            .build();
 
         mMatchingEngine.setFindCloudletResponse(fcReply);
         mMatchingEngine.setAppOfficialFqdnReply(reply); // has client location token
-      } else { // 12. PlatformFindCloudlet
-        return platformFindCloudlet(sessionCookie, remainderMs);
-      }
 
-      return fcreply;
-    }
+        // Let MEL platform know the client location token:
+        MelMessaging.sendSetLocationToken(
+            mMatchingEngine.mContext,
+            reply.getClientToken(),
+            mMatchingEngine.getLastRegisterClientRequest().getAppName());
 
-    // No location params: 8.
-    AppClient.FindCloudletReply platformFindCloudlet(String sessionCookie, long remainderMs)
-        throws ExecutionException, InterruptedException {
-
-        AppClient.FindCloudletReply fcReply;
-        ManagedChannel channel = null;
-        NetworkManager nm = null;
-
-        nm = mMatchingEngine.getNetworkManager();
-        Network network = nm.getCellularNetworkBlocking(false);
-
-        final AppClient.PlatformFindCloudletRequest platformFindCloudletRequest = AppClient.PlatformFindCloudletRequest.newBuilder()
-            .setSessionCookie(sessionCookie)
-            .setAppName(mMatchingEngine.getLastRegisterClientRequest().getAppName())
-            .setAppVers(mMatchingEngine.getLastRegisterClientRequest().getAppName())
-            .setOrgName(mMatchingEngine.getLastRegisterClientRequest().getOrgName())
-            .build();
-
-        channel = mMatchingEngine.channelPicker(mHost, mPort, network);
-        final MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
-
-        // PlatformFindCloudletReply gets a normal FindCloudletReply back.
-        AppClient.FindCloudletReply reply = stub.withDeadlineAfter(remainderMs, TimeUnit.MILLISECONDS)
-          .platformFindCloudlet(platformFindCloudletRequest);
-
-        return reply;
+      return fcReply;
     }
 
     @Override
@@ -334,22 +304,16 @@ public class FindCloudlet implements Callable {
             throw new MissingRequestException("Usage error: FindCloudlet does not have a request object to use MatchEngine!");
         }
 
-        AppClient.FindCloudletReply fcreply = null;
-        if (!MelMessaging.isMelEnabled()) {
-          synchronized (this) {
-            wait(200); // One shot wait to get MEL intents.
-          }
-        }
+        AppClient.FindCloudletReply fcreply;
 
-        if (!MelMessaging.isMelEnabled()) { // 7.
-          fcreply = performanceTestMode(); // 8.
+        if (!MelMessaging.isMelEnabled()) {
+          fcreply = performanceTestMode(); // 8. Regular FindCloudlet.
           mMatchingEngine.setFindCloudletResponse(fcreply); // Done.
           return fcreply;
         }
 
-        // MEL is enabled.
-        fcreply = melMode(MelMessaging.getToken(), mRequest.getGpsLocation(), mTimeoutInMilliseconds);
-
+        // MEL is enabled, alternate findCloudlet behavior:
+        fcreply = melMode(mTimeoutInMilliseconds);
 
         mMatchingEngine.setFindCloudletResponse(fcreply);
         return fcreply;
