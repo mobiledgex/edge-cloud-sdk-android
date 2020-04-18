@@ -617,7 +617,7 @@ public class EngineCallTest {
             registerClient(me);
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(
-                    context, carrierName, location, 0, null);
+                    context, location, 0, null);
             if (useHostOverride) {
                 response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, 10000);
             } else {

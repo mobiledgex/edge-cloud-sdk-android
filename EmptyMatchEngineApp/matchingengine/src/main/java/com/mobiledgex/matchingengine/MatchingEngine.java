@@ -578,8 +578,7 @@ public class MatchingEngine {
         return builder;
     }
 
-    public VerifyLocationRequest createVerifyLocationRequest(Context context, String carrierName,
-                                                             android.location.Location location,
+    public VerifyLocationRequest createVerifyLocationRequest(Context context, android.location.Location location,
                                                              int cellId, List<AppClient.Tag> tags) {
 
         if (!mMatchingEngineLocationAllowed) {
@@ -598,8 +597,7 @@ public class MatchingEngine {
         }
 
         return createDefaultVerifyLocationRequest(context, location)
-                .setCarrierName(carrierName == null || carrierName.isEmpty() ?
-                        retrieveNetworkCarrierName(context) : carrierName)
+                .setCarrierName(retrieveNetworkCarrierName(context))
                 .setCellId(cellId)
                 .addAllTags(tags)
                 .build();
@@ -623,18 +621,16 @@ public class MatchingEngine {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
 
-        String carrierName = retrieveNetworkCarrierName(context);
         Loc aLoc = androidLocToMeLoc(location);
 
         return FindCloudletRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(carrierName)
+                .setCarrierName(retrieveNetworkCarrierName(context))
                 .setGpsLocation(aLoc)
                 .setCellId(0);
     }
 
-    public FindCloudletRequest createFindCloudletRequest(Context context, String carrierName,
-                                                         android.location.Location location, int cellId, List<AppClient.Tag> tags) {
+    public FindCloudletRequest createFindCloudletRequest(Context context, android.location.Location location, int cellId, List<AppClient.Tag> tags) {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
             return null;
@@ -647,10 +643,7 @@ public class MatchingEngine {
 
         FindCloudletRequest.Builder builder = FindCloudletRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(
-                        (carrierName == null || carrierName.equals(""))
-                            ? retrieveNetworkCarrierName(context) : carrierName
-                )
+                .setCarrierName(retrieveNetworkCarrierName(context))
                 .setGpsLocation(aLoc)
                 .setCellId(cellId);
 
@@ -669,15 +662,14 @@ public class MatchingEngine {
         if (context == null) {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
-        String carrierName = retrieveNetworkCarrierName(context);
 
         return GetLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(carrierName)
+                .setCarrierName(retrieveNetworkCarrierName(context))
                 .setCellId(0);
     }
 
-    public GetLocationRequest createGetLocationRequest(Context context, String carrierName, int cellId, List<AppClient.Tag> tags) {
+    public GetLocationRequest createGetLocationRequest(Context context, int cellId, List<AppClient.Tag> tags) {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
             return null;
@@ -688,11 +680,7 @@ public class MatchingEngine {
 
         GetLocationRequest.Builder builder = GetLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(
-                        (carrierName == null || carrierName.equals(""))
-                            ? retrieveNetworkCarrierName(context) : carrierName
-
-                )
+                .setCarrierName(retrieveNetworkCarrierName(context))
                 .setCellId(cellId);
 
         if (tags != null) {
@@ -721,8 +709,7 @@ public class MatchingEngine {
                 .setCellId(0);
     }
 
-    public AppInstListRequest createAppInstListRequest(Context context, String carrierName,
-                                                       android.location.Location location, int cellId, List<AppClient.Tag> tags) {
+    public AppInstListRequest createAppInstListRequest(Context context, android.location.Location location, int cellId, List<AppClient.Tag> tags) {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
             return null;
@@ -736,16 +723,11 @@ public class MatchingEngine {
             throw new IllegalArgumentException("Location parameter is required.");
         }
 
-        String retrievedNetworkOperatorName = retrieveNetworkCarrierName(context);
-        if(carrierName == null || carrierName.equals("")) {
-            carrierName = retrievedNetworkOperatorName;
-        }
         Loc aLoc = androidLocToMeLoc(location);
 
         AppInstListRequest.Builder builder = AppClient.AppInstListRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName((carrierName == null || carrierName.equals(""))
-                        ? retrieveNetworkCarrierName(context) : carrierName)
+                .setCarrierName(retrieveNetworkCarrierName(context))
                 .setGpsLocation(aLoc)
                 .setCellId(cellId);
 
@@ -1324,8 +1306,10 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest findCloudletRequest =
-                        createFindCloudletRequest(context, registerClientRequest.getCarrierName(), location, cellId, tags);
+                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, location)
+                    .setCellId(cellId)
+                    .addAllTags(tags)
+                    .build();
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, me.getNetworkManager().getTimeout());
 
                 return findCloudletReply;
