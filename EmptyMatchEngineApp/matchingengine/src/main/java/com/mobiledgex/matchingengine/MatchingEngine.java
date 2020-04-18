@@ -269,12 +269,12 @@ public class MatchingEngine {
         String networkOperator = telManager.getNetworkOperator();
 
         if (useOnlyWifi) {
-            return WIFIHOST;
+            return "";
         }
 
         if (networkOperator == null) {
             Log.e(TAG, "Network Carrier name is not found on device.");
-            return WIFIHOST;
+            return "";
         }
         return networkOperator;
     }
