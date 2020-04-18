@@ -1727,7 +1727,7 @@ public class EngineCallTest {
 
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
                     organizationName, appName,
-                    appVersion, carrierName, location, "",
+                    appVersion, location, "",
                     0, null, null, null); // FIXME: These parameters should be overloaded or optional.
             // Just wait:
             AppClient.FindCloudletReply findCloudletReply = findCloudletReplyFuture.get();

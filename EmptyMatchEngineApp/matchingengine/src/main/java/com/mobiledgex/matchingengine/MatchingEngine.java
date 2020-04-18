@@ -470,8 +470,6 @@ public class MatchingEngine {
             versionName = "";
         }
 
-        String carrierName = retrieveNetworkCarrierName(context);
-
         RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder()
                 .setOrgName(organizationName);
 
@@ -482,8 +480,8 @@ public class MatchingEngine {
             builder.setAppVers(versionName);
         }
 
-        builder.setCarrierName(carrierName)
-                .setAuthToken("")
+        // No carrierName is used for DME in register.
+        builder.setAuthToken("")
                 .setUniqueId(getUniqueId(context))
                 .setUniqueIdType("applicationInstallId") // FIXME: proto enum type definition needed.
                 .setCellId(0);
@@ -492,7 +490,7 @@ public class MatchingEngine {
 
     public RegisterClientRequest createRegisterClientRequest(Context context, String organizationName,
                                                              String applicationName, String appVersion,
-                                                             String carrierName, String authToken,
+                                                             String authToken,
                                                              int cellId, String uniqueIdType,
                                                              String uniqueId, List<AppClient.Tag> tags)
             throws PackageManager.NameNotFoundException
@@ -533,8 +531,6 @@ public class MatchingEngine {
                 .setOrgName((organizationName == null) ? "" : organizationName)
                 .setAppName(appName)
                 .setAppVers(versionName)
-                .setCarrierName((carrierName == null || carrierName.equals(""))
-                        ? retrieveNetworkCarrierName(context) : carrierName)
                 .setAuthToken((authToken == null) ? "" : authToken)
                 .setCellId(cellId)
                 .setUniqueIdType((uniqueIdType == null) ? "" : uniqueIdType)
@@ -1346,7 +1342,6 @@ public class MatchingEngine {
                                                              final String organizationName,
                                                              final String applicationName,
                                                              final String appVersion,
-                                                             final String carrierName,
                                                              final Location location,
                                                              final String authToken,
                                                              final int cellId,
@@ -1360,7 +1355,7 @@ public class MatchingEngine {
             @Override
             public FindCloudletReply call() throws Exception {
                 RegisterClientRequest registerClientRequest = createRegisterClientRequest(context,
-                        organizationName, applicationName, appVersion, carrierName, authToken, cellId, uniqueIdType, uniqueId, tags);
+                        organizationName, applicationName, appVersion, authToken, cellId, uniqueIdType, uniqueId, tags);
 
                 RegisterClientReply registerClientReply = me.registerClient(registerClientRequest, me.getNetworkManager().getTimeout());
 
@@ -1390,7 +1385,6 @@ public class MatchingEngine {
                                                              final String organizationName,
                                                              final String applicationName,
                                                              final String appVersion,
-                                                             final String carrierName,
                                                              final Location location,
                                                              final String authToken,
                                                              final int cellId,
@@ -1404,7 +1398,7 @@ public class MatchingEngine {
             @Override
             public FindCloudletReply call() throws Exception {
                 RegisterClientRequest registerClientRequest = createRegisterClientRequest(context,
-                        organizationName, applicationName, appVersion, carrierName, authToken, cellId, uniqueIdType, uniqueId, tags);
+                        organizationName, applicationName, appVersion, authToken, cellId, uniqueIdType, uniqueId, tags);
 
                 RegisterClientReply registerClientReply = me.registerClient(registerClientRequest,
                         host, port, me.getNetworkManager().getTimeout());
