@@ -266,15 +266,15 @@ public class MatchingEngine {
      */
     public String retrieveNetworkCarrierName(Context context) {
         TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-        String networkOperator= telManager.getNetworkOperator();
+        String networkOperator = telManager.getNetworkOperator();
 
         if (useOnlyWifi) {
-            return WIFIHOST;
+            return "";
         }
 
         if (networkOperator == null) {
             Log.e(TAG, "Network Carrier name is not found on device.");
-            return WIFIHOST;
+            return "";
         }
         return networkOperator;
     }
