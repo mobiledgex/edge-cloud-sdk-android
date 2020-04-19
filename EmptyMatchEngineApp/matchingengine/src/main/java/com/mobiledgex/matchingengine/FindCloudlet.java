@@ -20,26 +20,21 @@ package com.mobiledgex.matchingengine;
 import android.net.Network;
 import android.util.Log;
 
-import com.google.android.gms.tasks.SuccessContinuation;
 import com.google.common.base.Stopwatch;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.mel.MelMessaging;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Callable;
-import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.AppClient.FindCloudletRequest;
 import distributed_match_engine.Appcommon;
-import distributed_match_engine.LocOuterClass;
 import distributed_match_engine.MatchEngineApiGrpc;
 
 import io.grpc.ManagedChannel;
@@ -173,7 +168,7 @@ public class FindCloudlet implements Callable {
         }
     }
 
-    private AppClient.FindCloudletReply performanceTestMode()
+    private AppClient.FindCloudletReply FindCloudletPerformanceMode()
         throws InterruptedException, ExecutionException{
 
         AppClient.FindCloudletReply fcreply;
@@ -258,17 +253,17 @@ public class FindCloudlet implements Callable {
     }
 
     // Mel Mode, token or not, get the official FQDN:
-    private AppClient.FindCloudletReply melMode(final long remainderMs)
+    private AppClient.FindCloudletReply FindCloudletMelMode(final long remainderMs)
         throws ExecutionException, InterruptedException {
 
         AppClient.FindCloudletReply fcReply;
-        ManagedChannel channel ;
+        ManagedChannel channel;
         NetworkManager nm;
 
         nm = mMatchingEngine.getNetworkManager();
         Network network = nm.getCellularNetworkBlocking(false);
 
-          final AppClient.AppOfficialFqdnRequest appOfficialFqdnRequest = AppClient.AppOfficialFqdnRequest.newBuilder()
+        final AppClient.AppOfficialFqdnRequest appOfficialFqdnRequest = AppClient.AppOfficialFqdnRequest.newBuilder()
             .setSessionCookie(mMatchingEngine.getSessionCookie())
             .build();
 
@@ -307,13 +302,13 @@ public class FindCloudlet implements Callable {
         AppClient.FindCloudletReply fcreply;
 
         if (!MelMessaging.isMelEnabled()) {
-          fcreply = performanceTestMode(); // 8. Regular FindCloudlet.
+          fcreply = FindCloudletPerformanceMode(); // 8. Regular FindCloudlet.
           mMatchingEngine.setFindCloudletResponse(fcreply); // Done.
           return fcreply;
         }
 
         // MEL is enabled, alternate findCloudlet behavior:
-        fcreply = melMode(mTimeoutInMilliseconds);
+        fcreply = FindCloudletMelMode(mTimeoutInMilliseconds);
 
         mMatchingEngine.setFindCloudletResponse(fcreply);
         return fcreply;
