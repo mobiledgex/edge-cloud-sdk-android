@@ -146,6 +146,8 @@ public class MelMessaging {
         }
     }
 
+    static PendingIntent pIntentSetLocationToken;
+    final static public int setLocationTokenRequestCode = 111;
     public static void sendSetLocationToken(Context context, String token, String appName) {
         Intent intent = new Intent();
 
@@ -154,38 +156,44 @@ public class MelMessaging {
         intent.putExtra(APP_NAME_KEY, appName);
         intent.putExtra(EXTRA_PARAM_LOCATION_TOKEN, token);
 
-        context.startService(intent);
+        pIntentSetLocationToken = PendingIntent.getService(context, setLocationTokenRequestCode, intent, PendingIntent.FLAG_ONE_SHOT);
+        try {
+            pIntentSetLocationToken.send();
+        } catch (PendingIntent.CanceledException pce) {
+            Log.d(TAG, "sendSetLocationToken Cancelled.");
+        }
     }
 
-  /**
-   * Get UID, provided MEL is enabled.
-   * @param context
-   */
-  public static void sendGetUuidToken(Context context, String appName) {
-
+    static PendingIntent pIntentGetGuid;
+    final static public int getGuidRequestCode = 222;
+    public static void sendGetUuidToken(Context context, String appName) {
         Intent intent = new Intent();
 
         intent.setComponent(melServiceComponentName);
         intent.setAction(ACTION_GET_UUID);
         intent.putExtra(APP_NAME_KEY, appName);
 
-        context.startService(intent);
+        pIntentGetGuid = PendingIntent.getService(context, getGuidRequestCode, intent, PendingIntent.FLAG_ONE_SHOT);
+        try {
+            pIntentGetGuid.send();
+        } catch (PendingIntent.CanceledException pce) {
+            Log.d(TAG, "sendGetUuidToken Cancelled.");
+        }
     }
 
-    static PendingIntent pIntent;
+    static PendingIntent pIntentIsMelEnabled;
+    final static public int isMelEanbledRequestCode = 333;
     public static void sendIsMelEnabled(Context context) {
-        // Future for each, and a instanced receiver?
         Intent intent = new Intent();
         intent.setComponent(melServiceComponentName);
         intent.setAction(ACTION_IS_MEL);
 
-        pIntent = PendingIntent.getService(context, 123, intent, PendingIntent.FLAG_ONE_SHOT);
+        pIntentIsMelEnabled = PendingIntent.getService(context, isMelEanbledRequestCode, intent, PendingIntent.FLAG_ONE_SHOT);
         try {
-            pIntent.send();
+            pIntentIsMelEnabled.send();
         } catch (PendingIntent.CanceledException pce) {
-            Log.d(TAG, "Cancelled.");
+            Log.d(TAG, "sendIsMelEnabled Cancelled.");
         }
-       // context.startService(intent);
     }
 }
 
