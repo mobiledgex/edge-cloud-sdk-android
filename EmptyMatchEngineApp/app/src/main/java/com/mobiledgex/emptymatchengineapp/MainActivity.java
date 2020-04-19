@@ -327,17 +327,21 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
-                    String orgName = "MobiledgeX"; // Always supplied by application, and in the MobieldgeX web admin console.
+                    String orgName = "MobiledgeX"; // Always supplied by application, and in the MobiledgeX web admin console.
                     // For illustration, the matching engine can be used to programatically get the name of your application details
                     // so it can go to the correct appInst version. That AppInst on the server side must match the application
                     // version or else it won't be found and cannot be used.
                     String appName = mMatchingEngine.getAppName(ctx); // AppName must be added to the MobiledgeX web admin console.
                     appName = "MobiledgeX SDK Demo"; // override with a known registered appName.
+                    String appVers = "2.0"; // override the version of that known registered app.
 
                     // There is also createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
                     // like AuthToken or Tag key value pairs.
                     AppClient.RegisterClientRequest registerClientRequest =
-                            mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName).build();
+                            mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName)
+                              .setCarrierName(mMatchingEngine.retrieveNetworkCarrierName(ctx))
+                              .setAppName(appName)
+                              .build();
                     Log.i(TAG, "registerclient request is " + registerClientRequest);
 
                     AppClient.RegisterClientReply registerClientReply =
@@ -356,13 +360,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
                     AppClient.FindCloudletRequest findCloudletRequest =
                             mMatchingEngine.createDefaultFindCloudletRequest(ctx, location)
-                            .build();
+                                .build();
                     AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
                             dmeHostAddress, port, 10000);
-                    Log.i(TAG, "closeseCloudlet is " + closestCloudlet);
+                    Log.i(TAG, "closest Cloudlet is " + closestCloudlet);
 
                     AppClient.VerifyLocationRequest verifyRequest =
-                            mMatchingEngine.createDefaultVerifyLocationRequest(ctx, location).build();
+                            mMatchingEngine.createDefaultVerifyLocationRequest(ctx, location)
+                                .build();
                     Log.i(TAG, "verifyRequest is " + verifyRequest);
                     if (verifyRequest != null) {
                         // Location Verification (Blocking, or use verifyLocationFuture):

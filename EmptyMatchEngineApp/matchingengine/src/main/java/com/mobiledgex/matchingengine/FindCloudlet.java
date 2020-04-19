@@ -202,6 +202,10 @@ public class FindCloudlet implements Callable {
             if (fcreply != null && stopwatch.elapsed(TimeUnit.MILLISECONDS) >= timeout) {
                 return fcreply;
             }
+            if (fcreply.getStatus() != AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
+                return fcreply; // No AppInst was found. Just return.
+            }
+
             // No result, and Timeout:
             else if (stopwatch.elapsed(TimeUnit.MILLISECONDS) >= timeout) {
                 throw new StatusRuntimeException(Status.DEADLINE_EXCEEDED);
