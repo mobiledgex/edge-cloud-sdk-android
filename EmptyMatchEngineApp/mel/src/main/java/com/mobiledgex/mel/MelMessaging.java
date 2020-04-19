@@ -146,54 +146,45 @@ public class MelMessaging {
         }
     }
 
-    static PendingIntent pIntentSetLocationToken;
-    final static public int setLocationTokenRequestCode = 111;
     public static void sendSetLocationToken(Context context, String token, String appName) {
-        Intent intent = new Intent();
+      Intent intent = new Intent();
 
-        intent.setComponent(melServiceComponentName);
-        intent.setAction(ACTION_SET_LOCATION_TOKEN);
-        intent.putExtra(APP_NAME_KEY, appName);
-        intent.putExtra(EXTRA_PARAM_LOCATION_TOKEN, token);
+      intent.setComponent(melServiceComponentName);
+      intent.setAction(ACTION_SET_LOCATION_TOKEN);
+      intent.putExtra(APP_NAME_KEY, appName);
+      intent.putExtra(EXTRA_PARAM_LOCATION_TOKEN, token);
 
-        pIntentSetLocationToken = PendingIntent.getService(context, setLocationTokenRequestCode, intent, PendingIntent.FLAG_ONE_SHOT);
         try {
-            pIntentSetLocationToken.send();
-        } catch (PendingIntent.CanceledException pce) {
-            Log.d(TAG, "sendSetLocationToken Cancelled.");
+            context.sendBroadcast(intent);
+        } catch (IllegalStateException ise) {
+            Log.i(TAG, "sendSetLocationToken cannot send." + ise.getMessage());
         }
     }
 
-    static PendingIntent pIntentGetGuid;
-    final static public int getGuidRequestCode = 222;
     public static void sendGetUuidToken(Context context, String appName) {
-        Intent intent = new Intent();
+      Intent intent = new Intent();
 
-        intent.setComponent(melServiceComponentName);
-        intent.setAction(ACTION_GET_UUID);
-        intent.putExtra(APP_NAME_KEY, appName);
+      intent.setComponent(melServiceComponentName);
+      intent.setAction(ACTION_GET_UUID);
+      intent.putExtra(APP_NAME_KEY, appName);
 
-        pIntentGetGuid = PendingIntent.getService(context, getGuidRequestCode, intent, PendingIntent.FLAG_ONE_SHOT);
-        try {
-            pIntentGetGuid.send();
-        } catch (PendingIntent.CanceledException pce) {
-            Log.d(TAG, "sendGetUuidToken Cancelled.");
-        }
+      try {
+          context.sendBroadcast(intent);
+      } catch (IllegalStateException ise) {
+          Log.i(TAG, "sendGetUuidToken cannot send." + ise.getMessage());
+      }
     }
 
-    static PendingIntent pIntentIsMelEnabled;
-    final static public int isMelEanbledRequestCode = 333;
     public static void sendIsMelEnabled(Context context) {
-        Intent intent = new Intent();
-        intent.setComponent(melServiceComponentName);
-        intent.setAction(ACTION_IS_MEL);
+      Intent intent = new Intent();
+      intent.setComponent(melServiceComponentName);
+      intent.setAction(ACTION_IS_MEL);
 
-        pIntentIsMelEnabled = PendingIntent.getService(context, isMelEanbledRequestCode, intent, PendingIntent.FLAG_ONE_SHOT);
-        try {
-            pIntentIsMelEnabled.send();
-        } catch (PendingIntent.CanceledException pce) {
-            Log.d(TAG, "sendIsMelEnabled Cancelled.");
-        }
+      try {
+          context.sendBroadcast(intent);
+      } catch (IllegalStateException ise) {
+          Log.i(TAG, "sendIsMelEnabled cannot send." + ise.getMessage());
+      }
     }
 }
 
