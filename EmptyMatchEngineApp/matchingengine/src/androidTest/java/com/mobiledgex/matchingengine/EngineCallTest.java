@@ -246,9 +246,7 @@ public class EngineCallTest {
         try {
             enableMockLocation(context, true);
             setMockLocation(context, loc);
-            synchronized (meLoc) {
-                meLoc.wait(1000);
-            }
+
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, organizationName).build();
@@ -298,7 +296,6 @@ public class EngineCallTest {
         try {
             // The app version will be null, but we can build from scratch for test
             regRequest = AppClient.RegisterClientRequest.newBuilder()
-                    .setCarrierName(me.retrieveNetworkCarrierName(context))
                     .setOrgName(organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
@@ -527,8 +524,7 @@ public class EngineCallTest {
     @Test
     public void findCloudletTestSetCarrierNameOverride() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        AppClient.RegisterClientReply registerClientReply = null;
-        AppClient.FindCloudletReply findCloudletReply = null;
+        AppClient.FindCloudletReply findCloudletReply, findCloudletReply2 = null;
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -555,8 +551,21 @@ public class EngineCallTest {
             } else {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
             }
-
             assertTrue(findCloudletReply != null);
+            assertTrue(findCloudletReply.getStatus().equals(AppClient.FindCloudletReply.FindStatus.FIND_FOUND));
+
+            // Set NO carrier name, as if there's no SIM card. This should tell DME to return
+            // any edge AppInst from any carrier, for this app, version, orgName keyset.
+            AppClient.FindCloudletRequest findCloudletRequest2 = me.createDefaultFindCloudletRequest(context, location)
+              .setCarrierName("")
+              .build();
+            if (useHostOverride) {
+              findCloudletReply2 = me.findCloudlet(findCloudletRequest2, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+              findCloudletReply2 = me.findCloudlet(findCloudletRequest2, GRPC_TIMEOUT_MS);
+            }
+            assertTrue(findCloudletReply2 != null);
+            assertTrue(findCloudletReply.getStatus().equals(AppClient.FindCloudletReply.FindStatus.FIND_FOUND));
         }
         catch (PackageManager.NameNotFoundException nnfe){
             Log.e(TAG, nnfe.getMessage());
@@ -607,7 +616,7 @@ public class EngineCallTest {
             registerClient(me);
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(
-                    context, carrierName, location, 0, null);
+                    context, location, 0, null);
             if (useHostOverride) {
                 response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, 10000);
             } else {
@@ -1596,10 +1605,7 @@ public class EngineCallTest {
 
             Location mockLoc = MockUtils.createLocation("verifyLocationFutureTest", 122.3321, 47.6062);
             setMockLocation(context, mockLoc);
-            Object aMon = new Object(); // Some arbitrary object Monitor.
-            synchronized (aMon) {
-                aMon.wait(1000);
-            }
+
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
@@ -1714,16 +1720,13 @@ public class EngineCallTest {
         Socket socket = null;
         try {
             setMockLocation(context, loc);
-            Object aMon = new Object(); // Some arbitrary object Monitor.
-            synchronized (aMon) {
-                aMon.wait(1000);
-            }
+
             location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertTrue("Required location is null!", location != null);
 
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
                     organizationName, appName,
-                    appVersion, carrierName, location, "",
+                    appVersion, location, "",
                     0, null, null, null); // FIXME: These parameters should be overloaded or optional.
             // Just wait:
             AppClient.FindCloudletReply findCloudletReply = findCloudletReplyFuture.get();
