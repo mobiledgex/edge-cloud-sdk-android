@@ -257,38 +257,47 @@ public class FindCloudlet implements Callable {
         throws ExecutionException, InterruptedException {
 
         AppClient.FindCloudletReply fcReply;
-        ManagedChannel channel;
+        ManagedChannel channel = null;
         NetworkManager nm;
 
-        nm = mMatchingEngine.getNetworkManager();
-        Network network = nm.getCellularNetworkBlocking(false);
+        Stopwatch stopwatch = Stopwatch.createUnstarted();
+        try {
+            nm = mMatchingEngine.getNetworkManager();
+            Network network = nm.getCellularNetworkBlocking(false);
 
-        final AppClient.AppOfficialFqdnRequest appOfficialFqdnRequest = AppClient.AppOfficialFqdnRequest.newBuilder()
-            .setSessionCookie(mMatchingEngine.getSessionCookie())
-            .build();
+            final AppClient.AppOfficialFqdnRequest appOfficialFqdnRequest = AppClient.AppOfficialFqdnRequest.newBuilder()
+                .setSessionCookie(mMatchingEngine.getSessionCookie())
+                .setGpsLocation(mRequest.getGpsLocation())
+                .build();
 
-        channel = mMatchingEngine.channelPicker(mHost, mPort, network);
-        final MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+            channel = mMatchingEngine.channelPicker(mHost, mPort, network);
+            final MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
-        AppClient.AppOfficialFqdnReply reply = stub.withDeadlineAfter(remainderMs, TimeUnit.MILLISECONDS)
-          .getAppOfficialFqdn(appOfficialFqdnRequest);
+            AppClient.AppOfficialFqdnReply reply = stub.withDeadlineAfter(remainderMs, TimeUnit.MILLISECONDS)
+                .getAppOfficialFqdn(appOfficialFqdnRequest);
 
-        // Create a very basic FindCloudletReply from AppOfficialFqdn reply:
-        fcReply = AppClient.FindCloudletReply.newBuilder()
-            .setFqdn(reply.getAppOfficialFqdn())
-            .setStatus(AppClient.FindCloudletReply.FindStatus.FIND_FOUND)
-            .addPorts(Appcommon.AppPort.newBuilder().build()) // Port is unknown here.
-            .build();
+            // Create a very basic FindCloudletReply from AppOfficialFqdn reply:
+            fcReply = AppClient.FindCloudletReply.newBuilder()
+                .setFqdn(reply.getAppOfficialFqdn())
+                .setStatus(AppClient.FindCloudletReply.FindStatus.FIND_FOUND)
+                .addPorts(Appcommon.AppPort.newBuilder().build()) // Port is unknown here.
+                .build();
 
-        mMatchingEngine.setFindCloudletResponse(fcReply);
-        mMatchingEngine.setAppOfficialFqdnReply(reply); // has client location token
+            mMatchingEngine.setFindCloudletResponse(fcReply);
+            mMatchingEngine.setAppOfficialFqdnReply(reply); // has client location token
 
-        // Let MEL platform know the client location token:
-        MelMessaging.sendSetLocationToken(
-            mMatchingEngine.mContext,
-            reply.getClientToken(),
-            mMatchingEngine.getLastRegisterClientRequest().getAppName());
+            // Let MEL platform know the client location token:
+            MelMessaging.sendSetLocationToken(
+                mMatchingEngine.mContext,
+                reply.getClientToken(),
+                mMatchingEngine.getLastRegisterClientRequest().getAppName());
 
+        } finally {
+            if (channel != null) {
+                channel.shutdown();
+                channel.awaitTermination(remainderMs - stopwatch.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+            }
+        }
       return fcReply;
     }
 

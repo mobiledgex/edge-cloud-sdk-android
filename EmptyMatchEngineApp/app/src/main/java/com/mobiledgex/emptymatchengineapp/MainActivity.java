@@ -324,7 +324,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         // For Demo app, we use the wifi dme server to continue to MobiledgeX.
                         dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
                     }
-                    dmeHostAddress = "wifi.dme.mobiledgex.net";
+                    dmeHostAddress = "eu-stage." + MatchingEngine.baseDmeHost;
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
