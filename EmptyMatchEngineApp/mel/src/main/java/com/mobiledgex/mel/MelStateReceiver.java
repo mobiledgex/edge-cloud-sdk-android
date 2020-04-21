@@ -37,8 +37,8 @@ public class MelStateReceiver extends BroadcastReceiver {
                 break;
             }
             case ACTION_GET_UUID: {
-                String token = intent.getStringExtra(EXTRA_PARAM_UUID);
-                Log.d(TAG, "Got Token: " + token);
+                uuid = intent.getStringExtra(EXTRA_PARAM_UUID);
+                Log.d(TAG, "Got Token: " + uuid);
                 break;
             }
         }

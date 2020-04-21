@@ -90,6 +90,8 @@ public class RegisterClient implements Callable {
             // MEL platform should have a UUID from a previous platform level registration, include it for App registration.
             if (MelMessaging.isMelEnabled()) {
                 mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
+                    .setUniqueIdType("uuid")
+                    .setUniqueId(MelMessaging.getUuid())
                     .build();
             }
 

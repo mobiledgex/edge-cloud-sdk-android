@@ -138,9 +138,8 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-
-        if (!MelMessaging.isMelReady()) {
-          MelMessaging.sendForMelStatus(context, getAppName(context));
+        if (!MelMessaging.isMelEnabled()) {
+            MelMessaging.sendForMelStatus(context, getAppName(context));
         }
     }
     public MatchingEngine(Context context, ExecutorService executorService) {
@@ -150,8 +149,8 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-        if (!MelMessaging.isMelReady()) {
-          MelMessaging.sendForMelStatus(context, getAppName(context));
+        if (!MelMessaging.isMelEnabled()) {
+            MelMessaging.sendForMelStatus(context, getAppName(context));
         }
     }
 

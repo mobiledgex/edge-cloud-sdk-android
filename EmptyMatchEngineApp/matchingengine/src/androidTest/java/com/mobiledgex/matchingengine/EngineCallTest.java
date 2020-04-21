@@ -483,9 +483,6 @@ public class EngineCallTest {
 
             assertEquals("Sizes should match!", size1, size2);
 
-        } catch (PackageManager.NameNotFoundException nnfe) {
-            Log.e(TAG, Log.getStackTraceString(nnfe));
-            assertFalse("FindCloudlet: NameNotFoundException", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("FindCloudlet: DmeDnsException", true);
@@ -564,11 +561,6 @@ public class EngineCallTest {
             }
             assertTrue(findCloudletReply2 != null);
             assertTrue(findCloudletReply.getStatus().equals(AppClient.FindCloudletReply.FindStatus.FIND_FOUND));
-        }
-        catch (PackageManager.NameNotFoundException nnfe){
-            Log.e(TAG, nnfe.getMessage());
-            Log.e(TAG, Log.getStackTraceString(nnfe));
-            assertFalse("FindCloudlet: NameNotFoundException", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("FindCloudlet: DmeDnsException", true);
@@ -1413,10 +1405,6 @@ public class EngineCallTest {
                 assertTrue("Failed to get output stream for socket!", false);
             }
 
-        } catch (PackageManager.NameNotFoundException nnfe){
-            Log.e(TAG, nnfe.getMessage());
-            Log.e(TAG, Log.getStackTraceString(nnfe));
-            assertFalse("FindCloudlet: NameNotFoundException", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("appConnectionTestTcp001: DmeDnsException", true);
@@ -1873,10 +1861,6 @@ public class EngineCallTest {
             Log.d(TAG, "Fastest site: " + bestSite.host + ":" + bestSite.port);
             assertTrue("There were faster sites on this list. Count: " + count, count == 0);
 
-        } catch (PackageManager.NameNotFoundException nnfe) {
-            Log.e(TAG, nnfe.getMessage());
-            Log.i(TAG, Log.getStackTraceString(nnfe));
-            assertFalse("NetTestAPItest: Package Info is missing!", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("NetTestAPItest: DmeDnsException", true);
