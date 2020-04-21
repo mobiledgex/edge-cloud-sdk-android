@@ -324,6 +324,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         // For Demo app, we use the wifi dme server to continue to MobiledgeX.
                         dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
                     }
+                    dmeHostAddress = "wifi.dme.mobiledgex.net";
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
@@ -339,8 +340,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // like AuthToken or Tag key value pairs.
                     AppClient.RegisterClientRequest registerClientRequest =
                             mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName)
-                              .setCarrierName(mMatchingEngine.retrieveNetworkCarrierName(ctx))
+                              .setCarrierName("wifi")
                               .setAppName(appName)
+                              .setAppVers(appVers)
                               .build();
                     Log.i(TAG, "registerclient request is " + registerClientRequest);
 
@@ -360,6 +362,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
                     AppClient.FindCloudletRequest findCloudletRequest =
                             mMatchingEngine.createDefaultFindCloudletRequest(ctx, location)
+                                .setCarrierName("wifi")
                                 .build();
                     AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
                             dmeHostAddress, port, 10000);

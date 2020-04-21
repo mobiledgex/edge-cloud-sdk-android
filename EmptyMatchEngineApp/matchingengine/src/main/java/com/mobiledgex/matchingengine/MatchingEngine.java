@@ -482,8 +482,6 @@ public class MatchingEngine {
 
         // No carrierName is used for DME in register.
         builder.setAuthToken("")
-                .setUniqueId(getUniqueId(context))
-                .setUniqueIdType("applicationInstallId") // FIXME: proto enum type definition needed.
                 .setCellId(0);
                 return builder;
     }
