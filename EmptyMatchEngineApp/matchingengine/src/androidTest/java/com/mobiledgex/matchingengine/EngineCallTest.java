@@ -300,8 +300,6 @@ public class EngineCallTest {
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
                     .setCellId(me.retrieveCellId(context).get(0).second.intValue())
-                    .setUniqueIdType("applicationInstallId")
-                    .setUniqueId(me.getUniqueId(context))
                     .build();
             if (useHostOverride) {
                 registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
