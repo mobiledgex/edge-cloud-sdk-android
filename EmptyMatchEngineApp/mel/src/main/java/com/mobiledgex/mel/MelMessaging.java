@@ -1,6 +1,5 @@
 package com.mobiledgex.mel;
 
-import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -29,17 +28,15 @@ public class MelMessaging {
     private static ComponentName melServiceComponentName = mockServiceComponentName;
 
     // Action Filters to declare on the Service side (TBD):
-    public static final String ACTION_SET_LOCATION_TOKEN = "com.mobiledgex.mel.action.SET_LOCATION_TOKEN";
-    public static final String ACTION_GET_UUID = "com.mobiledgex.mel.action.GET_UUID";
-    public static final String ACTION_IS_MEL = "com.mobiledgex.mel.action.IS_MEL";
+    public static final String ACTION_SET_LOCATION_TOKEN = "com.mobiledgex.intent.action.SET_LOCATION_TOKEN";
+    public static final String ACTION_SEND_COOKIES = "com.mobiledgex.intent.action.SEND_COOKIES"; // SEC name confirmed.
+    public static final String ACTION_IS_MEL_ENABLED = "com.mobiledgex.intent.action.IS_MEL_ENABLED";
 
-    // TODO: Rename parameters
-    public static final String EXTRA_PARAM_LOCATION_TOKEN = "com.mobiledgex.mel.extra.PARAM_LOCATION_TOKEN";
-    public static final String EXTRA_PARAM_UUID = "com.mobiledgex.mel.extra.PARAM_UUID";
-    public static final String EXTRA_PARAM_IS_MEL = "com.mobiledgex.mel.extra.PARAM_IS_MEL";
-
-    // Parcel Keys
-    public static final String APP_NAME_KEY = "app_name";
+    // Parcel Keys TODO: Rename keys.
+    public static final String EXTRA_PARAM_LOCATION_TOKEN = "com.mobiledgex.intent.extra.PARAM_LOCATION_TOKEN";
+    public static final String EXTRA_PARAM_COOKIE = "cookies"; // SEC name confirmed.
+    public static final String EXTRA_PARAM_IS_MEL_ENABLED = "com.mobiledgex.intent.extra.PARAM_IS_MEL_ENABLED";
+    public static final String EXTRA_PARAM_APP_NAME_KEY = "app_name"; // SEC name confirmed.
 
     private static MelStateReceiver mMelStateReceiver;
 
@@ -52,7 +49,7 @@ public class MelMessaging {
             return false;
         }
 
-        if (mMelStateReceiver.isMelEnabled && !mMelStateReceiver.uuid.isEmpty()) {
+        if (mMelStateReceiver.isMelEnabled && !mMelStateReceiver.appCookie.isEmpty()) {
             return true;
         }
         return false;
@@ -66,8 +63,8 @@ public class MelMessaging {
         return mMelStateReceiver.isMelEnabled;
     }
 
-    static public String getUuid() {
-        return mMelStateReceiver.uuid;
+    static public String getCookie() {
+        return mMelStateReceiver.appCookie;
     }
 
     static public String getLocationToken() {
@@ -117,11 +114,11 @@ public class MelMessaging {
             mMelStateReceiver = new MelStateReceiver();
         }
         // Register Receivers
-        IntentFilter filter = new IntentFilter(ACTION_IS_MEL);
+        IntentFilter filter = new IntentFilter(ACTION_IS_MEL_ENABLED);
         filter.addCategory(Intent.CATEGORY_DEFAULT);
         context.registerReceiver(mMelStateReceiver, filter);
 
-        filter = new IntentFilter(ACTION_GET_UUID);
+        filter = new IntentFilter(ACTION_SEND_COOKIES);
         filter.addCategory(Intent.CATEGORY_DEFAULT);
         context.registerReceiver(mMelStateReceiver, filter);
 
@@ -138,12 +135,9 @@ public class MelMessaging {
             registerReceivers(context);
         }
 
-        if (!MelStateReceiver.isMelEnabled) {
-            sendIsMelEnabled(context);
-
-            sendSetLocationToken(context, UUID.randomUUID().toString(), appName);
-            sendGetUuidToken(context, appName);
-        }
+        sendIsMelEnabled(context); // Or read system properties.
+        sendSetLocationToken(context, UUID.randomUUID().toString(), appName);
+        sendGetUuidToken(context, appName);
     }
 
     public static void sendSetLocationToken(Context context, String token, String appName) {
@@ -151,7 +145,7 @@ public class MelMessaging {
 
       intent.setComponent(melServiceComponentName);
       intent.setAction(ACTION_SET_LOCATION_TOKEN);
-      intent.putExtra(APP_NAME_KEY, appName);
+      intent.putExtra(EXTRA_PARAM_APP_NAME_KEY, appName);
       intent.putExtra(EXTRA_PARAM_LOCATION_TOKEN, token);
 
         try {
@@ -165,8 +159,8 @@ public class MelMessaging {
       Intent intent = new Intent();
 
       intent.setComponent(melServiceComponentName);
-      intent.setAction(ACTION_GET_UUID);
-      intent.putExtra(APP_NAME_KEY, appName);
+      intent.setAction(ACTION_SEND_COOKIES);
+      intent.putExtra(EXTRA_PARAM_APP_NAME_KEY, appName);
 
       try {
           context.sendBroadcast(intent);
@@ -178,7 +172,7 @@ public class MelMessaging {
     public static void sendIsMelEnabled(Context context) {
       Intent intent = new Intent();
       intent.setComponent(melServiceComponentName);
-      intent.setAction(ACTION_IS_MEL);
+      intent.setAction(ACTION_IS_MEL_ENABLED);
 
       try {
           context.sendBroadcast(intent);
