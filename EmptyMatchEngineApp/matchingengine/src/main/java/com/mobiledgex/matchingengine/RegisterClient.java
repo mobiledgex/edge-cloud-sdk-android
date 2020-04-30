@@ -91,7 +91,7 @@ public class RegisterClient implements Callable {
             if (MelMessaging.isMelEnabled()) {
                 mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
                     .setUniqueIdType("uuid")
-                    .setUniqueId(MelMessaging.getUuid())
+                    .setUniqueId(MelMessaging.getCookie())
                     .build();
             }
 
