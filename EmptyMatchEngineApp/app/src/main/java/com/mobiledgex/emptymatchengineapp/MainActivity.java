@@ -325,6 +325,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
                     }
                     dmeHostAddress = "eu-stage." + MatchingEngine.baseDmeHost;
+                    mMatchingEngine.setUseWifiOnly(true);
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 

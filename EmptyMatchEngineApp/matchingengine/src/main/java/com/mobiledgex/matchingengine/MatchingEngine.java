@@ -23,6 +23,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.Network;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
@@ -95,6 +96,7 @@ import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.mel.MelMessaging;
 
 import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
+import static android.content.Context.WIFI_SERVICE;
 
 public class MatchingEngine {
     public static final String TAG = "MatchingEngine";
@@ -1461,6 +1463,18 @@ public class MatchingEngine {
     public boolean isWiFiEnabled(Context context) {
         WifiManager wifiManager = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
         return wifiManager.isWifiEnabled();
+    }
+
+    // Returns long IPv4 (not IPv6) address, from the WiFiManager.
+    long getWifiIp(Context context) {
+        int ip = 0;
+        if (isWiFiEnabled(context)) {
+          // See if it has an IP address:
+          WifiManager wifiMgr = (WifiManager)context.getSystemService(WIFI_SERVICE);
+          WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
+          ip = wifiInfo.getIpAddress();
+        }
+      return ip;
     }
 
     /**

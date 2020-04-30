@@ -41,6 +41,8 @@ import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 
+import static android.content.Context.WIFI_SERVICE;
+
 public class FindCloudlet implements Callable {
     public static final String TAG = "FindCloudlet";
 
@@ -310,14 +312,17 @@ public class FindCloudlet implements Callable {
 
         AppClient.FindCloudletReply fcreply;
 
-        if (!MelMessaging.isMelEnabled()) {
-          fcreply = FindCloudletPerformanceMode(); // 8. Regular FindCloudlet.
-          mMatchingEngine.setFindCloudletResponse(fcreply); // Done.
-          return fcreply;
-        }
+        // Is Wifi Enabled, and has IP?
+        long ip = mMatchingEngine.getWifiIp(mMatchingEngine.mContext);
 
-        // MEL is enabled, alternate findCloudlet behavior:
-        fcreply = FindCloudletMelMode(mTimeoutInMilliseconds);
+        if (MelMessaging.isMelEnabled() && ip == 0) { // MEL is Cellular only. No WiFi.
+            // MEL is enabled, alternate findCloudlet behavior:
+            fcreply = FindCloudletMelMode(mTimeoutInMilliseconds);
+        } else {
+            fcreply = FindCloudletPerformanceMode(); // Regular FindCloudlet.
+            mMatchingEngine.setFindCloudletResponse(fcreply); // Done.
+            return fcreply;
+        }
 
         mMatchingEngine.setFindCloudletResponse(fcreply);
         return fcreply;

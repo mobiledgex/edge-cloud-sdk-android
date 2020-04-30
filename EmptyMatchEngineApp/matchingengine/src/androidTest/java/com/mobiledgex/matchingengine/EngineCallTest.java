@@ -69,6 +69,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.location.Location;
 import android.util.Log;
+import android.util.Pair;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -295,12 +296,15 @@ public class EngineCallTest {
 
         try {
             // The app version will be null, but we can build from scratch for test
-            regRequest = AppClient.RegisterClientRequest.newBuilder()
+            List<Pair<String, Long>> ids = me.retrieveCellId(context);
+            AppClient.RegisterClientRequest.Builder regRequestBuilder = AppClient.RegisterClientRequest.newBuilder()
                     .setOrgName(organizationName)
                     .setAppName(applicationName)
-                    .setAppVers(appVersion)
-                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
-                    .build();
+                    .setAppVers(appVersion);
+            if (ids.size() > 0) {
+                regRequestBuilder.setCellId(me.retrieveCellId(context).get(0).second.intValue());
+            }
+            regRequest = regRequestBuilder.build();
             if (useHostOverride) {
                 registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
