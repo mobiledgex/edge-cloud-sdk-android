@@ -63,12 +63,16 @@ public class MelMessaging {
         return mMelStateReceiver.isMelEnabled;
     }
 
+    static public String getMelVersion() {
+        return mMelStateReceiver.versionReg;
+    }
+
     static public String getCookie() {
         return mMelStateReceiver.appCookie;
     }
 
     static public String getLocationToken() {
-      return mMelStateReceiver.client_location_token;
+        return mMelStateReceiver.client_location_token;
     }
 
     /**

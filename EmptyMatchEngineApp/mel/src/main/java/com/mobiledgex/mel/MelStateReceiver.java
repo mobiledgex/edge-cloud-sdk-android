@@ -21,10 +21,15 @@ public class MelStateReceiver extends BroadcastReceiver {
     private static final String TAG = "MelStateReceiver";
 
     // These are discovered system states.
+    public static String versionReg = "";
+    public static String version;
     public static boolean isMelEnabled = getSystemPropertyBoolean("sec.mel.enabled", false);
     public static @NotNull String client_location_token = "";
     public static @NotNull String appCookie = "";
 
+    static {
+        updateRegistrationState();
+    }
     @Override
     public void onReceive(Context context, Intent intent) {
         Log.d(TAG, "Action: " + intent.getAction());
@@ -45,6 +50,24 @@ public class MelStateReceiver extends BroadcastReceiver {
                 break;
             }
         }
+    }
+
+    public static boolean updateRegistrationState() {
+        versionReg = getSystemProperty("sec.mel.version", "");
+        if (versionReg == "") {
+            return false;
+        }
+        String [] verregArr = versionReg.split("-");
+        if (verregArr == null || verregArr.length < 2) {
+            return false;
+        }
+        version = verregArr[0];
+        if (verregArr[1].equals("regi")) { // or unregi.
+            isMelEnabled = true;
+        } else {
+            isMelEnabled = false;
+        }
+        return isMelEnabled;
     }
 
     public static String getSystemProperty(String property, String defaultValue) {
