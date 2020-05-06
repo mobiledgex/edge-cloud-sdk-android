@@ -23,7 +23,7 @@ public class MelStateReceiver extends BroadcastReceiver {
     // These are discovered system states.
     public static String versionReg = "";
     public static String version;
-    public static boolean isMelEnabled = getSystemPropertyBoolean("sec.mel.enabled", false);
+    public static boolean isMelEnabled = false; // OLD? getSystemPropertyBoolean("sec.mel.enabled", false);
     public static @NotNull String client_location_token = "";
     public static @NotNull String appCookie = "";
 
