@@ -51,12 +51,13 @@ public class FindCloudlet implements Callable {
     private String mHost;
     private int mPort;
     private long mTimeoutInMilliseconds = -1;
+    private MatchingEngine.FindCloudletMode mMode;
 
     public FindCloudlet(MatchingEngine matchingEngine) {
         mMatchingEngine = matchingEngine;
     }
 
-    public boolean setRequest(FindCloudletRequest request, String host, int port, long timeoutInMilliseconds) {
+    public boolean setRequest(FindCloudletRequest request, String host, int port, long timeoutInMilliseconds, MatchingEngine.FindCloudletMode mode) {
         if (request == null) {
             throw new IllegalArgumentException("Request object must not be null.");
         } else if (!mMatchingEngine.isMatchingEngineLocationAllowed()) {
@@ -71,6 +72,7 @@ public class FindCloudlet implements Callable {
         mRequest = request;
         mHost = host;
         mPort = port;
+        mMode = mode;
 
         if (timeoutInMilliseconds <= 0) {
             throw new IllegalArgumentException("FindCloudlet timeout must be positive.");
@@ -195,6 +197,10 @@ public class FindCloudlet implements Callable {
             // Keep a copy.
             if (fcreply != null) {
                 mMatchingEngine.setFindCloudletResponse(fcreply);
+            }
+
+            if (mMode == MatchingEngine.FindCloudletMode.PROXIMITY) {
+                return fcreply;
             }
 
             // Check timeout, fallback:
