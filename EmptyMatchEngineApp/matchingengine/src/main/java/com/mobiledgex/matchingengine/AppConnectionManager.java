@@ -96,12 +96,12 @@ public class AppConnectionManager {
      */
     public HashMap<Integer, AppPort> getTCPMap(AppClient.FindCloudletReply findCloudletReply) {
         String fqdn = findCloudletReply.getFqdn();
+        HashMap<Integer, AppPort> map = new HashMap<>();
 
         if (fqdn != null && fqdn.length() == 0) {
-            return null;
+            return map;
         }
 
-        HashMap<Integer, AppPort> map = new HashMap<>();
         for (AppPort port : findCloudletReply.getPortsList()) {
             if (port.getProto() == LProto.L_PROTO_TCP) {
                 map.put(port.getInternalPort(), port);

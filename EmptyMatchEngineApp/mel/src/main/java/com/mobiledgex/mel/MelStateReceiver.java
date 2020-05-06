@@ -86,6 +86,6 @@ public class MelStateReceiver extends BroadcastReceiver {
     }
 
     public static boolean getSystemPropertyBoolean(String property, boolean defaultValue) {
-       return Boolean.getBoolean(getSystemProperty(property, Boolean.toString(false)));
+       return Boolean.getBoolean(getSystemProperty(property, Boolean.toString(defaultValue)));
     }
 }

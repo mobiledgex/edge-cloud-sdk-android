@@ -129,6 +129,13 @@ public class MatchingEngine {
     private boolean isSSLEnabled = true;
     private boolean useOnlyWifi = false;
 
+    public enum FindCloudletMode {
+        UNDEFINED,
+        PROXIMITY,
+        PERFORMANCE,
+        MEL
+    }
+
     Context mContext;
     private NetTest mNetTest;
     private boolean threadedPerformanceTest = false;
@@ -544,12 +551,15 @@ public class MatchingEngine {
                 .setAppName(appName)
                 .setAppVers(versionName)
                 .setAuthToken((authToken == null) ? "" : authToken)
-                .setCellId(cellId)
-                .setUniqueIdType((uniqueIdType == null) ? "" : uniqueIdType)
-                .setUniqueId((uniqueId == null) ? getUniqueId(context) : uniqueId); // null if auto generate unique id, empty string if no unique id
+                .setCellId(cellId);
 
         if (tags != null) {
             builder.addAllTags(tags);
+        }
+
+        if (uniqueId != null && uniqueId.length() > 0) {
+            builder.setUniqueIdType(uniqueIdType); // Let server handle it, should not be null.
+            builder.setUniqueId(uniqueId);
         }
 
         return builder.build();
@@ -906,7 +916,7 @@ public class MatchingEngine {
      * findCloudlet finds the closest cloudlet instance as per request.
      * @param request
      * @param timeoutInMilliseconds
-     * @return
+     * @return cloudlet URIs
      * @throws StatusRuntimeException
      * @throws InterruptedException
      * @throws ExecutionException
@@ -914,42 +924,77 @@ public class MatchingEngine {
     public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                           long timeoutInMilliseconds)
             throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
-        return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
+        return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, FindCloudletMode.PERFORMANCE);
 
     }
+
+  /**
+   * findCloudlet finds the closest cloudlet instance as per request.
+   * @param request
+   * @param host Distributed Matching Engine hostname
+   * @param port Distributed Matching Engine port
+   * @param timeoutInMilliseconds
+   * @return cloudlet URIs
+   * @throws StatusRuntimeException
+   */
+  public FindCloudletReply findCloudlet(FindCloudletRequest request,
+                                        String host, int port,
+                                        long timeoutInMilliseconds)
+    throws StatusRuntimeException, InterruptedException, ExecutionException {
+    FindCloudlet findCloudlet = new FindCloudlet(this);
+
+    // This also needs some info for MEL.
+    findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PERFORMANCE);
+
+    return findCloudlet.call();
+  }
     /**
      * findCloudlet finds the closest cloudlet instance as per request.
      * @param request
      * @param host Distributed Matching Engine hostname
      * @param port Distributed Matching Engine port
      * @param timeoutInMilliseconds
-     * @return cloudlet URI.
+     * @param mode FindCloudletMode to use to find edge cloudlets.
+     * @return cloudlet URIs
      * @throws StatusRuntimeException
      */
     public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                           String host, int port,
-                                          long timeoutInMilliseconds)
+                                          long timeoutInMilliseconds,
+                                          FindCloudletMode mode)
             throws StatusRuntimeException, InterruptedException, ExecutionException {
         FindCloudlet findCloudlet = new FindCloudlet(this);
 
         // This also needs some info for MEL.
-        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds);
-
+        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, mode);
 
         return findCloudlet.call();
     }
-
 
     /**
      * findCloudlet finds the closest cloudlet instance as per request. Returns a Future.
      * @param request
      * @param timeoutInMilliseconds
-     * @return
+     * @return cloudlet URIs Future.
      */
     public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
                                           long timeoutInMilliseconds)
             throws DmeDnsException {
-        return findCloudletFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
+        return findCloudletFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, FindCloudletMode.PERFORMANCE);
+    }
+
+  /**
+   * findCloudlet finds the closest cloudlet instance as per request. Returns a Future.
+   * @param request
+   * @param timeoutInMilliseconds
+   * @param mode algorithm to use to find edge cloudlets.
+   * @return cloudlet URI Future.
+   */
+    public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
+                                                        long timeoutInMilliseconds,
+                                                        FindCloudletMode mode)
+        throws DmeDnsException {
+            return findCloudletFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, mode);
     }
 
     /**
@@ -963,11 +1008,28 @@ public class MatchingEngine {
     public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
                                                         String host, int port,
                                                         long timeoutInMilliseconds) {
-        FindCloudlet findCloudlet = new FindCloudlet(this);
-        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds);
-        return submit(findCloudlet);
+      FindCloudlet findCloudlet = new FindCloudlet(this);
+      findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PERFORMANCE);
+      return submit(findCloudlet);
     }
 
+  /**
+   * findCloudletFuture finds the closest cloudlet instance as per request. Returns a Future.
+   * @param request
+   * @param host Distributed Matching Engine hostname
+   * @param port Distributed Matching Engine port
+   * @param timeoutInMilliseconds
+   * @param mode algorithm to use to find edge cloudlets.
+   * @return cloudlet URI Future.
+   */
+    public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
+                                                        String host, int port,
+                                                        long timeoutInMilliseconds,
+                                                        FindCloudletMode mode) {
+        FindCloudlet findCloudlet = new FindCloudlet(this);
+        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, mode);
+        return submit(findCloudlet);
+    }
 
     /**
      * verifyLocationFuture validates the client submitted information against known network
@@ -1414,7 +1476,7 @@ public class MatchingEngine {
                 FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
 
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest,
-                        host, port, me.getNetworkManager().getTimeout());
+                        host, port, me.getNetworkManager().getTimeout(), FindCloudletMode.PERFORMANCE);
 
                 return findCloudletReply;
             }

@@ -74,6 +74,11 @@ public class NetTest
 
         @Override
         public int compare(Site s1, Site s2) {
+            // If there's no samples, the other is automatically better.
+            if (s1.size == 0 || s2.size == 0) {
+                return s2.size - s1.size > 0 ? 1 : -1;
+            }
+
             if (s1.average < s2.average) {
                 return -1;
             }
