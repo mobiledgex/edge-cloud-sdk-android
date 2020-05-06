@@ -69,6 +69,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.location.Location;
 import android.util.Log;
+import android.util.Pair;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -91,6 +92,7 @@ public class EngineCallTest {
 
     public static String hostOverride = "wifi.dme.mobiledgex.net";
     public static int portOverride = 50051;
+    public static String findCloudletCarrierOverride = ""; // Allow "Any"
 
     public boolean useHostOverride = true;
     public boolean useWifiOnly = true; // This also disables network switching, since the android default is WiFi.
@@ -225,7 +227,7 @@ public class EngineCallTest {
         fusedLocationClient.setMockLocation(location);
         synchronized (location) {
             try {
-                location.wait(500); // Give Mock a bit of time to take effect.
+                location.wait(1500); // Give Mock a bit of time to take effect.
             } catch (InterruptedException ie) {
                 throw ie;
             }
@@ -253,7 +255,9 @@ public class EngineCallTest {
             assertTrue(registerClientRequest == null);
 
             AppClient.FindCloudletRequest findCloudletRequest;
-            findCloudletRequest = me.createDefaultFindCloudletRequest(context, location).build();
+            findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                .setCarrierName(findCloudletCarrierOverride)
+                .build();
             assertTrue(findCloudletRequest == null);
 
             AppClient.GetLocationRequest locationRequest = me.createDefaultGetLocationRequest(context).build();
@@ -295,12 +299,15 @@ public class EngineCallTest {
 
         try {
             // The app version will be null, but we can build from scratch for test
-            regRequest = AppClient.RegisterClientRequest.newBuilder()
+            List<Pair<String, Long>> ids = me.retrieveCellId(context);
+            AppClient.RegisterClientRequest.Builder regRequestBuilder = AppClient.RegisterClientRequest.newBuilder()
                     .setOrgName(organizationName)
                     .setAppName(applicationName)
-                    .setAppVers(appVersion)
-                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
-                    .build();
+                    .setAppVers(appVersion);
+            if (ids.size() > 0) {
+                regRequestBuilder.setCellId(me.retrieveCellId(context).get(0).second.intValue());
+            }
+            regRequest = regRequestBuilder.build();
             if (useHostOverride) {
                 registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
@@ -345,15 +352,16 @@ public class EngineCallTest {
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
                     .setCellId(me.retrieveCellId(context).get(0).second.intValue())
-                    .setUniqueIdType("applicationInstallId")
-                    .setUniqueId(me.getUniqueId(context))
                     .build();
             if (useHostOverride) {
                 reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
                 reply = me.registerClient(request, me.generateDmeHostAddress(), me.getPort(), GRPC_TIMEOUT_MS);
             }
-            assert (reply != null);
+            assertTrue(reply != null);
+            assertTrue(reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            assertTrue( !reply.getUniqueId().isEmpty());
+            assertTrue( reply.getSessionCookie().length() > 0);
         } catch (PackageManager.NameNotFoundException nnfe) {
             Log.e(TAG, Log.getStackTraceString(nnfe));
             assertFalse("ExecutionException registering using PackageManager.", true);
@@ -462,6 +470,7 @@ public class EngineCallTest {
 
             // Set orgName and location, then override the rest for testing:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                .setCarrierName(findCloudletCarrierOverride)
                 .build();
             if (useHostOverride) {
                 findCloudletReply1 = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -483,9 +492,6 @@ public class EngineCallTest {
 
             assertEquals("Sizes should match!", size1, size2);
 
-        } catch (PackageManager.NameNotFoundException nnfe) {
-            Log.e(TAG, Log.getStackTraceString(nnfe));
-            assertFalse("FindCloudlet: NameNotFoundException", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("FindCloudlet: DmeDnsException", true);
@@ -519,10 +525,11 @@ public class EngineCallTest {
         assertEquals("App's expected test cloudlet FQDN doesn't match.", "sdkdemo-app-cluster.frankfurt-main.tdg.mobiledgex.net", findCloudletReply1.getFqdn());
     }
 
+    // This test only tests "" any, and not subject to the global override.
     @Test
-    public void findCloudletTestSetCarrierNameOverride() {
+    public void findCloudletTestSetCarrierNameAnyOverride() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        AppClient.FindCloudletReply findCloudletReply, findCloudletReply2 = null;
+        AppClient.FindCloudletReply findCloudletReply = null;
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
@@ -540,35 +547,18 @@ public class EngineCallTest {
             String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
-            // Set All orgName, appName, AppVers:
-            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
-                    .setCarrierName(carrierName)
-                    .build();
-            if (useHostOverride) {
-                findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            } else {
-                findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
-            }
-            assertTrue(findCloudletReply != null);
-            assertTrue(findCloudletReply.getStatus().equals(AppClient.FindCloudletReply.FindStatus.FIND_FOUND));
-
             // Set NO carrier name, as if there's no SIM card. This should tell DME to return
             // any edge AppInst from any carrier, for this app, version, orgName keyset.
             AppClient.FindCloudletRequest findCloudletRequest2 = me.createDefaultFindCloudletRequest(context, location)
-              .setCarrierName("")
-              .build();
+                .setCarrierName("")
+                .build();
             if (useHostOverride) {
-              findCloudletReply2 = me.findCloudlet(findCloudletRequest2, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+              findCloudletReply = me.findCloudlet(findCloudletRequest2, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
-              findCloudletReply2 = me.findCloudlet(findCloudletRequest2, GRPC_TIMEOUT_MS);
+              findCloudletReply = me.findCloudlet(findCloudletRequest2, GRPC_TIMEOUT_MS);
             }
-            assertTrue(findCloudletReply2 != null);
+            assertTrue(findCloudletReply != null);
             assertTrue(findCloudletReply.getStatus().equals(AppClient.FindCloudletReply.FindStatus.FIND_FOUND));
-        }
-        catch (PackageManager.NameNotFoundException nnfe){
-            Log.e(TAG, nnfe.getMessage());
-            Log.e(TAG, Log.getStackTraceString(nnfe));
-            assertFalse("FindCloudlet: NameNotFoundException", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("FindCloudlet: DmeDnsException", true);
@@ -610,11 +600,13 @@ public class EngineCallTest {
 
             Location location = meLoc.getBlocking(context, 10000);
 
-            String carrierName = me.retrieveNetworkCarrierName(context);
             registerClient(me);
 
-            AppClient.FindCloudletRequest findCloudletRequest = me.createFindCloudletRequest(
-                    context, location, 0, null);
+            // Cannot use the older API if overriding.
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                .setCarrierName(findCloudletCarrierOverride)
+                .build();
+
             if (useHostOverride) {
                 response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, 10000);
             } else {
@@ -1090,6 +1082,7 @@ public class EngineCallTest {
             AppClient.AppInstListRequest appInstListRequest;
             AppClient.AppInstListReply list;
             appInstListRequest  = me.createDefaultAppInstListRequest(context, location)
+                    .setCarrierName(findCloudletCarrierOverride)
                     .build();
             if (useHostOverride) {
                 list = me.getAppInstList(appInstListRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1099,7 +1092,7 @@ public class EngineCallTest {
 
             assertEquals(0, list.getVer());
             assertEquals(AppClient.AppInstListReply.AIStatus.AI_SUCCESS, list.getStatus());
-            assertEquals(4, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
+            assertEquals(3, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
             for (int i = 0; i < list.getCloudletsCount(); i++) {
                 Log.v(TAG, "Cloudlet: " + list.getCloudlets(i).toString());
             }
@@ -1142,6 +1135,7 @@ public class EngineCallTest {
 
             registerClient(me);
             AppClient.AppInstListRequest appInstListRequest = me.createDefaultAppInstListRequest(context, location)
+                    .setCarrierName(findCloudletCarrierOverride)
                     .build();
 
             Future<AppClient.AppInstListReply> listFuture;
@@ -1154,7 +1148,7 @@ public class EngineCallTest {
 
             assertEquals(0, list.getVer());
             assertEquals(AppClient.AppInstListReply.AIStatus.AI_SUCCESS, list.getStatus());
-            assertEquals(4, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
+            assertEquals(3, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
             for (int i = 0; i < list.getCloudletsCount(); i++) {
                 Log.v(TAG, "Cloudlet: " + list.getCloudlets(i).toString());
             }
@@ -1355,6 +1349,7 @@ public class EngineCallTest {
 
             // Defaults:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName(findCloudletCarrierOverride)
                     .build();
 
             AppClient.FindCloudletReply findCloudletReply;
@@ -1413,10 +1408,6 @@ public class EngineCallTest {
                 assertTrue("Failed to get output stream for socket!", false);
             }
 
-        } catch (PackageManager.NameNotFoundException nnfe){
-            Log.e(TAG, nnfe.getMessage());
-            Log.e(TAG, Log.getStackTraceString(nnfe));
-            assertFalse("FindCloudlet: NameNotFoundException", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("appConnectionTestTcp001: DmeDnsException", true);
@@ -1607,6 +1598,7 @@ public class EngineCallTest {
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName(carrierName)
                     .build();
             assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
                     me.getSessionCookie(), findCloudletRequest.getSessionCookie());
@@ -1730,6 +1722,7 @@ public class EngineCallTest {
             AppClient.FindCloudletReply findCloudletReply = findCloudletReplyFuture.get();
             HashMap<Integer, AppPort> appTcpPortMap = appConnectionManager.getTCPMap(findCloudletReply);
             AppPort appPort = appTcpPortMap.get(3001);
+            assertTrue(appPort != null); // There should be at least one for a connection to be made.
             Future<Socket> socketFuture = me.getAppConnectionManager().getTcpSocket(findCloudletReply, appPort, appPort.getPublicPort(), (int)GRPC_TIMEOUT_MS);
             socket = socketFuture.get();
 
@@ -1798,6 +1791,7 @@ public class EngineCallTest {
             registerClient(me);
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName(findCloudletCarrierOverride)
                     .build();
             if (useHostOverride) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1863,6 +1857,9 @@ public class EngineCallTest {
             int count = 0;
             for (Site s : netTest.sortedSiteList()) {
                 // Fail count.
+                if (s.average == 0) {
+                    continue; // Not really a live site (private tested size).
+                }
                 if (bestSite.average > s.average) {
                     count++;
                 } if (bestSite.average == s.average && bestSite.stddev > s.stddev) {
@@ -1873,10 +1870,6 @@ public class EngineCallTest {
             Log.d(TAG, "Fastest site: " + bestSite.host + ":" + bestSite.port);
             assertTrue("There were faster sites on this list. Count: " + count, count == 0);
 
-        } catch (PackageManager.NameNotFoundException nnfe) {
-            Log.e(TAG, nnfe.getMessage());
-            Log.i(TAG, Log.getStackTraceString(nnfe));
-            assertFalse("NetTestAPItest: Package Info is missing!", true);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("NetTestAPItest: DmeDnsException", true);

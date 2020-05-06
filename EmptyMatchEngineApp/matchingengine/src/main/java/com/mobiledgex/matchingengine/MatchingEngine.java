@@ -23,6 +23,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.Network;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
@@ -74,7 +75,7 @@ import distributed_match_engine.AppClient.QosPositionRequest;
 import distributed_match_engine.AppClient.QosPositionKpiReply;
 import distributed_match_engine.AppClient.QosPosition;
 import distributed_match_engine.AppClient.BandSelection;
-
+import distributed_match_engine.AppClient.AppOfficialFqdnReply;
 
 import distributed_match_engine.AppClient.DynamicLocGroupRequest;
 import distributed_match_engine.AppClient.DynamicLocGroupReply;
@@ -92,8 +93,10 @@ import android.util.Pair;
 
 
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
+import com.mobiledgex.mel.MelMessaging;
 
 import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
+import static android.content.Context.WIFI_SERVICE;
 
 public class MatchingEngine {
     public static final String TAG = "MatchingEngine";
@@ -119,13 +122,21 @@ public class MatchingEngine {
     private VerifyLocationReply mVerifyLocationReply;
     private GetLocationReply mGetLocationReply;
     private DynamicLocGroupReply mDynamicLocGroupReply;
+    private AppOfficialFqdnReply mAppOfficialFqdnReply;
 
     private LocOuterClass.Loc mMatchEngineLocation;
 
     private boolean isSSLEnabled = true;
     private boolean useOnlyWifi = false;
 
-    private Context mContext;
+    public enum FindCloudletMode {
+        UNDEFINED,
+        PROXIMITY,
+        PERFORMANCE,
+        MEL
+    }
+
+    Context mContext;
     private NetTest mNetTest;
     private boolean threadedPerformanceTest = false;
 
@@ -136,6 +147,9 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
+        if (!MelMessaging.isMelEnabled()) {
+            MelMessaging.sendForMelStatus(context, getAppName(context));
+        }
     }
     public MatchingEngine(Context context, ExecutorService executorService) {
         threadpool = executorService;
@@ -144,6 +158,9 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
+        if (!MelMessaging.isMelEnabled()) {
+            MelMessaging.sendForMelStatus(context, getAppName(context));
+        }
     }
 
     // Application state Bundle Key.
@@ -257,6 +274,10 @@ public class MatchingEngine {
 
     void setDynamicLocGroupReply(DynamicLocGroupReply reply) {
         mDynamicLocGroupReply = reply;
+    }
+
+    void setAppOfficialFqdnReply(AppClient.AppOfficialFqdnReply reply) {
+        mAppOfficialFqdnReply = reply;
     }
 
     /**
@@ -530,12 +551,15 @@ public class MatchingEngine {
                 .setAppName(appName)
                 .setAppVers(versionName)
                 .setAuthToken((authToken == null) ? "" : authToken)
-                .setCellId(cellId)
-                .setUniqueIdType((uniqueIdType == null) ? "" : uniqueIdType)
-                .setUniqueId((uniqueId == null) ? getUniqueId(context) : uniqueId); // null if auto generate unique id, empty string if no unique id
+                .setCellId(cellId);
 
         if (tags != null) {
             builder.addAllTags(tags);
+        }
+
+        if (uniqueId != null && uniqueId.length() > 0) {
+            builder.setUniqueIdType(uniqueIdType); // Let server handle it, should not be null.
+            builder.setUniqueId(uniqueId);
         }
 
         return builder.build();
@@ -609,8 +633,7 @@ public class MatchingEngine {
      * @return
      * @throws PackageManager.NameNotFoundException
      */
-    public AppClient.FindCloudletRequest.Builder createDefaultFindCloudletRequest(Context context, Location location)
-            throws PackageManager.NameNotFoundException {
+    public AppClient.FindCloudletRequest.Builder createDefaultFindCloudletRequest(Context context, Location location) {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
             return null;
@@ -893,7 +916,7 @@ public class MatchingEngine {
      * findCloudlet finds the closest cloudlet instance as per request.
      * @param request
      * @param timeoutInMilliseconds
-     * @return
+     * @return cloudlet URIs
      * @throws StatusRuntimeException
      * @throws InterruptedException
      * @throws ExecutionException
@@ -901,38 +924,77 @@ public class MatchingEngine {
     public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                           long timeoutInMilliseconds)
             throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
-        return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
+        return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, FindCloudletMode.PERFORMANCE);
 
     }
+
+  /**
+   * findCloudlet finds the closest cloudlet instance as per request.
+   * @param request
+   * @param host Distributed Matching Engine hostname
+   * @param port Distributed Matching Engine port
+   * @param timeoutInMilliseconds
+   * @return cloudlet URIs
+   * @throws StatusRuntimeException
+   */
+  public FindCloudletReply findCloudlet(FindCloudletRequest request,
+                                        String host, int port,
+                                        long timeoutInMilliseconds)
+    throws StatusRuntimeException, InterruptedException, ExecutionException {
+    FindCloudlet findCloudlet = new FindCloudlet(this);
+
+    // This also needs some info for MEL.
+    findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PERFORMANCE);
+
+    return findCloudlet.call();
+  }
     /**
      * findCloudlet finds the closest cloudlet instance as per request.
      * @param request
      * @param host Distributed Matching Engine hostname
      * @param port Distributed Matching Engine port
      * @param timeoutInMilliseconds
-     * @return cloudlet URI.
+     * @param mode FindCloudletMode to use to find edge cloudlets.
+     * @return cloudlet URIs
      * @throws StatusRuntimeException
      */
     public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                           String host, int port,
-                                          long timeoutInMilliseconds)
+                                          long timeoutInMilliseconds,
+                                          FindCloudletMode mode)
             throws StatusRuntimeException, InterruptedException, ExecutionException {
         FindCloudlet findCloudlet = new FindCloudlet(this);
-        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds);
+
+        // This also needs some info for MEL.
+        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, mode);
+
         return findCloudlet.call();
     }
-
 
     /**
      * findCloudlet finds the closest cloudlet instance as per request. Returns a Future.
      * @param request
      * @param timeoutInMilliseconds
-     * @return
+     * @return cloudlet URIs Future.
      */
     public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
                                           long timeoutInMilliseconds)
             throws DmeDnsException {
-        return findCloudletFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
+        return findCloudletFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, FindCloudletMode.PERFORMANCE);
+    }
+
+  /**
+   * findCloudlet finds the closest cloudlet instance as per request. Returns a Future.
+   * @param request
+   * @param timeoutInMilliseconds
+   * @param mode algorithm to use to find edge cloudlets.
+   * @return cloudlet URI Future.
+   */
+    public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
+                                                        long timeoutInMilliseconds,
+                                                        FindCloudletMode mode)
+        throws DmeDnsException {
+            return findCloudletFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, mode);
     }
 
     /**
@@ -946,11 +1008,28 @@ public class MatchingEngine {
     public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
                                                         String host, int port,
                                                         long timeoutInMilliseconds) {
-        FindCloudlet findCloudlet = new FindCloudlet(this);
-        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds);
-        return submit(findCloudlet);
+      FindCloudlet findCloudlet = new FindCloudlet(this);
+      findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PERFORMANCE);
+      return submit(findCloudlet);
     }
 
+  /**
+   * findCloudletFuture finds the closest cloudlet instance as per request. Returns a Future.
+   * @param request
+   * @param host Distributed Matching Engine hostname
+   * @param port Distributed Matching Engine port
+   * @param timeoutInMilliseconds
+   * @param mode algorithm to use to find edge cloudlets.
+   * @return cloudlet URI Future.
+   */
+    public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
+                                                        String host, int port,
+                                                        long timeoutInMilliseconds,
+                                                        FindCloudletMode mode) {
+        FindCloudlet findCloudlet = new FindCloudlet(this);
+        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, mode);
+        return submit(findCloudlet);
+    }
 
     /**
      * verifyLocationFuture validates the client submitted information against known network
@@ -1397,7 +1476,7 @@ public class MatchingEngine {
                 FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
 
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest,
-                        host, port, me.getNetworkManager().getTimeout());
+                        host, port, me.getNetworkManager().getTimeout(), FindCloudletMode.PERFORMANCE);
 
                 return findCloudletReply;
             }
@@ -1446,6 +1525,18 @@ public class MatchingEngine {
     public boolean isWiFiEnabled(Context context) {
         WifiManager wifiManager = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
         return wifiManager.isWifiEnabled();
+    }
+
+    // Returns long IPv4 (not IPv6) address, from the WiFiManager.
+    long getWifiIp(Context context) {
+        int ip = 0;
+        if (isWiFiEnabled(context)) {
+          // See if it has an IP address:
+          WifiManager wifiMgr = (WifiManager)context.getSystemService(WIFI_SERVICE);
+          WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
+          ip = wifiInfo.getIpAddress();
+        }
+      return ip;
     }
 
     /**
