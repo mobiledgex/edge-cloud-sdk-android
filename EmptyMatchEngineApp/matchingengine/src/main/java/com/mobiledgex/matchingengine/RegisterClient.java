@@ -20,6 +20,8 @@ package com.mobiledgex.matchingengine;
 import android.net.Network;
 import android.util.Log;
 
+import com.mobiledgex.mel.MelMessaging;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -85,6 +87,14 @@ public class RegisterClient implements Callable {
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
+            // MEL platform should have a UUID from a previous platform level registration, include it for App registration.
+            if (MelMessaging.isMelEnabled() && mMatchingEngine.getWifiIp(mMatchingEngine.mContext) == 0) {
+                mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
+                    .setUniqueIdType("Platos:PlatosEnablingLayer") // TBD: Only one enabling layer.
+                    .setUniqueId(MelMessaging.getCookie())
+                    .build();
+            }
+
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .registerClient(mRequest);
         } finally {
@@ -93,9 +103,6 @@ public class RegisterClient implements Callable {
                 channel.awaitTermination(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
             }
         }
-        mRequest = null;
-        mHost = null;
-        mPort = 0;
 
         int ver;
         if (reply != null) {
@@ -109,6 +116,9 @@ public class RegisterClient implements Callable {
         mMatchingEngine.setLastRegisterClientRequest(mRequest);
         mMatchingEngine.setMatchEngineStatus(reply);
 
+        mRequest = null;
+        mHost = null;
+        mPort = 0;
 
         return reply;
     }
