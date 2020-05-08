@@ -50,7 +50,7 @@ import javax.net.SocketFactory;
 public class NetTest
 {
     public static final String TAG = "NetTest";
-    public int testRounds = 5;
+    public int testRounds = 3;
 
     public enum TestType
     {
@@ -76,7 +76,7 @@ public class NetTest
         public int compare(Site s1, Site s2) {
             // If there's no samples, the other is automatically better.
             if (s1.size == 0 || s2.size == 0) {
-                return s2.size - s1.size > 0 ? 1 : -1;
+                return s1.size > s2.size ? -1 : 1;
             }
 
             if (s1.average < s2.average) {

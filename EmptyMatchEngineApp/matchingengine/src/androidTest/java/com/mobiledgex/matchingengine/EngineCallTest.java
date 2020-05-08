@@ -92,7 +92,7 @@ public class EngineCallTest {
 
     public static String hostOverride = "wifi.dme.mobiledgex.net";
     public static int portOverride = 50051;
-    public static String findCloudletCarrierOverride = ""; // Allow "Any"
+    public static String findCloudletCarrierOverride = "GDDT"; // Allow "Any" if using "", but this likely breaks test cases.
 
     public boolean useHostOverride = true;
     public boolean useWifiOnly = true; // This also disables network switching, since the android default is WiFi.
@@ -608,7 +608,8 @@ public class EngineCallTest {
                 .build();
 
             if (useHostOverride) {
-                response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, 10000);
+                response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
+                  MatchingEngine.FindCloudletMode.PERFORMANCE);
             } else {
                 response = me.findCloudletFuture(findCloudletRequest, 10000);
             }
@@ -618,7 +619,8 @@ public class EngineCallTest {
             // Second try:
             me.setThreadedPerformanceTest(true);
             if (useHostOverride) {
-                response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+                response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
+                  MatchingEngine.FindCloudletMode.PERFORMANCE);
             } else {
                 response = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS);
             }
@@ -1794,9 +1796,9 @@ public class EngineCallTest {
                     .setCarrierName(findCloudletCarrierOverride)
                     .build();
             if (useHostOverride) {
-                findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+                findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PERFORMANCE);
             } else {
-                findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
+                findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PERFORMANCE);
             }
 
             NetTest netTest = me.getNetTest();
@@ -1843,7 +1845,7 @@ public class EngineCallTest {
             // Some criteria in case a site is pretty close in performance:
             if (bestSite1.host != bestSite2.host) {
                 double diff = bestSite1.average - bestSite2.average;
-                if (diff/bestSite2.average > 0.05d) { // 3%, arbitrary.
+                if (diff/bestSite2.average > 0.15d) { // % arbitrary.
                     assertEquals("The best site, should usually agree in a certain time span if nothing changed.", bestSite1.host, bestSite2.host);
                 }
             }
