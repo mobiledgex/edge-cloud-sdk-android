@@ -41,7 +41,7 @@ public class Site
 
     public AppClient.Appinstance appInstance;
 
-    public static final int DEFAULT_NUM_SAMPLES = 5;
+    public static final int DEFAULT_NUM_SAMPLES = 3;
 
     public Site(Network network, NetTest.TestType testType, int numSamples, String L7Path)
     {

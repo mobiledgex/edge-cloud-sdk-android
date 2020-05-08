@@ -924,9 +924,22 @@ public class MatchingEngine {
     public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                           long timeoutInMilliseconds)
             throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
-        return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, FindCloudletMode.PERFORMANCE);
-
+        return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
     }
+  /**
+   * findCloudlet finds the closest cloudlet instance as per request.
+   * @param request
+   * @param timeoutInMilliseconds
+   * @return cloudlet URIs
+   * @throws StatusRuntimeException
+   * @throws InterruptedException
+   * @throws ExecutionException
+   */
+  public FindCloudletReply findCloudlet(FindCloudletRequest request,
+                                        long timeoutInMilliseconds, FindCloudletMode mode)
+          throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
+      return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, mode);
+  }
 
   /**
    * findCloudlet finds the closest cloudlet instance as per request.
@@ -944,7 +957,7 @@ public class MatchingEngine {
     FindCloudlet findCloudlet = new FindCloudlet(this);
 
     // This also needs some info for MEL.
-    findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PERFORMANCE);
+    findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
 
     return findCloudlet.call();
   }
@@ -980,7 +993,7 @@ public class MatchingEngine {
     public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
                                           long timeoutInMilliseconds)
             throws DmeDnsException {
-        return findCloudletFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, FindCloudletMode.PERFORMANCE);
+        return findCloudletFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
     }
 
   /**
@@ -1009,7 +1022,7 @@ public class MatchingEngine {
                                                         String host, int port,
                                                         long timeoutInMilliseconds) {
       FindCloudlet findCloudlet = new FindCloudlet(this);
-      findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PERFORMANCE);
+      findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
       return submit(findCloudlet);
     }
 
@@ -1476,7 +1489,7 @@ public class MatchingEngine {
                 FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
 
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest,
-                        host, port, me.getNetworkManager().getTimeout(), FindCloudletMode.PERFORMANCE);
+                        host, port, me.getNetworkManager().getTimeout(), FindCloudletMode.PROXIMITY);
 
                 return findCloudletReply;
             }
