@@ -147,7 +147,8 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-        if (!MelMessaging.isMelEnabled()) {
+        if (MelMessaging.isMelEnabled()) {
+            // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
         }
     }
@@ -158,8 +159,9 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-        if (!MelMessaging.isMelEnabled()) {
-            MelMessaging.sendForMelStatus(context, getAppName(context));
+        if (MelMessaging.isMelEnabled()) {
+          // Updates and sends for MEL status:
+          MelMessaging.sendForMelStatus(context, getAppName(context));
         }
     }
 
@@ -420,6 +422,13 @@ public class MatchingEngine {
 
     void setNetworkManager(NetworkManager networkManager) {
         mNetworkManager = networkManager;
+    }
+
+
+    public String getPackageName(Context context) {
+        String appName;
+        ApplicationInfo appInfo = context.getApplicationInfo();
+        return appInfo.packageName;
     }
 
     /**

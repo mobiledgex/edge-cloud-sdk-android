@@ -284,10 +284,14 @@ public class FindCloudlet implements Callable {
             AppClient.AppOfficialFqdnReply reply = stub.withDeadlineAfter(remainderMs, TimeUnit.MILLISECONDS)
                 .getAppOfficialFqdn(appOfficialFqdnRequest);
 
+            // Status Conversion:
+            AppClient.FindCloudletReply.FindStatus fcStatus = reply.getStatus() == AppClient.AppOfficialFqdnReply.AOFStatus.AOF_SUCCESS ?
+                AppClient.FindCloudletReply.FindStatus.FIND_FOUND : AppClient.FindCloudletReply.FindStatus.FIND_NOTFOUND;
+
             // Create a very basic FindCloudletReply from AppOfficialFqdn reply:
             fcReply = AppClient.FindCloudletReply.newBuilder()
-                .setFqdn(reply.getAppOfficialFqdn())
-                .setStatus(AppClient.FindCloudletReply.FindStatus.FIND_FOUND)
+                .setFqdn(reply.getAppOfficialFqdn()) // Straight copy.
+                .setStatus(fcStatus)
                 .addPorts(Appcommon.AppPort.newBuilder().build()) // Port is unknown here.
                 .build();
 

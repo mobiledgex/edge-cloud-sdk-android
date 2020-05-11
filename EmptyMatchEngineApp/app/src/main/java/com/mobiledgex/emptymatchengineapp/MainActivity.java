@@ -324,8 +324,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         // For Demo app, we use the wifi dme server to continue to MobiledgeX.
                         dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
                     }
-                    dmeHostAddress = "eu-stage." + MatchingEngine.baseDmeHost;
-                    mMatchingEngine.setUseWifiOnly(true);
+                    //dmeHostAddress = "eu-stage." + MatchingEngine.baseDmeHost;
+                    //mMatchingEngine.setUseWifiOnly(true);
+                    dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
@@ -341,7 +343,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // like AuthToken or Tag key value pairs.
                     AppClient.RegisterClientRequest registerClientRequest =
                             mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName)
-                              .setCarrierName("wifi")
+                              //.setCarrierName("wifi")
                               .setAppName(appName)
                               .setAppVers(appVers)
                               .build();
@@ -349,7 +351,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     AppClient.RegisterClientReply registerClientReply =
                             mMatchingEngine.registerClient(registerClientRequest,
-                                    dmeHostAddress, port, 10000);
+                                    /*dmeHostAddress, port, */ 10000);
                     Log.i(TAG, "RegisterReply status is " + registerClientReply.getStatus());
 
                     if (registerClientReply.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {
@@ -363,10 +365,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
                     AppClient.FindCloudletRequest findCloudletRequest =
                             mMatchingEngine.createDefaultFindCloudletRequest(ctx, location)
-                                .setCarrierName("wifi")
+                                //.setCarrierName("wifi")
                                 .build();
                     AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
-                            dmeHostAddress, port, 10000);
+                            /*dmeHostAddress, port,*/ 10000);
                     Log.i(TAG, "closest Cloudlet is " + closestCloudlet);
 
                     AppClient.VerifyLocationRequest verifyRequest =
@@ -376,7 +378,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     if (verifyRequest != null) {
                         // Location Verification (Blocking, or use verifyLocationFuture):
                         AppClient.VerifyLocationReply verifiedLocation =
-                                mMatchingEngine.verifyLocation(verifyRequest, dmeHostAddress, port, 10000);
+                                mMatchingEngine.verifyLocation(verifyRequest, /*dmeHostAddress, port, */10000);
                         Log.i(TAG, "VerifyLocationReply is " + verifiedLocation);
 
                         someText += "[Location Verified: Tower: " + verifiedLocation.getTowerStatus() +
@@ -416,7 +418,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                 mMatchingEngine.createDefaultAppInstListRequest(ctx, location).build();
 
                         AppClient.AppInstListReply appInstListReply = mMatchingEngine.getAppInstList(
-                                appInstListRequest, dmeHostAddress, port, 10000);
+                                appInstListRequest, /* dmeHostAddress, port,*/ 10000);
 
                         for (AppClient.CloudletLocation cloudletLocation : appInstListReply.getCloudletsList()) {
                             String location_carrierName = cloudletLocation.getCarrierName();
@@ -470,7 +472,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     // Set network back to last default one, if desired:
                     mMatchingEngine.getNetworkManager().resetNetworkToDefault();
-                } catch (ExecutionException | StatusRuntimeException e) {
+                } catch (DmeDnsException | ExecutionException | StatusRuntimeException e) {
                     Log.e(TAG, e.getMessage());
                     Log.e(TAG, Log.getStackTraceString(e));
                     if (e.getCause() instanceof NetworkRequestTimeoutException) {

@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
 
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -25,6 +24,7 @@ public class MelMessaging {
     public static final String pkg = "com.mobiledgex.mel"; // package.
     private static ComponentName mockServiceComponentName = new ComponentName(pkg, cls);
 
+    // FIXME: without this, one can only broadcast (!).
     private static ComponentName melServiceComponentName = mockServiceComponentName;
 
     // Action Filters to declare on the Service side (TBD):
@@ -41,7 +41,7 @@ public class MelMessaging {
     private static MelStateReceiver mMelStateReceiver;
 
     /**
-     * Convenience status check.
+     * Convenience status check. TODO: Remove.
      * @return
      */
     static public boolean isMelReady() {
@@ -49,26 +49,53 @@ public class MelMessaging {
             return false;
         }
 
-        if (mMelStateReceiver.isMelEnabled && !mMelStateReceiver.appCookie.isEmpty()) {
+        if (mMelStateReceiver.isMelEnabled && !mMelStateReceiver.uid.isEmpty()) {
             return true;
         }
         return false;
     }
 
     /**
-     * Convenience status check.
+     * Convenience status check, updated at time of call.
      * @return
      */
     static public boolean isMelEnabled() {
-        return mMelStateReceiver.isMelEnabled;
+        return mMelStateReceiver.updateRegistrationState();
     }
 
     static public String getMelVersion() {
-        return mMelStateReceiver.versionReg;
+        mMelStateReceiver.updateRegistrationState();
+        return mMelStateReceiver.version;
     }
 
-    static public String getCookie() {
-        return mMelStateReceiver.appCookie;
+  /**
+   * TODO: MelMessaging still needs the device UID from device register. Initialized once per
+   * device. Property name based on document.
+   */
+    static public String getUid() {
+        mMelStateReceiver.uid = MelStateReceiver.getSystemProperty("sec.mel.UID", "");
+        return mMelStateReceiver.uid;
+    }
+
+    /**
+     * Need a definition for this message.
+     * @param appName
+     * @return
+     */
+    static public String getCookie(String appName) {
+        // Intent Response is actually a global property value to read, not message.
+        String appCookies = MelStateReceiver.getSystemProperty("sec.mel.regi-status", "");
+        String[] apps = appCookies.split(",");
+        if (apps != null && apps.length != 0) {
+            for(String app : apps) {
+                if(app.equals(appName)) {
+                    // But it's only registered or not...we need that cookie for Register.
+                    MelStateReceiver.appCookie = "";
+                    return MelStateReceiver.appCookie;
+                }
+            }
+        }
+        return null;
     }
 
     static public String getLocationToken() {
@@ -118,17 +145,15 @@ public class MelMessaging {
             mMelStateReceiver = new MelStateReceiver();
         }
         // Register Receivers
-        IntentFilter filter = new IntentFilter(ACTION_IS_MEL_ENABLED);
-        filter.addCategory(Intent.CATEGORY_DEFAULT);
-        context.registerReceiver(mMelStateReceiver, filter);
+        IntentFilter filter;
 
         filter = new IntentFilter(ACTION_SEND_COOKIES);
         filter.addCategory(Intent.CATEGORY_DEFAULT);
         context.registerReceiver(mMelStateReceiver, filter);
 
-        filter = new IntentFilter(ACTION_SET_LOCATION_TOKEN);
-        filter.addCategory(Intent.CATEGORY_DEFAULT);
-        context.registerReceiver(mMelStateReceiver, filter);
+        //filter = new IntentFilter(ACTION_SET_LOCATION_TOKEN);
+        //filter.addCategory(Intent.CATEGORY_DEFAULT);
+        //context.registerReceiver(mMelStateReceiver, filter);
     }
 
     // FIXME: Set a dummy token if not already set on system.
@@ -139,18 +164,17 @@ public class MelMessaging {
             registerReceivers(context);
         }
 
-        sendIsMelEnabled(context); // Or read system properties.
-        sendSetLocationToken(context, UUID.randomUUID().toString(), appName);
-        sendGetUuidToken(context, appName);
+        getUid();
+
+        // Does this check if our app is registered on platform?
+        sendGetAppRegStatus(context, appName);
     }
 
+    // For use in PlatformFindCloudlet.
     public static void sendSetLocationToken(Context context, String token, String appName) {
-      Intent intent = new Intent();
-
-      intent.setComponent(melServiceComponentName);
-      intent.setAction(ACTION_SET_LOCATION_TOKEN);
-      intent.putExtra(EXTRA_PARAM_APP_NAME_KEY, appName);
-      intent.putExtra(EXTRA_PARAM_LOCATION_TOKEN, token);
+        Intent intent = new Intent(ACTION_SET_LOCATION_TOKEN);
+        intent.putExtra(EXTRA_PARAM_APP_NAME_KEY, appName);
+        intent.putExtra(EXTRA_PARAM_LOCATION_TOKEN, token);
 
         try {
             context.sendBroadcast(intent);
@@ -159,30 +183,17 @@ public class MelMessaging {
         }
     }
 
-    public static void sendGetUuidToken(Context context, String appName) {
-      Intent intent = new Intent();
+    // FIXME: Why get and receive this? Current known usage is to populate a property to read reg app status.
+    public static void sendGetAppRegStatus(Context context, String appName) {
+        Intent intent = new Intent(ACTION_SEND_COOKIES);
+        intent.setAction(ACTION_SEND_COOKIES);
+        intent.putExtra(EXTRA_PARAM_APP_NAME_KEY, appName);
 
-      intent.setComponent(melServiceComponentName);
-      intent.setAction(ACTION_SEND_COOKIES);
-      intent.putExtra(EXTRA_PARAM_APP_NAME_KEY, appName);
-
-      try {
-          context.sendBroadcast(intent);
-      } catch (IllegalStateException ise) {
-          Log.i(TAG, "sendGetUuidToken cannot send." + ise.getMessage());
-      }
-    }
-
-    public static void sendIsMelEnabled(Context context) {
-      Intent intent = new Intent();
-      intent.setComponent(melServiceComponentName);
-      intent.setAction(ACTION_IS_MEL_ENABLED);
-
-      try {
-          context.sendBroadcast(intent);
-      } catch (IllegalStateException ise) {
-          Log.i(TAG, "sendIsMelEnabled cannot send." + ise.getMessage());
-      }
+        try {
+            context.sendBroadcast(intent);
+        } catch (IllegalStateException ise) {
+            Log.i(TAG, "sendGetUuidToken cannot send." + ise.getMessage());
+        }
     }
 }
 
