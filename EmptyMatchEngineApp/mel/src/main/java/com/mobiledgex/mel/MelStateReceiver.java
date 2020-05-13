@@ -11,9 +11,9 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Method;
 
 import static com.mobiledgex.mel.MelMessaging.ACTION_SEND_COOKIES;
-import static com.mobiledgex.mel.MelMessaging.ACTION_SET_LOCATION_TOKEN;
+import static com.mobiledgex.mel.MelMessaging.ACTION_SET_TOKEN;
 import static com.mobiledgex.mel.MelMessaging.EXTRA_PARAM_COOKIE;
-import static com.mobiledgex.mel.MelMessaging.EXTRA_PARAM_LOCATION_TOKEN;
+import static com.mobiledgex.mel.MelMessaging.EXTRA_PARAM_TOKEN;
 
 public class MelStateReceiver extends BroadcastReceiver {
     private static final String TAG = "MelStateReceiver";
@@ -33,8 +33,8 @@ public class MelStateReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Log.d(TAG, "Action: " + intent.getAction());
         switch (intent.getAction()) {
-            case ACTION_SET_LOCATION_TOKEN: {
-                client_location_token = intent.getStringExtra(EXTRA_PARAM_LOCATION_TOKEN);
+            case ACTION_SET_TOKEN: {
+                client_location_token = intent.getStringExtra(EXTRA_PARAM_TOKEN);
                 Log.d(TAG, "currentToken: " + client_location_token);
                 break;
             }

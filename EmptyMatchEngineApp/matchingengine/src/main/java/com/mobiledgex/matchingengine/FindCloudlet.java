@@ -41,8 +41,6 @@ import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 
-import static android.content.Context.WIFI_SERVICE;
-
 public class FindCloudlet implements Callable {
     public static final String TAG = "FindCloudlet";
 
@@ -299,7 +297,7 @@ public class FindCloudlet implements Callable {
             mMatchingEngine.setAppOfficialFqdnReply(reply); // has client location token
 
             // Let MEL platform know the client location token:
-            MelMessaging.sendSetLocationToken(
+            MelMessaging.sendSetToken(
                 mMatchingEngine.mContext,
                 reply.getClientToken(),
                 mMatchingEngine.getLastRegisterClientRequest().getAppName());

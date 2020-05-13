@@ -28,14 +28,12 @@ public class MelMessaging {
     private static ComponentName melServiceComponentName = mockServiceComponentName;
 
     // Action Filters to declare on the Service side (TBD):
-    public static final String ACTION_SET_LOCATION_TOKEN = "com.mobiledgex.intent.action.SET_LOCATION_TOKEN";
+    public static final String ACTION_SET_TOKEN = "com.mobiledgex.intent.action.SET_TOKEN"; // SEC name confirmed.
     public static final String ACTION_SEND_COOKIES = "com.mobiledgex.intent.action.SEND_COOKIES"; // SEC name confirmed.
-    public static final String ACTION_IS_MEL_ENABLED = "com.mobiledgex.intent.action.IS_MEL_ENABLED";
 
     // Parcel Keys TODO: Rename keys.
-    public static final String EXTRA_PARAM_LOCATION_TOKEN = "com.mobiledgex.intent.extra.PARAM_LOCATION_TOKEN";
+    public static final String EXTRA_PARAM_TOKEN = "com.mobiledgex.intent.extra.PARAM_TOKEN"; // SEC name confirmed.
     public static final String EXTRA_PARAM_COOKIE = "cookies"; // SEC name confirmed.
-    public static final String EXTRA_PARAM_IS_MEL_ENABLED = "com.mobiledgex.intent.extra.PARAM_IS_MEL_ENABLED";
     public static final String EXTRA_PARAM_APP_NAME_KEY = "app_name"; // SEC name confirmed.
 
     private static MelStateReceiver mMelStateReceiver;
@@ -171,10 +169,10 @@ public class MelMessaging {
     }
 
     // For use in PlatformFindCloudlet.
-    public static void sendSetLocationToken(Context context, String token, String appName) {
-        Intent intent = new Intent(ACTION_SET_LOCATION_TOKEN);
+    public static void sendSetToken(Context context, String token, String appName) {
+        Intent intent = new Intent(ACTION_SET_TOKEN);
         intent.putExtra(EXTRA_PARAM_APP_NAME_KEY, appName);
-        intent.putExtra(EXTRA_PARAM_LOCATION_TOKEN, token);
+        intent.putExtra(EXTRA_PARAM_TOKEN, token);
 
         try {
             context.sendBroadcast(intent);
