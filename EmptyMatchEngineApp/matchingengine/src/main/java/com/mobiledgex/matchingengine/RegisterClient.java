@@ -87,12 +87,14 @@ public class RegisterClient implements Callable {
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
-            // MEL platform should have a UUID from a previous platform level registration, include it for App registration.
-            if (MelMessaging.isMelEnabled() && mMatchingEngine.getWifiIp(mMatchingEngine.mContext) == 0) {
+            String uid = MelMessaging.getUid();
+            // Whether MEL is activated or not, look for a UID. If there is one, we can attempt to
+            // activate the device at the DME.
+            if (uid != null && !uid.isEmpty()) {
                 mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
-                    .setUniqueIdType("Platos:PlatosEnablingLayer") // TBD: Only one enabling layer.
-                    .setUniqueId(MelMessaging.getCookie())
-                    .build();
+                  .setUniqueIdType("Platos:PlatosEnablingLayer") // TBD: Only one enabling layer.
+                  .setUniqueId(MelMessaging.getUid())
+                  .build();
             }
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
