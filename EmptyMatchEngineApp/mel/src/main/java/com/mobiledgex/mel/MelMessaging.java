@@ -82,7 +82,7 @@ public class MelMessaging {
      */
     static public String getCookie(String appName) {
         // Intent Response is actually a global property value to read, not message.
-        String appCookies = MelStateReceiver.getSystemProperty("sec.mel.regi-status", "");
+        String appCookies = MelStateReceiver.getSystemProperty("sec.mel.send_token_applist", "");
         String[] apps = appCookies.split(",");
         if (apps != null && apps.length != 0) {
             for(String app : apps) {
