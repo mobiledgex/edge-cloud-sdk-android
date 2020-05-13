@@ -73,7 +73,7 @@ public class MelMessaging {
    * device. Property name based on document.
    */
     static public String getUid() {
-        mMelStateReceiver.uid = MelStateReceiver.getSystemProperty("sec.mel.UID", "");
+        mMelStateReceiver.uid = MelStateReceiver.getSystemProperty("sec.mel.uuid", "");
         return mMelStateReceiver.uid;
     }
 
