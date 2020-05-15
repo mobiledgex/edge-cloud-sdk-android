@@ -11,9 +11,9 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Method;
 
 import static com.mobiledgex.mel.MelMessaging.ACTION_SEND_COOKIES;
-import static com.mobiledgex.mel.MelMessaging.ACTION_SET_LOCATION_TOKEN;
+import static com.mobiledgex.mel.MelMessaging.ACTION_SET_TOKEN;
 import static com.mobiledgex.mel.MelMessaging.EXTRA_PARAM_COOKIE;
-import static com.mobiledgex.mel.MelMessaging.EXTRA_PARAM_LOCATION_TOKEN;
+import static com.mobiledgex.mel.MelMessaging.EXTRA_PARAM_TOKEN;
 
 public class MelStateReceiver extends BroadcastReceiver {
     private static final String TAG = "MelStateReceiver";
@@ -21,8 +21,8 @@ public class MelStateReceiver extends BroadcastReceiver {
     // These are discovered system states.
     public static String versionReg = "";
     public static String version;
-    public static boolean isMelEnabled = false; // OLD? getSystemPropertyBoolean("sec.mel.enabled", false);
-    public static @NotNull String client_location_token = "";
+    public static boolean isMelEnabled = false;
+    public static @NotNull String client_token = "";
     public static @NotNull String appCookie = "";
     public static @NotNull String uid = "";
 
@@ -33,9 +33,9 @@ public class MelStateReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Log.d(TAG, "Action: " + intent.getAction());
         switch (intent.getAction()) {
-            case ACTION_SET_LOCATION_TOKEN: {
-                client_location_token = intent.getStringExtra(EXTRA_PARAM_LOCATION_TOKEN);
-                Log.d(TAG, "currentToken: " + client_location_token);
+            case ACTION_SET_TOKEN: {
+                client_token = intent.getStringExtra(EXTRA_PARAM_TOKEN);
+                Log.d(TAG, "currentToken: " + client_token);
                 break;
             }
             case ACTION_SEND_COOKIES: {

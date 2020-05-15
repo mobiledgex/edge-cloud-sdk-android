@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 29
     defaultConfig {
-        applicationId "com.mobiledgex.emptymatchengineapp"
+        applicationId "com.mobiledgex.sdkdemo"
         minSdkVersion 24
         targetSdkVersion 28
         versionCode 2
@@ -30,11 +30,12 @@ dependencies {
 
     // Use local project Matching Engine SDK:
     implementation project(":matchingengine")
+    implementation project(":mel")
     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
     // Use maven:
     //implementation 'com.mobiledgex:matchingengine:2.0.3'
     // Dependencies of Matching Engine, if using Maven:
-    //implementation "io.grpc:grpc-okhttp:${grpcVersion}"
+    implementation "io.grpc:grpc-okhttp:${grpcVersion}"
     //implementation "io.grpc:grpc-stub:${grpcVersion}"
 
     // For Google Location Services.

@@ -6,13 +6,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Supplier;
-
 public class MelMessaging {
     final private static String TAG = "MelMessaging";
 
@@ -28,44 +21,29 @@ public class MelMessaging {
     private static ComponentName melServiceComponentName = mockServiceComponentName;
 
     // Action Filters to declare on the Service side (TBD):
-    public static final String ACTION_SET_LOCATION_TOKEN = "com.mobiledgex.intent.action.SET_LOCATION_TOKEN";
+    public static final String ACTION_SET_TOKEN = "com.mobiledgex.intent.action.SET_TOKEN"; // SEC name confirmed.
     public static final String ACTION_SEND_COOKIES = "com.mobiledgex.intent.action.SEND_COOKIES"; // SEC name confirmed.
-    public static final String ACTION_IS_MEL_ENABLED = "com.mobiledgex.intent.action.IS_MEL_ENABLED";
 
     // Parcel Keys TODO: Rename keys.
-    public static final String EXTRA_PARAM_LOCATION_TOKEN = "com.mobiledgex.intent.extra.PARAM_LOCATION_TOKEN";
+    public static final String EXTRA_PARAM_TOKEN = "com.mobiledgex.intent.extra.PARAM_TOKEN"; // SEC name confirmed.
     public static final String EXTRA_PARAM_COOKIE = "cookies"; // SEC name confirmed.
-    public static final String EXTRA_PARAM_IS_MEL_ENABLED = "com.mobiledgex.intent.extra.PARAM_IS_MEL_ENABLED";
     public static final String EXTRA_PARAM_APP_NAME_KEY = "app_name"; // SEC name confirmed.
 
-    private static MelStateReceiver mMelStateReceiver;
-
-    /**
-     * Convenience status check. TODO: Remove.
-     * @return
-     */
-    static public boolean isMelReady() {
-        if (mMelStateReceiver == null) {
-            return false;
-        }
-
-        if (mMelStateReceiver.isMelEnabled && !mMelStateReceiver.uid.isEmpty()) {
-            return true;
-        }
-        return false;
-    }
+    // Test only:
+    private static boolean listenForAppStatus = false;
+    private static MelStateReceiver mMelStateReceiver = null; // If registered, use this to unregister.
 
     /**
      * Convenience status check, updated at time of call.
      * @return
      */
     static public boolean isMelEnabled() {
-        return mMelStateReceiver.updateRegistrationState();
+        return MelStateReceiver.updateRegistrationState();
     }
 
     static public String getMelVersion() {
-        mMelStateReceiver.updateRegistrationState();
-        return mMelStateReceiver.version;
+        MelStateReceiver.updateRegistrationState();
+        return MelStateReceiver.version;
     }
 
   /**
@@ -73,8 +51,8 @@ public class MelMessaging {
    * device. Property name based on document.
    */
     static public String getUid() {
-        mMelStateReceiver.uid = MelStateReceiver.getSystemProperty("sec.mel.uuid", "");
-        return mMelStateReceiver.uid;
+        MelStateReceiver.uid = MelStateReceiver.getSystemProperty("sec.mel.uuid", "");
+        return MelStateReceiver.uid;
     }
 
     /**
@@ -84,60 +62,18 @@ public class MelMessaging {
      */
     static public String getCookie(String appName) {
         // Intent Response is actually a global property value to read, not message.
-        String appCookies = MelStateReceiver.getSystemProperty("sec.mel.regi-status", "");
+        String appCookies = MelStateReceiver.getSystemProperty("sec.mel.send_token_applist", "");
         String[] apps = appCookies.split(",");
         if (apps != null && apps.length != 0) {
             for(String app : apps) {
                 if(app.equals(appName)) {
-                    // But it's only registered or not...we need that cookie for Register.
-                    MelStateReceiver.appCookie = "";
+                    // But it's only registered or not.
+                    MelStateReceiver.appCookie = app;
                     return MelStateReceiver.appCookie;
                 }
             }
         }
         return null;
-    }
-
-    static public String getLocationToken() {
-        return mMelStateReceiver.client_location_token;
-    }
-
-    /**
-     * Waits for MEL ready status up to timeoutMs. Intents should be fired off and processing
-     * before waiting for status.
-     * @param timeoutMs
-     * @return
-     */
-    static public boolean isMelReady(long timeoutMs) {
-        // After control returns, check MEL state:
-        final long timeout = timeoutMs;
-        boolean isReady = false;
-
-        Future<Boolean> future = CompletableFuture.supplyAsync(new Supplier<Boolean>() {
-            @Override
-            public Boolean get() {
-                long start = System.currentTimeMillis();
-                Object mutex = new Object();
-                while (!MelMessaging.isMelReady()) {
-                    if (System.currentTimeMillis() - start < timeout) {
-                        synchronized (mutex) {
-                            try {
-                                mutex.wait(16);
-                            } catch (InterruptedException ie) {
-                            }
-                        }
-                    }
-                }
-                return MelMessaging.isMelReady();
-            }
-        });
-        try {
-            isReady = future.get(timeout, TimeUnit.MILLISECONDS);
-            Log.d(TAG, "IsReady? " + isReady);
-        } catch (ExecutionException | TimeoutException | InterruptedException e) {
-            Log.d(TAG, "Exception during finding MEL ready state: " + e.getMessage() + ", Stack: " + e.getStackTrace());
-        }
-        return isReady;
     }
 
     static void registerReceivers(Context context) {
@@ -150,18 +86,22 @@ public class MelMessaging {
         filter = new IntentFilter(ACTION_SEND_COOKIES);
         filter.addCategory(Intent.CATEGORY_DEFAULT);
         context.registerReceiver(mMelStateReceiver, filter);
+    }
 
-        //filter = new IntentFilter(ACTION_SET_LOCATION_TOKEN);
-        //filter.addCategory(Intent.CATEGORY_DEFAULT);
-        //context.registerReceiver(mMelStateReceiver, filter);
+    static public void unregisterReceivers(Context context) {
+        if (mMelStateReceiver != null && context != null) {
+          context.unregisterReceiver(mMelStateReceiver);
+        }
     }
 
     // FIXME: Set a dummy token if not already set on system.
     // Intents fired need the caller to return control to activity to start processing.
     // Poll for completion.
     public static void sendForMelStatus(final Context context, String appName) {
-        if (mMelStateReceiver == null) {
+        if (mMelStateReceiver == null && listenForAppStatus == true) {
             registerReceivers(context);
+        } else {
+            unregisterReceivers(context);
         }
 
         getUid();
@@ -171,16 +111,18 @@ public class MelMessaging {
     }
 
     // For use in PlatformFindCloudlet.
-    public static void sendSetLocationToken(Context context, String token, String appName) {
-        Intent intent = new Intent(ACTION_SET_LOCATION_TOKEN);
+    public static String sendSetToken(Context context, String token, String appName) {
+        Intent intent = new Intent(ACTION_SET_TOKEN);
         intent.putExtra(EXTRA_PARAM_APP_NAME_KEY, appName);
-        intent.putExtra(EXTRA_PARAM_LOCATION_TOKEN, token);
+        intent.putExtra(EXTRA_PARAM_TOKEN, token);
 
         try {
             context.sendBroadcast(intent);
+            return token;
         } catch (IllegalStateException ise) {
-            Log.i(TAG, "sendSetLocationToken cannot send." + ise.getMessage());
+            Log.i(TAG, "sendSetToken cannot send." + ise.getMessage());
         }
+        return "";
     }
 
     // FIXME: Why get and receive this? Current known usage is to populate a property to read reg app status.

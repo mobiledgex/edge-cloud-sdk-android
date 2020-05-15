@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.mobiledgex.emptymatchengineapp;
+package com.mobiledgex.sdkdemo;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -50,6 +50,10 @@ import com.mobiledgex.matchingengine.NetworkRequestTimeoutException;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.RequestPermissions;
+import com.mobiledgex.mel.MelMessaging;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
 
 import java.io.IOException;
 import java.util.List;
@@ -279,11 +283,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             @Override
             public void run() {
                 Location location = aTask.getResult();
+                location.setLatitude(49d);
+                location.setLongitude(-123d);
                 // Location found. Create a request:
                 try {
                     someText = "";
                     // Switch entire process over to cellular for application use.
-                    mMatchingEngine.getNetworkManager().switchToCellularInternetNetworkBlocking();
+                    //mMatchingEngine.getNetworkManager().switchToCellularInternetNetworkBlocking();
 
                     // If no carrierName, or active Subscription networks, the app should use the public cloud instead.
                     List<SubscriptionInfo> subList = mMatchingEngine.getActiveSubscriptionInfoList();
@@ -307,7 +313,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     boolean locationVerificationAllowed = prefs.getBoolean(getResources().getString(R.string.preference_matching_engine_location_verification), false);
 
                     //String carrierName = mMatchingEngine.retrieveNetworkCarrierName(ctx); // Regular use case
-                    String carrierName = "TDG";                                         // Override carrierName
+                    String carrierName = "TELUS";                                         // Override carrierName
                     if (carrierName == null) {
                         someText += "No carrier Info!\n";
                     }
@@ -324,9 +330,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         // For Demo app, we use the wifi dme server to continue to MobiledgeX.
                         dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
                     }
-                    //dmeHostAddress = "eu-stage." + MatchingEngine.baseDmeHost;
+                    dmeHostAddress = "us-mexdemo." + MatchingEngine.baseDmeHost;
                     //mMatchingEngine.setUseWifiOnly(true);
-                    dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+                    //dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
 
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
@@ -343,7 +349,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // like AuthToken or Tag key value pairs.
                     AppClient.RegisterClientRequest registerClientRequest =
                             mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName)
-                              //.setCarrierName("wifi")
+                              //.setCarrierName("telus")
                               .setAppName(appName)
                               .setAppVers(appVers)
                               .build();
@@ -365,10 +371,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
                     AppClient.FindCloudletRequest findCloudletRequest =
                             mMatchingEngine.createDefaultFindCloudletRequest(ctx, location)
-                                //.setCarrierName("wifi")
+                                .setCarrierName("telus")
                                 .build();
                     AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
-                            /*dmeHostAddress, port,*/ 10000);
+                            dmeHostAddress, port, 10000);
                     Log.i(TAG, "closest Cloudlet is " + closestCloudlet);
 
                     AppClient.VerifyLocationRequest verifyRequest =
@@ -406,6 +412,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             String host = aPort.getFqdnPrefix() + closestCloudlet.getFqdn();
                             int serverport = aPort.getPublicPort();
 
+                            OkHttpClient client = new OkHttpClient(); //mMatchingEngine.getAppConnectionManager().getHttpClient(10000).get();
+
+                            Request request = new Request.Builder()
+                              .url("http://" + host + ":8008")
+                              .build();
+                            Response response = client.newCall(request).execute();
+                            String out = response.toString();
+                            System.out.println(response.toString());
+
                             // Test from a particular network path. Here, the active one is Celluar since we switched the whole process over earlier.
                             Site site = new Site(mMatchingEngine.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, host, serverport);
                             netTest.addSite(site);
@@ -418,7 +433,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                 mMatchingEngine.createDefaultAppInstListRequest(ctx, location).build();
 
                         AppClient.AppInstListReply appInstListReply = mMatchingEngine.getAppInstList(
-                                appInstListRequest, /* dmeHostAddress, port,*/ 10000);
+                                appInstListRequest, dmeHostAddress, port, 10000);
 
                         for (AppClient.CloudletLocation cloudletLocation : appInstListReply.getCloudletsList()) {
                             String location_carrierName = cloudletLocation.getCarrierName();
@@ -489,6 +504,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         });
                     }
                 } catch (IOException | InterruptedException | IllegalArgumentException | Resources.NotFoundException | PackageManager.NameNotFoundException e) {
+                    MelMessaging.getCookie("MobiledgeX SDK Demo"); // Import MEL messaging.
                     Log.e(TAG, e.getMessage());
                     Log.e(TAG, Log.getStackTraceString(e));
                 }
