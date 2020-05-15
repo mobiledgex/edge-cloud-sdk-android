@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.mobiledgex.emptymatchengineapp;
+package com.mobiledgex.sdkdemo;
 
 import android.content.DialogInterface;
 import android.content.SharedPreferences;

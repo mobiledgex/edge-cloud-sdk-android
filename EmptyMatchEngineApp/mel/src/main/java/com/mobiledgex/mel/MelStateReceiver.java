@@ -21,8 +21,8 @@ public class MelStateReceiver extends BroadcastReceiver {
     // These are discovered system states.
     public static String versionReg = "";
     public static String version;
-    public static boolean isMelEnabled = false; // OLD? getSystemPropertyBoolean("sec.mel.enabled", false);
-    public static @NotNull String client_location_token = "";
+    public static boolean isMelEnabled = false;
+    public static @NotNull String client_token = "";
     public static @NotNull String appCookie = "";
     public static @NotNull String uid = "";
 
@@ -34,8 +34,8 @@ public class MelStateReceiver extends BroadcastReceiver {
         Log.d(TAG, "Action: " + intent.getAction());
         switch (intent.getAction()) {
             case ACTION_SET_TOKEN: {
-                client_location_token = intent.getStringExtra(EXTRA_PARAM_TOKEN);
-                Log.d(TAG, "currentToken: " + client_location_token);
+                client_token = intent.getStringExtra(EXTRA_PARAM_TOKEN);
+                Log.d(TAG, "currentToken: " + client_token);
                 break;
             }
             case ACTION_SEND_COOKIES: {
