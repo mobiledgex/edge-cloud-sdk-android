@@ -50,6 +50,7 @@ public class MelMessaging {
    */
     static public String getUid() {
         MelStateReceiver.uid = MelStateReceiver.getSystemProperty("sec.mel.uuid", "");
+        Log.i(TAG, "getUid is returning: " + MelStateReceiver.uid);
         return MelStateReceiver.uid;
     }
 
@@ -116,6 +117,8 @@ public class MelMessaging {
         intent.putExtra(EXTRA_PARAM_TOKEN, token);
 
         try {
+            // Debug only, as info.
+            Log.i(TAG, "About to send this token: " + token);
             context.sendBroadcast(intent);
             return token;
         } catch (IllegalStateException ise) {
@@ -132,9 +135,10 @@ public class MelMessaging {
         intent.putExtra(EXTRA_PARAM_APP_NAME_KEY, appName);
 
         try {
+            Log.i(TAG, "sendGetAppRegStatus triggered.");
             context.sendBroadcast(intent);
         } catch (IllegalStateException ise) {
-            Log.i(TAG, "sendGetUuidToken cannot send." + ise.getMessage());
+            Log.i(TAG, "sendGetAppRegStatus cannot send." + ise.getMessage());
         }
     }
 }
