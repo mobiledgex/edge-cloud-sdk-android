@@ -255,8 +255,6 @@ public class MatchingEngine {
         mRegisterClientRequest = registerRequest;
     }
 
-
-
     void setMatchEngineStatus(AppClient.RegisterClientReply status) {
         mRegisterClientReply = status;
     }
@@ -283,23 +281,32 @@ public class MatchingEngine {
     }
 
     /**
-     * Utility method retrieves current network CarrierName from system service.
+     * Utility method retrieves current MCC + MNC from system service.
      * @param context
      * @return
      */
-    public String retrieveNetworkCarrierName(Context context) {
+    public String getMccMnc(Context context) {
         TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-        String networkOperator = telManager.getNetworkOperator();
+        return telManager.getNetworkOperator();
+    }
+
+    /**
+     * Utility method retrieves current network CarrierName from system service. Returns "" if carrier name is not found.
+     * @param context
+     * @return
+     */
+    public String getCarrierName(Context context) {
+        String mccMnc = getMccMnc(context);
 
         if (useOnlyWifi) {
             return "";
         }
 
-        if (networkOperator == null) {
+        if (mccMnc == null) {
             Log.e(TAG, "Network Carrier name is not found on device.");
             return "";
         }
-        return networkOperator;
+        return mccMnc;
     }
 
     /**
@@ -589,7 +596,7 @@ public class MatchingEngine {
             throw new IllegalArgumentException("Location parameter is required.");
         }
 
-        String carrierName = retrieveNetworkCarrierName(context);
+        String carrierName = getCarrierName(context);
         Loc aLoc = androidLocToMeLoc(location);
 
         List<Pair<String, Long>> ids = retrieveCellId(context);
@@ -628,7 +635,7 @@ public class MatchingEngine {
         }
 
         return createDefaultVerifyLocationRequest(context, location)
-                .setCarrierName(retrieveNetworkCarrierName(context))
+                .setCarrierName(getCarrierName(context))
                 .setCellId(cellId)
                 .addAllTags(tags)
                 .build();
@@ -655,7 +662,7 @@ public class MatchingEngine {
 
         return FindCloudletRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(retrieveNetworkCarrierName(context))
+                .setCarrierName(getCarrierName(context))
                 .setGpsLocation(aLoc)
                 .setCellId(0);
     }
@@ -673,7 +680,7 @@ public class MatchingEngine {
 
         FindCloudletRequest.Builder builder = FindCloudletRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(retrieveNetworkCarrierName(context))
+                .setCarrierName(getCarrierName(context))
                 .setGpsLocation(aLoc)
                 .setCellId(cellId);
 
@@ -695,7 +702,7 @@ public class MatchingEngine {
 
         return GetLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(retrieveNetworkCarrierName(context))
+                .setCarrierName(getCarrierName(context))
                 .setCellId(0);
     }
 
@@ -710,7 +717,7 @@ public class MatchingEngine {
 
         GetLocationRequest.Builder builder = GetLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(retrieveNetworkCarrierName(context))
+                .setCarrierName(getCarrierName(context))
                 .setCellId(cellId);
 
         if (tags != null) {
@@ -729,7 +736,7 @@ public class MatchingEngine {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
 
-        String carrierName = retrieveNetworkCarrierName(context);
+        String carrierName = getCarrierName(context);
         Loc aLoc = androidLocToMeLoc(location);
 
         return AppInstListRequest.newBuilder()
@@ -757,7 +764,7 @@ public class MatchingEngine {
 
         AppInstListRequest.Builder builder = AppClient.AppInstListRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(retrieveNetworkCarrierName(context))
+                .setCarrierName(getCarrierName(context))
                 .setGpsLocation(aLoc)
                 .setCellId(cellId);
 
