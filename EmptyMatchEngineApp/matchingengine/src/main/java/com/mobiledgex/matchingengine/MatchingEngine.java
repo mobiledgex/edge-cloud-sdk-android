@@ -130,10 +130,8 @@ public class MatchingEngine {
     private boolean useOnlyWifi = false;
 
     public enum FindCloudletMode {
-        UNDEFINED,
         PROXIMITY,
-        PERFORMANCE,
-        MEL
+        PERFORMANCE
     }
 
     Context mContext;
