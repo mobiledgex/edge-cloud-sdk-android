@@ -338,7 +338,7 @@ public class FindCloudlet implements Callable {
                 InetAddress address = InetAddress.getByName(appOfficialFqdnHost);
                 Log.d(TAG, "Public AppOfficialFqdn DNS resolved : " + address.getHostAddress());
             } catch (UnknownHostException uhe){
-                Log.w(TAG, "Public AppOfficialFqdn DNS resolve FAILURE. Fallbacking to regular FindCloudlet" + appOfficialFqdnHost);
+                Log.w(TAG, "Public AppOfficialFqdn DNS resolve FAILURE for: " + appOfficialFqdnHost);
                 fcreply = FindCloudletWithMode();
             }
         } else {
