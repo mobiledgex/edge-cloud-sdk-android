@@ -332,6 +332,9 @@ public class FindCloudlet implements Callable {
             // Fall back to Proximity mode if Mel Mode DNS resolve fails for whatever reason:
             String appOfficialFqdnHost = fcreply.getFqdn();
             try {
+                if (appOfficialFqdnHost == null) {
+                    throw new UnknownHostException("Host is null!");
+                }
                 InetAddress address = InetAddress.getByName(appOfficialFqdnHost);
                 Log.d(TAG, "Public AppOfficialFqdn DNS resolved : " + address.getHostAddress());
             } catch (UnknownHostException uhe){
