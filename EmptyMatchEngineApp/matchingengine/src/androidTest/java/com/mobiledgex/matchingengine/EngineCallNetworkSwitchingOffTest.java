@@ -135,7 +135,7 @@ public class EngineCallNetworkSwitchingOffTest {
         try {
             // The app version will be null, but we can build from scratch for test
             regRequest = AppClient.RegisterClientRequest.newBuilder()
-                    .setCarrierName(me.retrieveNetworkCarrierName(context))
+                    .setCarrierName(me.getCarrierName(context))
                     .setOrgName(organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
