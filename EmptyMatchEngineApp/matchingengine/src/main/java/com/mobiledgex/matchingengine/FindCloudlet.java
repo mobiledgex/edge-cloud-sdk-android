@@ -25,6 +25,8 @@ import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.mel.MelMessaging;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -170,7 +172,7 @@ public class FindCloudlet implements Callable {
         }
     }
 
-    private AppClient.FindCloudletReply FindCloudletPerformanceMode()
+    private AppClient.FindCloudletReply FindCloudletWithMode()
         throws InterruptedException, ExecutionException{
 
         AppClient.FindCloudletReply fcreply;
@@ -326,8 +328,21 @@ public class FindCloudlet implements Callable {
         if (MelMessaging.isMelEnabled() && ip == 0) { // MEL is Cellular only. No WiFi.
             // MEL is enabled, alternate findCloudlet behavior:
             fcreply = FindCloudletMelMode(mTimeoutInMilliseconds);
+
+            // Fall back to Proximity mode if Mel Mode DNS resolve fails for whatever reason:
+            String appOfficialFqdnHost = fcreply.getFqdn();
+            try {
+                if (appOfficialFqdnHost == null) {
+                    throw new UnknownHostException("Host is null!");
+                }
+                InetAddress address = InetAddress.getByName(appOfficialFqdnHost);
+                Log.d(TAG, "Public AppOfficialFqdn DNS resolved : " + address.getHostAddress());
+            } catch (UnknownHostException uhe){
+                Log.w(TAG, "Public AppOfficialFqdn DNS resolve FAILURE for: " + appOfficialFqdnHost);
+                fcreply = FindCloudletWithMode();
+            }
         } else {
-            fcreply = FindCloudletPerformanceMode(); // Regular FindCloudlet.
+            fcreply = FindCloudletWithMode(); // Regular FindCloudlet.
             mMatchingEngine.setFindCloudletResponse(fcreply); // Done.
             return fcreply;
         }
