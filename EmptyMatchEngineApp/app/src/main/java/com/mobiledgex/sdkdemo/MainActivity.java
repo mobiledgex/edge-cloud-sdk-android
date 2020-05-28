@@ -312,7 +312,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ctx);
                     boolean locationVerificationAllowed = prefs.getBoolean(getResources().getString(R.string.preference_matching_engine_location_verification), false);
 
-                    //String carrierName = mMatchingEngine.retrieveNetworkCarrierName(ctx); // Regular use case
+                    //String carrierName = mMatchingEngine.getCarrierName(ctx); // Regular use case
                     String carrierName = "TELUS";                                         // Override carrierName
                     if (carrierName == null) {
                         someText += "No carrier Info!\n";

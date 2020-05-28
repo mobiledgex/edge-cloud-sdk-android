@@ -465,7 +465,7 @@ public class EngineCallTest {
 
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            String carrierName = me.retrieveNetworkCarrierName(context);
+            String carrierName = me.getCarrierName(context);
             registerClient(me);
 
             // Set orgName and location, then override the rest for testing:
@@ -544,7 +544,7 @@ public class EngineCallTest {
 
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            String carrierName = me.retrieveNetworkCarrierName(context);
+            String carrierName = me.getCarrierName(context);
             registerClient(me);
 
             // Set NO carrier name, as if there's no SIM card. This should tell DME to return
@@ -674,7 +674,7 @@ public class EngineCallTest {
 
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            String carrierName = me.retrieveNetworkCarrierName(context);
+            String carrierName = me.getCarrierName(context);
             registerClient(me);
 
             AppClient.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location)
@@ -731,7 +731,7 @@ public class EngineCallTest {
 
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
-            String carrierName = me.retrieveNetworkCarrierName(context);
+            String carrierName = me.getCarrierName(context);
             registerClient(me);
             AppClient.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location)
                     .setCarrierName(carrierName)
@@ -787,7 +787,7 @@ public class EngineCallTest {
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
             assertFalse(location == null);
 
-            String carrierName = me.retrieveNetworkCarrierName(context);
+            String carrierName = me.getCarrierName(context);
             registerClient(me);
             AppClient.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location)
                     .setCarrierName(carrierName)
@@ -834,7 +834,7 @@ public class EngineCallTest {
         enableMockLocation(context,true);
         Location loc = MockUtils.createLocation("getLocationTest", 122.3321, 47.6062);
 
-        String carrierName = me.retrieveNetworkCarrierName(context);
+        String carrierName = me.getCarrierName(context);
         try {
             setMockLocation(context, loc);
 
@@ -896,7 +896,7 @@ public class EngineCallTest {
         enableMockLocation(context,true);
         Location loc = MockUtils.createLocation("getLocationTest", 122.3321, 47.6062);
 
-        String carrierName = me.retrieveNetworkCarrierName(context);
+        String carrierName = me.getCarrierName(context);
         try {
             // Directly create request for testing:
             // Passed in Location (which is a callback interface)
@@ -958,7 +958,7 @@ public class EngineCallTest {
         Location location = MockUtils.createLocation("createDynamicLocationGroupAddTest", 122.3321, 47.6062);
         MeLocation meLoc = new MeLocation(me);
 
-        String carrierName = me.retrieveNetworkCarrierName(context);
+        String carrierName = me.getCarrierName(context);
         try {
             setMockLocation(context, location);
 
@@ -1015,7 +1015,7 @@ public class EngineCallTest {
         Location location = MockUtils.createLocation("createDynamicLocationGroupAddTest", 122.3321, 47.6062);
         MeLocation meLoc = new MeLocation(me);
 
-        String carrierName = me.retrieveNetworkCarrierName(context);
+        String carrierName = me.getCarrierName(context);
         try {
             setMockLocation(context, location);
 
@@ -1325,7 +1325,7 @@ public class EngineCallTest {
             // Exercise and override the default:
             // The app version will be null, but we can build from scratch for test
             AppClient.RegisterClientRequest regRequest = AppClient.RegisterClientRequest.newBuilder()
-                    .setCarrierName(me.retrieveNetworkCarrierName(context))
+                    .setCarrierName(me.getCarrierName(context))
                     .setOrgName(orgName)
                     .setAppName(appName)
                     .setAppVers(appVersion)
@@ -1887,5 +1887,18 @@ public class EngineCallTest {
         }
     }
 
+
+    @Test
+    public void testOperator() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        AppClient.FindCloudletReply findCloudletReply = null;
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+
+        String mccmnc = me.getMccMnc(context);
+
+        assertFalse("Should not be null, even if there's no Subscriptions", mccmnc == null);
+    }
 }
 
