@@ -285,7 +285,13 @@ public class MatchingEngine {
      */
     public String getMccMnc(Context context) {
         TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-        return telManager.getNetworkOperator();
+
+        int subId = SubscriptionManager.getDefaultDataSubscriptionId();
+        if (subId == SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+          return null;
+        }
+
+        return telManager.createForSubscriptionId(subId).getNetworkOperator();
     }
 
     /**
