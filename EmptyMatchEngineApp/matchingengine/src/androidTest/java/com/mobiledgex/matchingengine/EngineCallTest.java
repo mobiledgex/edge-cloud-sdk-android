@@ -1890,15 +1890,15 @@ public class EngineCallTest {
 
     @Test
     public void testOperator() {
-      Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-      AppClient.FindCloudletReply findCloudletReply = null;
-      MatchingEngine me = new MatchingEngine(context);
-      me.setMatchingEngineLocationAllowed(true);
-      me.setAllowSwitchIfNoSubscriberInfo(true);
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        AppClient.FindCloudletReply findCloudletReply = null;
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
 
-      String foo = me.getMccMnc(context);
+        String mccmnc = me.getMccMnc(context);
 
-      assertFalse("Should not be null, even if there's no Subscriptions", foo == null);
+        assertFalse("Should not be null, even if there's no Subscriptions", mccmnc == null);
     }
 }
 
