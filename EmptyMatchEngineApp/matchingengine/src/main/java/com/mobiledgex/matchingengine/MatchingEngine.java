@@ -470,6 +470,12 @@ public class MatchingEngine {
         return pInfo.versionName;
     }
 
+    private void ensureSessionCookie() {
+        if (mSessionCookie == null || mSessionCookie.equals((""))) {
+            throw new IllegalArgumentException("An unexpired RegisterClient sessionCookie is required.");
+        }
+    }
+
     /**
      * Returns a builder for RegisterClientRequest. Call build() after setting
      * additional optional fields like AuthToken or Tags.
@@ -591,6 +597,8 @@ public class MatchingEngine {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
 
+        ensureSessionCookie();
+
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
             return null;
@@ -620,31 +628,6 @@ public class MatchingEngine {
         return builder;
     }
 
-    public VerifyLocationRequest createVerifyLocationRequest(Context context, android.location.Location location,
-                                                             int cellId, List<AppClient.Tag> tags) {
-
-        if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
-            return null;
-        }
-
-        if (cellId == 0) {
-            List<Pair<String, Long>> ids = retrieveCellId(context);
-            if (ids.size() > 0) {
-                // FIXME: Need a preference, as we can't guess here.
-                if (ids.size() > 0) {
-                    cellId = ids.get(0).second.intValue();
-                }
-            }
-        }
-
-        return createDefaultVerifyLocationRequest(context, location)
-                .setCarrierName(getCarrierName(context))
-                .setCellId(cellId)
-                .addAllTags(tags)
-                .build();
-    }
-
     /**
      * Creates a Default FindCloudletRequest. If VersionName or AppName is missing (test code),
      * the app will need to fill this in before sending to the server.
@@ -661,6 +644,7 @@ public class MatchingEngine {
         if (context == null) {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
+        ensureSessionCookie();
 
         Loc aLoc = androidLocToMeLoc(location);
 
@@ -671,30 +655,6 @@ public class MatchingEngine {
                 .setCellId(0);
     }
 
-    public FindCloudletRequest createFindCloudletRequest(Context context, android.location.Location location, int cellId, List<AppClient.Tag> tags) {
-        if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
-            return null;
-        }
-        if (context == null) {
-            throw new IllegalArgumentException("MatchingEngine requires a working application context.");
-        }
-
-        Loc aLoc = androidLocToMeLoc(location);
-
-        FindCloudletRequest.Builder builder = FindCloudletRequest.newBuilder()
-                .setSessionCookie(mSessionCookie)
-                .setCarrierName(getCarrierName(context))
-                .setGpsLocation(aLoc)
-                .setCellId(cellId);
-
-        if (tags != null) {
-            builder.addAllTags(tags);
-        }
-
-        return builder.build();
-    }
-
     public AppClient.GetLocationRequest.Builder createDefaultGetLocationRequest(Context context) {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
@@ -703,32 +663,12 @@ public class MatchingEngine {
         if (context == null) {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
+        ensureSessionCookie();
 
         return GetLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(getCarrierName(context))
                 .setCellId(0);
-    }
-
-    public GetLocationRequest createGetLocationRequest(Context context, int cellId, List<AppClient.Tag> tags) {
-        if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
-            return null;
-        }
-        if (context == null) {
-            throw new IllegalArgumentException("MatchingEngine requires a working application context.");
-        }
-
-        GetLocationRequest.Builder builder = GetLocationRequest.newBuilder()
-                .setSessionCookie(mSessionCookie)
-                .setCarrierName(getCarrierName(context))
-                .setCellId(cellId);
-
-        if (tags != null) {
-            builder.addAllTags(tags);
-        }
-
-        return builder.build();
     }
 
     public AppClient.AppInstListRequest.Builder createDefaultAppInstListRequest(Context context, android.location.Location location) {
@@ -739,6 +679,7 @@ public class MatchingEngine {
         if (context == null) {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
+        ensureSessionCookie();
 
         String carrierName = getCarrierName(context);
         Loc aLoc = androidLocToMeLoc(location);
@@ -750,35 +691,6 @@ public class MatchingEngine {
                 .setCellId(0);
     }
 
-    public AppInstListRequest createAppInstListRequest(Context context, android.location.Location location, int cellId, List<AppClient.Tag> tags) {
-        if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
-            return null;
-        }
-        if (context == null) {
-            throw new IllegalArgumentException("MatchingEngine requires a working application context.");
-        }
-
-
-        if (location == null) {
-            throw new IllegalArgumentException("Location parameter is required.");
-        }
-
-        Loc aLoc = androidLocToMeLoc(location);
-
-        AppInstListRequest.Builder builder = AppClient.AppInstListRequest.newBuilder()
-                .setSessionCookie(mSessionCookie)
-                .setCarrierName(getCarrierName(context))
-                .setGpsLocation(aLoc)
-                .setCellId(cellId);
-
-        if (tags != null) {
-            builder.addAllTags(tags);
-        }
-
-        return builder.build();
-    }
-
     public AppClient.DynamicLocGroupRequest.Builder createDefaultDynamicLocGroupRequest(Context context, DynamicLocGroupRequest.DlgCommType commType) {
         if (!mMatchingEngineLocationAllowed) {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
@@ -787,40 +699,13 @@ public class MatchingEngine {
         if (context == null) {
             throw new IllegalArgumentException("MatchingEngine requires a working application context.");
         }
+        ensureSessionCookie();
+
         return DynamicLocGroupRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setLgId(1001L) // FIXME: NOT IMPLEMENTED
                 .setCommType(commType)
                 .setCellId(0);
-    }
-
-    public DynamicLocGroupRequest createDynamicLocGroupRequest(Context context,
-                                                               DynamicLocGroupRequest.DlgCommType commType,
-                                                               String userData, int cellId, List<AppClient.Tag> tags) {
-        if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
-            return null;
-        }
-        if (context == null) {
-            throw new IllegalArgumentException("MatchingEngine requires a working application context.");
-        }
-
-        if (commType == null || commType == DynamicLocGroupRequest.DlgCommType.DLG_UNDEFINED) {
-            commType = DynamicLocGroupRequest.DlgCommType.DLG_SECURE;
-        }
-
-        DynamicLocGroupRequest.Builder builder = DynamicLocGroupRequest.newBuilder()
-                .setSessionCookie(mSessionCookie)
-                .setLgId(1001L) // FIXME: NOT IMPLEMENTED
-                .setCommType(commType)
-                .setUserData(userData == null ? "" : userData)
-                .setCellId(cellId);
-
-        if (tags != null) {
-            builder.addAllTags(tags);
-        }
-
-        return builder.build();
     }
 
     public AppClient.QosPositionRequest.Builder createDefaultQosPositionRequest(List<QosPosition> requests, int lte_category, BandSelection band_selection) {
@@ -829,6 +714,7 @@ public class MatchingEngine {
             Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
             return null;
         }
+        ensureSessionCookie();
 
         QosPositionRequest.Builder builder = QosPositionRequest.newBuilder();
         builder.setSessionCookie(mSessionCookie)
@@ -841,24 +727,6 @@ public class MatchingEngine {
         }
 
         return builder;
-    }
-
-    public QosPositionRequest createQoSPositionRequest(List<QosPosition> requests, int lte_category, BandSelection band_selection, int cellId, List<AppClient.Tag> tags) {
-
-        if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
-            return null;
-        }
-
-        QosPositionRequest.Builder builder = createDefaultQosPositionRequest(requests, lte_category, band_selection);
-
-        builder.setCellId(cellId);
-
-        if (tags != null) {
-            builder.addAllTags(tags);
-        }
-
-        return builder.build();
     }
 
     private Loc androidLocToMeLoc(android.location.Location loc) {
