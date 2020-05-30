@@ -50,7 +50,7 @@ public class MelMessaging {
    */
     static public String getUid() {
         MelStateReceiver.uid = MelStateReceiver.getSystemProperty("sec.mel.uuid", "");
-        Log.i(TAG, "getUid is returning: " + MelStateReceiver.uid);
+        Log.d(TAG, "getUid is returning: " + MelStateReceiver.uid);
         return MelStateReceiver.uid;
     }
 
@@ -118,7 +118,7 @@ public class MelMessaging {
 
         try {
             // Debug only, as info.
-            Log.i(TAG, "About to send this token: " + token);
+            Log.d(TAG, "About to send this token: " + token);
             context.sendBroadcast(intent);
             return token;
         } catch (IllegalStateException ise) {

@@ -91,7 +91,6 @@ public class RegisterClient implements Callable {
             // Whether MEL is activated or not, look for a UID. If there is one, we can attempt to
             // activate the device at the DME.
             if (uid != null && !uid.isEmpty()) {
-                Log.i(TAG, "MEL: Sending register with this UID: " + uid);
                 mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
                   .setUniqueIdType("Samsung:SamsungEnablingLayer") // TBD: Only one enabling layer.
                   .setUniqueId(MelMessaging.getUid())
