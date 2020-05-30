@@ -13,12 +13,10 @@ public class MelMessaging {
     // FIXME: Presumptive name of target service class object is not yet known.
 
     // For MEL, the class is known only by prior knowledge. Mock Service name:
-    public static final String cls = "com.mobiledgex.mel.MELIntentService"; // Fully qualified class name target.
-    public static final String pkg = "com.mobiledgex.mel"; // package.
-    private static ComponentName mockServiceComponentName = new ComponentName(pkg, cls);
-
-    // FIXME: without this, one can only broadcast (!).
-    private static ComponentName melServiceComponentName = mockServiceComponentName;
+    //public static final String cls = "com.mobiledgex.mel.MELIntentService"; // Fully qualified class name target.
+    //public static final String pkg = "com.mobiledgex.mel"; // package.
+    public static final String cls = "com.sec.android.mec.mecagent.receivers.MobiledgexReceiver"; // Fully qualified class name target.
+    public static final String pkg = "com.sec.android.mec.mecagent"; // package.
 
     // Action Filters to declare on the Service side (TBD):
     public static final String ACTION_SET_TOKEN = "com.mobiledgex.intent.action.SET_TOKEN"; // SEC name confirmed.
@@ -113,6 +111,7 @@ public class MelMessaging {
     // For use in PlatformFindCloudlet.
     public static String sendSetToken(Context context, String token, String appName) {
         Intent intent = new Intent(ACTION_SET_TOKEN);
+        intent.setClassName(pkg, cls);
         intent.putExtra(EXTRA_PARAM_APP_NAME_KEY, appName);
         intent.putExtra(EXTRA_PARAM_TOKEN, token);
 
@@ -128,6 +127,7 @@ public class MelMessaging {
     // FIXME: Why get and receive this? Current known usage is to populate a property to read reg app status.
     public static void sendGetAppRegStatus(Context context, String appName) {
         Intent intent = new Intent(ACTION_SEND_COOKIES);
+        intent.setClassName(pkg, cls);
         intent.setAction(ACTION_SEND_COOKIES);
         intent.putExtra(EXTRA_PARAM_APP_NAME_KEY, appName);
 
