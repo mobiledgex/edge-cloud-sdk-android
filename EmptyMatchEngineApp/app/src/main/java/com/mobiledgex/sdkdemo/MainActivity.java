@@ -345,7 +345,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     appName = "MobiledgeX SDK Demo"; // override with a known registered appName.
                     String appVers = "2.0"; // override the version of that known registered app.
 
-                    // There is also createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
+                    // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
                     // like AuthToken or Tag key value pairs.
                     AppClient.RegisterClientRequest registerClientRequest =
                             mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName)

@@ -1195,7 +1195,7 @@ public class EngineCallTest {
 
             ArrayList<AppClient.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
 
-            AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests, 0, null, 0, null);
+            AppClient.QosPositionRequest request = me.createDefaultQosPositionRequest(kpiRequests, 0, null).build();
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
             if (useHostOverride) {
@@ -1257,7 +1257,8 @@ public class EngineCallTest {
 
             ArrayList<AppClient.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
 
-            AppClient.QosPositionRequest request = me.createQoSPositionRequest(kpiRequests, 0, null, 0, null);
+            AppClient.BandSelection bandSelection = AppClient.BandSelection.newBuilder().build();
+            AppClient.QosPositionRequest request = me.createDefaultQosPositionRequest(kpiRequests, 0, bandSelection).build();
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
             Future<ChannelIterator<AppClient.QosPositionKpiReply>> replyFuture = null;
@@ -1887,18 +1888,77 @@ public class EngineCallTest {
         }
     }
 
-
     @Test
-    public void testOperator() {
+    public void NoRegisterFindCloudlet() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        AppClient.FindCloudletReply findCloudletReply = null;
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        String mccmnc = me.getMccMnc(context);
+        Location loc = MockUtils.createLocation("findCloudletTest", 122.3321, 47.6062);
+        try {
+            AppClient.FindCloudletRequest.Builder requestBuilder = me.createDefaultFindCloudletRequest(context, loc);
+            assertFalse("We should not be here, expected an user error and illegal engine state.", true);
+        } catch (IllegalArgumentException iae) {
+            Log.i(TAG, Log.getStackTraceString(iae));
+            // Expected to be here. Success.
+        }
+    }
 
-        assertFalse("Should not be null, even if there's no Subscriptions", mccmnc == null);
+    @Test
+    public void NoRegisterVerifyLocation() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+
+        Location loc = MockUtils.createLocation("findCloudletTest", 122.3321, 47.6062);
+        try {
+            AppClient.VerifyLocationRequest.Builder requestBuilder = me.createDefaultVerifyLocationRequest(context, loc);
+            assertFalse("We should not be here, expected an user error and illegal engine state.", true);
+        } catch (IllegalArgumentException iae) {
+            Log.i(TAG, Log.getStackTraceString(iae));
+            // Expected to be here. Success.
+        }
+    }
+
+
+    @Test
+    public void NoRegisterAppInstList() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+
+
+        Location loc = MockUtils.createLocation("findCloudletTest", 122.3321, 47.6062);
+        try {
+            AppClient.AppInstListRequest.Builder requestBuilder = me.createDefaultAppInstListRequest(context, loc);
+            assertFalse("We should not be here, expected an user error and illegal engine state.", true);
+        } catch (IllegalArgumentException iae) {
+            Log.i(TAG, Log.getStackTraceString(iae));
+            // Expected to be here. Success.
+        }
+    }
+
+    @Test
+    public void NoRegisterOtherAPIs() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+
+        try {
+            AppClient.QosPosition qos = AppClient.QosPosition.newBuilder().build();
+            List<AppClient.QosPosition> list = new ArrayList<>();
+            list.add(qos);
+            AppClient.BandSelection bandSelection = AppClient.BandSelection.newBuilder().build();
+            AppClient.QosPositionRequest.Builder requestBuilder = me.createDefaultQosPositionRequest(list, 0, bandSelection);
+            assertFalse("We should not be here, expected an user error and illegal engine state.", true);
+        } catch (IllegalArgumentException iae) {
+            Log.i(TAG, Log.getStackTraceString(iae));
+            // Expected to be here. Success.
+        }
     }
 }
 
