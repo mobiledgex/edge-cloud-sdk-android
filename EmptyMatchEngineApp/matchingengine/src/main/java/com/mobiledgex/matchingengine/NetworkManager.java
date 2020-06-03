@@ -480,6 +480,9 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
 
         if (mConnectivityManager != null) {
             Network network = mConnectivityManager.getBoundNetworkForProcess();
+            if (network == null) {
+                network = mConnectivityManager.getActiveNetwork();
+            }
             if (network != null) {
                 NetworkCapabilities networkCapabilities = mConnectivityManager.getNetworkCapabilities(network);
                 if (networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
@@ -509,6 +512,9 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     }
 
     public Network getCellularNetworkBlocking(boolean bindProcess) throws InterruptedException, ExecutionException {
+        if (mNetwork == null) {
+            mNetwork = mConnectivityManager.getActiveNetwork();
+        }
         boolean isCellularData = isCurrentNetworkInternetCellularDataCapable();
         if (isCellularData) {
             return mNetwork;
@@ -524,6 +530,9 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
      * @return
      */
     public Network switchToCellularInternetNetworkBlocking() throws InterruptedException, ExecutionException {
+        if (mNetwork == null) {
+            mNetwork = mConnectivityManager.getActiveNetwork();
+        }
         boolean isCellularData = isCurrentNetworkInternetCellularDataCapable();
         if (isCellularData) {
             return mNetwork;
