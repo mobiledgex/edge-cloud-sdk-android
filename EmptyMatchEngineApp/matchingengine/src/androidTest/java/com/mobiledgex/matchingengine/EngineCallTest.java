@@ -1513,8 +1513,8 @@ public class EngineCallTest {
             HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
             // Choose the port that we happen to know the internal port for, 3001.
             AppPort one = portMap.get(3001);
-
-            url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort());
+            String protocol = one.getTls() ? "https" : "http";
+            url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
             assertTrue("URL for server seems very incorrect. ", url != null && url.length() > "http://:".length());
 
             assertFalse("Failed to get an SSL Socket!", httpClientFuture == null);
@@ -1623,7 +1623,8 @@ public class EngineCallTest {
             // Choose the TCP port, and we happen to know our server is on one port only: 3001.
             AppPort one = portMap.get(3001);
             assertTrue("Did not find server! ", one != null);
-            url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort());
+            String protocol = one.getTls() ? "https" : "http";
+            url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
 
             assertTrue("URL for server seems very incorrect. ", url != null && url.length() > "http://:".length());
 

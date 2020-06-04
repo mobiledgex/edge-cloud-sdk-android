@@ -198,7 +198,7 @@ public class AppConnectionManager {
             @Override
             public SSLSocket call() throws Exception {
                 int timeout = timeoutMs < 0 ? 0 : timeoutMs;
-                int aPortNum = portNum <= 0 ? appPort.getPublicPort() : portNum;
+                int aPortNum = getPort(appPort, portNum);
 
                 AppPort foundPort = validatePublicPort(findCloudletReply, appPort, LProto.L_PROTO_TCP, aPortNum);
                 if (foundPort == null) {
@@ -218,7 +218,7 @@ public class AppConnectionManager {
 
                 SSLSocket socket;
 
-                String host = foundPort.getFqdnPrefix() + findCloudletReply.getFqdn();
+                String host = getHost(findCloudletReply, foundPort);
                 socket = (SSLSocket)mobiledgexSSLSocketFactory.createSocket(host, aPortNum);
                 socket.setSoTimeout(timeout);
 
@@ -259,7 +259,7 @@ public class AppConnectionManager {
             @Override
             public Socket call() throws Exception {
                 int timeout = timeoutMs < 0 ? 0 : timeoutMs;
-                int aPortNum = portNum <= 0 ? appPort.getPublicPort() : portNum;
+                int aPortNum = getPort(appPort, portNum);
 
                 AppPort foundPort = validatePublicPort(findCloudletReply, appPort, LProto.L_PROTO_TCP, aPortNum);
                 if (foundPort == null) {
@@ -277,7 +277,7 @@ public class AppConnectionManager {
                 SocketFactory sf = net.getSocketFactory();
                 Socket socket = sf.createSocket();
 
-                String host = foundPort.getFqdnPrefix() + findCloudletReply.getFqdn();
+                String host = getHost(findCloudletReply, foundPort);
                 InetSocketAddress socketAddress = new InetSocketAddress(host, aPortNum);
                 socket.connect(socketAddress);
                 socket.setSoTimeout(timeout);
@@ -313,7 +313,7 @@ public class AppConnectionManager {
             @Override
             public DatagramSocket call() throws Exception {
                 int timeout = timeoutMs < 0 ? 0 : timeoutMs;
-                int aPortNum = portNum <= 0 ? appPort.getPublicPort() : portNum;
+                int aPortNum = getPort(appPort, portNum);
 
                 AppPort foundPort = validatePublicPort(findCloudletReply, appPort, LProto.L_PROTO_TCP, aPortNum);
                 if (foundPort == null) {
@@ -331,7 +331,7 @@ public class AppConnectionManager {
                 DatagramSocket ds = new DatagramSocket();
                 net.bindSocket(ds);
 
-                String host = foundPort.getFqdnPrefix() + findCloudletReply.getFqdn();
+                String host = getHost(findCloudletReply, foundPort);
                 InetSocketAddress socketAddress = new InetSocketAddress(host, aPortNum);
                 ds.setSoTimeout(timeout);
                 ds.connect(socketAddress);
@@ -404,24 +404,40 @@ public class AppConnectionManager {
      *                available in a particular cloudlet region. It may not match the appPort
      *                internal port number.
      *                If <= 0, it defaults to the first public port.
+     * @param protocol The L7 protocol (eg. http, https, ws)
+     * @param path Path to be appended at the end of the url. Defaults to "" if null is provided.
      * @return completed URL, or null if invalid.
      */
-    public String createUrl(FindCloudletReply findCloudletReply, AppPort appPort, int portNum) {
+    public String createUrl(FindCloudletReply findCloudletReply, AppPort appPort, int portNum, String protocol, String path) {
         int aPortNum = portNum <= 0 ? appPort.getPublicPort() : portNum;
         AppPort foundPort = validatePublicPort(findCloudletReply, appPort, LProto.L_PROTO_TCP, aPortNum);
         if (foundPort == null) {
             return null;
         }
-        String protocol = appPort.getTls() ? "https://" : "http://";
-        String url = protocol +
+
+        path = path == null ? "" : path;
+        String url = protocol + "://" +
                 appPort.getFqdnPrefix() +
                 findCloudletReply.getFqdn() +
                 ":" +
                 aPortNum +
-                appPort.getPathPrefix();
+                appPort.getPathPrefix() +
+                path;
 
         return url;
     };
 
+    public String getHost(FindCloudletReply findCloudletReply, AppPort appPort) {
+        return appPort.getFqdnPrefix() + findCloudletReply.getFqdn();
+    }
 
+    public int getPort(AppPort appPort, int portNum) throws InvalidPortException {
+        int aPortNum = portNum <= 0 ? appPort.getPublicPort() : portNum;
+
+        if (!isValidPortNumber(appPort, aPortNum)) {
+            throw new InvalidPortException("Port " + portNum + "is not a valid port number");
+        }
+
+        return aPortNum;
+    }
 }

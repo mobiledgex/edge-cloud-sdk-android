@@ -407,7 +407,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                 aPort.getPathPrefix(),
                                 aPort.getEndPort());
 
-                            //String l7Url = mMatchingEngine.getAppConnectionManager().createUrl(closestCloudlet, aPort, aPort.getPublicPort());
+                            //String l7Url = mMatchingEngine.getAppConnectionManager().createUrl(closestCloudlet, aPort, aPort.getPublicPort(), "http", null);
 
                             String host = aPort.getFqdnPrefix() + closestCloudlet.getFqdn();
                             int serverport = aPort.getPublicPort();
