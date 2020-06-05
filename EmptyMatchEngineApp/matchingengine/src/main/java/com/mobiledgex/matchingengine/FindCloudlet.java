@@ -375,7 +375,7 @@ public class FindCloudlet implements Callable {
                 appOfficialFqdnHost.wait(300);
             }
         }
-        if (found) {
+        if (found && !appOfficialFqdnHost.isEmpty()) {
             return fcReply;
         } else {
             fcReply = FindCloudletWithMode();

@@ -1230,7 +1230,7 @@ public class EngineCallTest {
 
         MatchingEngine me = new MatchingEngine(context);
         AppConnectionManager appConnect = me.getAppConnectionManager();
-
+        me.setMatchingEngineLocationAllowed(true);
         Socket s = null;
         BufferedOutputStream bos = null;
         BufferedInputStream bis = null;
@@ -1537,14 +1537,17 @@ public class EngineCallTest {
 
             // FIXME: UI Console exposes HTTP as TCP only, so the test here uses getTcpList().
             String url = null;
+
             if (!MelMessaging.isMelEnabled()) {
               HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
               // Choose the TCP port, and we happen to know our server is on one port only: 3001.
               AppPort one = portMap.get(3001);
               assertTrue("Did not find server! ", one != null);
-              url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort());
+              String protocol = one.getTls() ? "https" : "http";
+              url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
             } else {
-              url = "http://" + findCloudletReply.getFqdn() + ":3000";
+              String protocol = "http";
+              url = protocol + "://" + findCloudletReply.getFqdn() + ":3001";
             }
 
 
