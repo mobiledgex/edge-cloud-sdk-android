@@ -237,6 +237,13 @@ public class EngineCallTest {
         fusedLocationClient.flushLocations();
     }
 
+    public Location getTestLocation() {
+        Location location = new Location("EngineCallTestLocation");
+        location.setLongitude(-122.3321);
+        location.setLatitude(47.6062);
+        return location;
+    }
+
     @Test
     public void mexDisabledTest() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
@@ -245,7 +252,7 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
         MeLocation meLoc = new MeLocation(me);
 
-        Location loc = MockUtils.createLocation("mexDisabledTest", 122.3321, 47.6062);
+        Location loc = getTestLocation();
 
         try {
             enableMockLocation(context, true);
@@ -387,13 +394,8 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        MeLocation meLoc = new MeLocation(me);
-        Location location;
         Future<AppClient.RegisterClientReply> registerReplyFuture;
         AppClient.RegisterClientReply reply = null;
-
-        enableMockLocation(context,true);
-        Location loc = MockUtils.createLocation("RegisterClientFutureTest", 122.3321, 47.6062);
 
         try {
             AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
@@ -442,9 +444,7 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        Location location = new Location("findCloudletTest");
-        location.setLongitude(122.3321);
-        location.setLatitude(47.6062);
+        Location location = getTestLocation();
         try {
             registerClient(me);
 
@@ -513,9 +513,7 @@ public class EngineCallTest {
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
-        Location location = new Location("verifyLocationTest");
-        location.setLongitude(122.3321);
-        location.setLatitude(47.6062);
+        Location location = getTestLocation();
 
         boolean expectedExceptionHit = false;
         try {
@@ -566,9 +564,7 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
         try {
-            Location location = new Location("findCloudletTest");
-            location.setLongitude(122.3321);
-            location.setLatitude(47.6062);
+            Location location = getTestLocation();
 
             registerClient(me);
 
@@ -638,9 +634,7 @@ public class EngineCallTest {
         AppClient.VerifyLocationReply verifyLocationReply = null;
 
         try {
-            Location location = new Location("verifyLocationTest");
-            location.setLongitude(122.3321);
-            location.setLatitude(47.6062);
+            Location location = getTestLocation();
 
             String carrierName = me.getCarrierName(context);
             registerClient(me);
@@ -692,9 +686,7 @@ public class EngineCallTest {
         Future<AppClient.VerifyLocationReply> verifyLocationReplyFuture = null;
 
         try {
-            Location location = new Location("verifyLocationFutureTest");
-            location.setLongitude(122.3321);
-            location.setLatitude(47.6062);
+            Location location = getTestLocation();
 
             String carrierName = me.getCarrierName(context);
             registerClient(me);
@@ -741,9 +733,7 @@ public class EngineCallTest {
 
         AppClient.VerifyLocationReply verifyLocationReply = null;
         try {
-            Location location = new Location("verifyMockedLocationTest_NorthPole");
-            location.setLongitude(122.3321);
-            location.setLatitude(47.6062);
+            Location location = getTestLocation();
 
             String carrierName = me.getCarrierName(context);
             registerClient(me);
@@ -789,9 +779,7 @@ public class EngineCallTest {
         AppClient.GetLocationReply getLocationReply = null;
 
         String carrierName = me.getCarrierName(context);
-        Location loc = new Location("getLocationTest");
-        loc.setLongitude(122.3321);
-        loc.setLatitude(47.6062);
+        Location loc = getTestLocation();
         try {
             registerClient(me);
             AppClient.GetLocationRequest getLocationRequest = me.createDefaultGetLocationRequest(context)
@@ -842,9 +830,7 @@ public class EngineCallTest {
         Future<AppClient.GetLocationReply> getLocationReplyFuture;
         AppClient.GetLocationReply getLocationReply = null;
 
-        Location loc = new Location("getLocationFutureTest");
-        loc.setLongitude(122.3321);
-        loc.setLatitude(47.6062);
+        Location loc = getTestLocation();
 
         String carrierName = me.getCarrierName(context);
         try {
@@ -895,9 +881,7 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
         AppClient.DynamicLocGroupReply dynamicLocGroupReply = null;
-        Location loc = new Location("dynamicLocationGroupAddTest");
-        loc.setLongitude(122.3321);
-        loc.setLatitude(47.6062);
+        Location loc = getTestLocation();
 
         String carrierName = me.getCarrierName(context);
         try {
@@ -947,10 +931,7 @@ public class EngineCallTest {
 
         AppClient.DynamicLocGroupReply dynamicLocGroupReply = null;
 
-        Location loc = new Location("dynamicLocationGroupAddFutureTest");
-        loc.setLongitude(122.3321);
-        loc.setLatitude(47.6062);
-
+        Location loc = getTestLocation();
         String carrierName = me.getCarrierName(context);
         try {
             registerClient(me);
@@ -1001,9 +982,7 @@ public class EngineCallTest {
 
         AppClient.AppInstListReply appInstListReply = null;
 
-        Location loc = new Location("getAppInstListTest");
-        loc.setLongitude(122.3321);
-        loc.setLatitude(47.6062);
+        Location loc = getTestLocation();
 
         try {
             registerClient(me);
@@ -1051,9 +1030,7 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        Location location = new Location("getAppInstListFutureTest");
-        location.setLongitude(122.3321);
-        location.setLatitude(47.6062);
+        Location location = getTestLocation();
 
         try {
             registerClient(me);
@@ -1102,9 +1079,7 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        Location location = new Location("getQosPositionKpiTest");
-        location.setLongitude(8.5821);
-        location.setLatitude(50.11);
+        Location location = getTestLocation();
 
         ChannelIterator<AppClient.QosPositionKpiReply> responseIterator = null;
         try {
@@ -1165,9 +1140,7 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        Location location = new Location("getQosPositionKpiTest");
-        location.setLongitude(8.5821);
-        location.setLatitude(50.11);
+        Location location = getTestLocation();
         try {
             registerClient(me);
 
@@ -1259,7 +1232,7 @@ public class EngineCallTest {
             assertTrue("Register did not succeed for HttpEcho appInst", registerClientReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
 
 
-            Location location = MockUtils.createLocation("appConnectionTestTcp001", 122.3321, 47.6062);
+            Location location = getTestLocation();
             // Defaults:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setCarrierName(findCloudletCarrierOverride)
@@ -1405,9 +1378,7 @@ public class EngineCallTest {
             MeLocation meLoc = new MeLocation(me);
             assertTrue("Missing Location!", meLoc != null);
 
-            Location location = new Location("appConnectionTestTcp002");
-            location.setLongitude(122.3321);
-            location.setLatitude(47.6062);
+            Location location = getTestLocation();
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setCarrierName(carrierName)
@@ -1514,9 +1485,7 @@ public class EngineCallTest {
             }
             assertTrue("Register did not succeed for HttpEcho appInst", registerClientReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
 
-            Location location = new Location("appConnectionTestTcp_Http_001");
-            location.setLongitude(122.3321);
-            location.setLatitude(47.6062);
+            Location location = getTestLocation();
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setCarrierName(carrierName)
@@ -1631,9 +1600,7 @@ public class EngineCallTest {
         String appName = "HttpEcho";
         String appVersion = "20191204";
 
-        Location location = new Location("testRegisterAndFindCloudlet_001");
-        location.setLongitude(122.3321);
-        location.setLatitude(47.6062);
+        Location location = getTestLocation();
         Socket socket = null;
         try {
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
@@ -1702,9 +1669,7 @@ public class EngineCallTest {
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
-        Location location = new Location("NetTestAPItest");
-        location.setLongitude(122.3321);
-        location.setLatitude(47.6062);
+        Location location = getTestLocation();
 
         try {
             registerClient(me);
