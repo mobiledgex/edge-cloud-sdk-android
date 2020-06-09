@@ -262,13 +262,14 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return mSSLEnabled;
     }
 
-    synchronized public List<SubscriptionInfo> getActiveSubscriptionInfoList(boolean clone) {
-        if (clone == false) {
-            return mActiveSubscriptionInfoList;
-        }
+    synchronized public List<SubscriptionInfo> getActiveSubscriptionInfoList(boolean clone) throws SecurityException {
 
         if (mActiveSubscriptionInfoList == null) {
-            return null;
+             mActiveSubscriptionInfoList = new ArrayList<>();
+        }
+
+        if (clone == false) {
+            return mActiveSubscriptionInfoList;
         }
 
         List<SubscriptionInfo> subInfoList = new ArrayList<>();

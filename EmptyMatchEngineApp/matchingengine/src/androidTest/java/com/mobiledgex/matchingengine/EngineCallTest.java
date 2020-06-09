@@ -29,6 +29,7 @@ import com.google.common.base.Stopwatch;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.MeLocation;
+import com.mobiledgex.mel.MelMessaging;
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -48,6 +49,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.nio.channels.FileChannel;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -235,6 +237,13 @@ public class EngineCallTest {
         fusedLocationClient.flushLocations();
     }
 
+    public Location getTestLocation() {
+        Location location = new Location("EngineCallTestLocation");
+        location.setLongitude(-122.3321);
+        location.setLatitude(47.6062);
+        return location;
+    }
+
     @Test
     public void mexDisabledTest() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
@@ -243,7 +252,7 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
         MeLocation meLoc = new MeLocation(me);
 
-        Location loc = MockUtils.createLocation("mexDisabledTest", 122.3321, 47.6062);
+        Location loc = getTestLocation();
 
         try {
             enableMockLocation(context, true);
@@ -334,24 +343,13 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        MeLocation meLoc = new MeLocation(me);
-        Location location;
         AppClient.RegisterClientReply reply = null;
-        String appName = applicationName;
-
-        enableMockLocation(context,true);
-        Location loc = MockUtils.createLocation("registerClientTest", 122.3321, 47.6062);
 
         try {
-            setMockLocation(context, loc);
-
-            location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            assertFalse(location == null);
-
             AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
-                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
+                    //.setCellId(me.retrieveCellId(context).get(0).second.intValue())
                     .build();
             if (useHostOverride) {
                 reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -360,7 +358,7 @@ public class EngineCallTest {
             }
             assertTrue(reply != null);
             assertTrue(reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
-            assertTrue( !reply.getUniqueId().isEmpty());
+            //assertTrue( !reply.getUniqueId().isEmpty());
             assertTrue( reply.getSessionCookie().length() > 0);
         } catch (PackageManager.NameNotFoundException nnfe) {
             Log.e(TAG, Log.getStackTraceString(nnfe));
@@ -396,24 +394,14 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        MeLocation meLoc = new MeLocation(me);
-        Location location;
         Future<AppClient.RegisterClientReply> registerReplyFuture;
         AppClient.RegisterClientReply reply = null;
 
-        enableMockLocation(context,true);
-        Location loc = MockUtils.createLocation("RegisterClientFutureTest", 122.3321, 47.6062);
-
         try {
-            setMockLocation(context, loc);
-
-            location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            assertFalse(location == null);
-
             AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
-                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
+                    //.setCellId(me.retrieveCellId(context).get(0).second.intValue())
                     .setUniqueIdType("applicationInstallId")
                     .setUniqueId(me.getUniqueId(context))
                     .build();
@@ -455,17 +443,9 @@ public class EngineCallTest {
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
-        MeLocation meLoc = new MeLocation(me);
 
-        Location loc = MockUtils.createLocation("findCloudletTest", 122.3321, 47.6062);
-
+        Location location = getTestLocation();
         try {
-            enableMockLocation(context, true);
-            setMockLocation(context, loc);
-
-            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-
-            String carrierName = me.getCarrierName(context);
             registerClient(me);
 
             // Set orgName and location, then override the rest for testing:
@@ -533,18 +513,10 @@ public class EngineCallTest {
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
-        MeLocation meLoc = new MeLocation(me);
-
-        Location loc = MockUtils.createLocation("findCloudletTestSetCarrierNameOverride", 122.3321, 47.6062);
+        Location location = getTestLocation();
 
         boolean expectedExceptionHit = false;
         try {
-            enableMockLocation(context, true);
-            setMockLocation(context, loc);
-
-            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-
-            String carrierName = me.getCarrierName(context);
             registerClient(me);
 
             // Set NO carrier name, as if there's no SIM card. This should tell DME to return
@@ -590,15 +562,9 @@ public class EngineCallTest {
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
-        MeLocation meLoc = new MeLocation(me);
-
-        Location loc = MockUtils.createLocation("findCloudletTest", 122.3321, 47.6062);
 
         try {
-            enableMockLocation(context, true);
-            setMockLocation(context, loc);
-
-            Location location = meLoc.getBlocking(context, 10000);
+            Location location = getTestLocation();
 
             registerClient(me);
 
@@ -668,11 +634,7 @@ public class EngineCallTest {
         AppClient.VerifyLocationReply verifyLocationReply = null;
 
         try {
-            enableMockLocation(context, true);
-            Location mockLoc = MockUtils.createLocation("verifyLocationTest", 122.3321, 47.6062);
-            setMockLocation(context, mockLoc);
-
-            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
+            Location location = getTestLocation();
 
             String carrierName = me.getCarrierName(context);
             registerClient(me);
@@ -720,16 +682,11 @@ public class EngineCallTest {
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
-        MeLocation meLoc = new MeLocation(me);
         AppClient.VerifyLocationReply verifyLocationReply = null;
         Future<AppClient.VerifyLocationReply> verifyLocationReplyFuture = null;
 
         try {
-            enableMockLocation(context, true);
-            Location mockLoc = MockUtils.createLocation("verifyLocationFutureTest", 122.3321, 47.6062);
-            setMockLocation(context, mockLoc);
-
-            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
+            Location location = getTestLocation();
 
             String carrierName = me.getCarrierName(context);
             registerClient(me);
@@ -770,22 +727,13 @@ public class EngineCallTest {
     @Test
     public void verifyMockedLocationTest_NorthPole() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        enableMockLocation(context,true);
-
-        Location mockLoc = MockUtils.createLocation("verifyMockedLocationTest_NorthPole", 90d, 1d);
-
-
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
-        MeLocation meLoc = new MeLocation(me);
 
         AppClient.VerifyLocationReply verifyLocationReply = null;
         try {
-            setMockLocation(context, mockLoc); // North Pole.
-
-            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            assertFalse(location == null);
+            Location location = getTestLocation();
 
             String carrierName = me.getCarrierName(context);
             registerClient(me);
@@ -827,21 +775,12 @@ public class EngineCallTest {
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
-        MeLocation meLoc = new MeLocation(me);
-        Location location;
+
         AppClient.GetLocationReply getLocationReply = null;
 
-        enableMockLocation(context,true);
-        Location loc = MockUtils.createLocation("getLocationTest", 122.3321, 47.6062);
-
         String carrierName = me.getCarrierName(context);
+        Location loc = getTestLocation();
         try {
-            setMockLocation(context, loc);
-
-            location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            assertFalse(location == null);
-
-
             registerClient(me);
             AppClient.GetLocationRequest getLocationRequest = me.createDefaultGetLocationRequest(context)
                     .build();
@@ -888,24 +827,13 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        MeLocation meLoc = new MeLocation(me);
-        Location location;
         Future<AppClient.GetLocationReply> getLocationReplyFuture;
         AppClient.GetLocationReply getLocationReply = null;
 
-        enableMockLocation(context,true);
-        Location loc = MockUtils.createLocation("getLocationTest", 122.3321, 47.6062);
+        Location loc = getTestLocation();
 
         String carrierName = me.getCarrierName(context);
         try {
-            // Directly create request for testing:
-            // Passed in Location (which is a callback interface)
-            setMockLocation(context, loc);
-
-            location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            assertFalse(location == null);
-
-
             registerClient(me);
             AppClient.GetLocationRequest getLocationRequest = me.createDefaultGetLocationRequest(context)
                     .build();
@@ -953,18 +881,10 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
         AppClient.DynamicLocGroupReply dynamicLocGroupReply = null;
-
-        enableMockLocation(context,true);
-        Location location = MockUtils.createLocation("createDynamicLocationGroupAddTest", 122.3321, 47.6062);
-        MeLocation meLoc = new MeLocation(me);
+        Location loc = getTestLocation();
 
         String carrierName = me.getCarrierName(context);
         try {
-            setMockLocation(context, location);
-
-            location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            assertFalse(location == null);
-
             registerClient(me);
 
             // FIXME: Need groupId source.
@@ -1011,17 +931,9 @@ public class EngineCallTest {
 
         AppClient.DynamicLocGroupReply dynamicLocGroupReply = null;
 
-        enableMockLocation(context,true);
-        Location location = MockUtils.createLocation("createDynamicLocationGroupAddTest", 122.3321, 47.6062);
-        MeLocation meLoc = new MeLocation(me);
-
+        Location loc = getTestLocation();
         String carrierName = me.getCarrierName(context);
         try {
-            setMockLocation(context, location);
-
-            location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            assertFalse(location == null);
-
             registerClient(me);
 
             // FIXME: Need groupId source.
@@ -1070,20 +982,13 @@ public class EngineCallTest {
 
         AppClient.AppInstListReply appInstListReply = null;
 
-        enableMockLocation(context,true);
-        Location location = MockUtils.createLocation("getCloudletListTest", 122.3321, 50.1109);
-        MeLocation meLoc = new MeLocation(me);
+        Location loc = getTestLocation();
 
         try {
-            setMockLocation(context, location);
-
-            location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            assertFalse("Mock'ed Location is missing!", location == null);
-
             registerClient(me);
             AppClient.AppInstListRequest appInstListRequest;
             AppClient.AppInstListReply list;
-            appInstListRequest  = me.createDefaultAppInstListRequest(context, location)
+            appInstListRequest  = me.createDefaultAppInstListRequest(context, loc)
                     .setCarrierName(findCloudletCarrierOverride)
                     .build();
             if (useHostOverride) {
@@ -1125,16 +1030,9 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        enableMockLocation(context,true);
-        Location location = MockUtils.createLocation("getAppInstListFutureTest", 122.3321, 47.6062);
-        MeLocation meLoc = new MeLocation(me);
+        Location location = getTestLocation();
 
         try {
-            setMockLocation(context, location);
-
-            location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            assertFalse("Mock'ed Location is missing!", location == null);
-
             registerClient(me);
             AppClient.AppInstListRequest appInstListRequest = me.createDefaultAppInstListRequest(context, location)
                     .setCarrierName(findCloudletCarrierOverride)
@@ -1181,9 +1079,7 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        enableMockLocation(context,true);
-        // The test must use a location where data exists on QOS server.
-        Location location = MockUtils.createLocation("getQosPositionKpiTest", 8.5821, 50.11);
+        Location location = getTestLocation();
 
         ChannelIterator<AppClient.QosPositionKpiReply> responseIterator = null;
         try {
@@ -1244,10 +1140,7 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        enableMockLocation(context,true);
-        // The test must use a location where data exists on QOS server.
-        Location location = MockUtils.createLocation("getQosPositionKpiTest", 8.5821, 50.11);
-
+        Location location = getTestLocation();
         try {
             registerClient(me);
 
@@ -1310,9 +1203,7 @@ public class EngineCallTest {
 
         MatchingEngine me = new MatchingEngine(context);
         AppConnectionManager appConnect = me.getAppConnectionManager();
-
-        enableMockLocation(context, true);
-
+        me.setMatchingEngineLocationAllowed(true);
         Socket s = null;
         BufferedOutputStream bos = null;
         BufferedInputStream bis = null;
@@ -1340,16 +1231,8 @@ public class EngineCallTest {
             }
             assertTrue("Register did not succeed for HttpEcho appInst", registerClientReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
 
-            MeLocation meLoc = new MeLocation(me);
-            assertTrue("Missing Location!", meLoc != null);
 
-            enableMockLocation(context, true);
-            Location mockLoc = MockUtils.createLocation("appConnectionTestTcp001", 122.3321, 47.6062);
-            Location loc = MockUtils.createLocation("registerClientTest", 122.3321, 47.6062);
-            setMockLocation(context, mockLoc);
-
-            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-
+            Location location = getTestLocation();
             // Defaults:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setCarrierName(findCloudletCarrierOverride)
@@ -1363,19 +1246,31 @@ public class EngineCallTest {
             }
 
             // Just using first one. This depends entirely on the server design.
-            List<AppPort> appPorts = findCloudletReply.getPortsList();
-            assertTrue("AppPorts is null", appPorts != null);
-            assertTrue("AppPorts is empty!", appPorts.size() > 0);
+            if (!MelMessaging.isMelEnabled()) {
+                List<AppPort> appPorts = findCloudletReply.getPortsList();
+                assertTrue("AppPorts is null", appPorts != null);
+                assertTrue("AppPorts is empty!", appPorts.size() > 0);
 
-            HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
-            AppPort one = portMap.get(3001); // This internal port depends entirely the AppInst configuration/Docker image.
-
-            assertTrue("EndPort is expected to be 0 for this AppInst", one.getEndPort() == 0 );
-            // The actual mapped Public port, or one between getPublicPort() to getEndPort(), inclusive.
-            Future<Socket> fs = appConnect.getTcpSocket(findCloudletReply, one, one.getPublicPort(), (int)GRPC_TIMEOUT_MS);
+                HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
+                AppPort one = portMap.get(3001); // This internal port depends entirely the AppInst configuration/Docker image.
+                assertTrue("EndPort is expected to be 0 for this AppInst", one.getEndPort() == 0 );
+                // The actual mapped Public port, or one between getPublicPort() to getEndPort(), inclusive.
+                Future<Socket> fs = appConnect.getTcpSocket(findCloudletReply, one, one.getPublicPort(), (int)GRPC_TIMEOUT_MS);
+                s = fs.get(); // Nothing to do. Await value.
+            } else {
+                try {
+                    s = new Socket(findCloudletReply.getFqdn(), 3001);
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                    assertTrue("Bad hostname in findCloudlet!", false);
+                } catch (IOException ioe) {
+                    ioe.printStackTrace();
+                    assertTrue("IOException in findCloudlet!", false);
+                }
+            }
 
             // Interface bound TCP socket.
-            s = fs.get(); // Nothing to do. Await value.
+
             try {
                 bos = new BufferedOutputStream(s.getOutputStream());
                 String data = "{\"Data\": \"food\"}";
@@ -1456,8 +1351,6 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        enableMockLocation(context,true);
-
         OkHttpClient httpClient = null;
         // Test against Http Echo.
         String carrierName = "TDG";
@@ -1485,11 +1378,7 @@ public class EngineCallTest {
             MeLocation meLoc = new MeLocation(me);
             assertTrue("Missing Location!", meLoc != null);
 
-            enableMockLocation(context, true);
-            Location mockLoc = MockUtils.createLocation("verifyLocationFutureTest", 122.3321, 47.6062);
-            setMockLocation(context, mockLoc);
-
-            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
+            Location location = getTestLocation();
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setCarrierName(carrierName)
@@ -1513,8 +1402,14 @@ public class EngineCallTest {
             HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
             // Choose the port that we happen to know the internal port for, 3001.
             AppPort one = portMap.get(3001);
-            String protocol = one.getTls() ? "https" : "http";
-            url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
+
+            if (!MelMessaging.isMelEnabled()) {
+                String protocol = one.getTls() ? "https" : "http";
+                url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
+            } else {
+                String protocol = one.getTls() ? "https" : "http";
+                url = protocol + "://" + findCloudletReply.getFqdn() + ":3001";
+            }
             assertTrue("URL for server seems very incorrect. ", url != null && url.length() > "http://:".length());
 
             assertFalse("Failed to get an SSL Socket!", httpClientFuture == null);
@@ -1569,8 +1464,6 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        enableMockLocation(context,true);
-
         try {
             String data = "{\"Data\": \"food\"}";
             String carrierName = "TDG";
@@ -1592,13 +1485,7 @@ public class EngineCallTest {
             }
             assertTrue("Register did not succeed for HttpEcho appInst", registerClientReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
 
-            MeLocation meLoc = new MeLocation(me);
-            assertTrue("Missing Location!", meLoc != null);
-
-            Location mockLoc = MockUtils.createLocation("verifyLocationFutureTest", 122.3321, 47.6062);
-            setMockLocation(context, mockLoc);
-
-            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
+            Location location = getTestLocation();
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setCarrierName(carrierName)
@@ -1619,12 +1506,19 @@ public class EngineCallTest {
 
             // FIXME: UI Console exposes HTTP as TCP only, so the test here uses getTcpList().
             String url = null;
-            HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
-            // Choose the TCP port, and we happen to know our server is on one port only: 3001.
-            AppPort one = portMap.get(3001);
-            assertTrue("Did not find server! ", one != null);
-            String protocol = one.getTls() ? "https" : "http";
-            url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
+
+            if (!MelMessaging.isMelEnabled()) {
+              HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
+              // Choose the TCP port, and we happen to know our server is on one port only: 3001.
+              AppPort one = portMap.get(3001);
+              assertTrue("Did not find server! ", one != null);
+              String protocol = one.getTls() ? "https" : "http";
+              url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
+            } else {
+              String protocol = "http";
+              url = protocol + "://" + findCloudletReply.getFqdn() + ":3001";
+            }
+
 
             assertTrue("URL for server seems very incorrect. ", url != null && url.length() > "http://:".length());
 
@@ -1700,24 +1594,15 @@ public class EngineCallTest {
 
         AppConnectionManager appConnectionManager = me.getAppConnectionManager();
 
-        MeLocation meLoc = new MeLocation(me);
-        Location location;
         AppClient.RegisterClientReply registerClientReply = null;
         String carrierName = "TDG";
         String organizationName = "MobiledgeX";
         String appName = "HttpEcho";
         String appVersion = "20191204";
 
-        enableMockLocation(context,true);
-        Location loc = MockUtils.createLocation("registerClientTest", 122.3321, 47.6062);
-
+        Location location = getTestLocation();
         Socket socket = null;
         try {
-            setMockLocation(context, loc);
-
-            location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-            assertTrue("Required location is null!", location != null);
-
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
                     organizationName, appName,
                     appVersion, location, "",
@@ -1726,9 +1611,11 @@ public class EngineCallTest {
             AppClient.FindCloudletReply findCloudletReply = findCloudletReplyFuture.get();
             HashMap<Integer, AppPort> appTcpPortMap = appConnectionManager.getTCPMap(findCloudletReply);
             AppPort appPort = appTcpPortMap.get(3001);
-            assertTrue(appPort != null); // There should be at least one for a connection to be made.
-            Future<Socket> socketFuture = me.getAppConnectionManager().getTcpSocket(findCloudletReply, appPort, appPort.getPublicPort(), (int)GRPC_TIMEOUT_MS);
-            socket = socketFuture.get();
+            if (!MelMessaging.isMelEnabled()) {
+                assertTrue(appPort != null); // There should be at least one for a connection to be made.
+                Future<Socket> socketFuture = me.getAppConnectionManager().getTcpSocket(findCloudletReply, appPort, appPort.getPublicPort(), (int)GRPC_TIMEOUT_MS);
+                socket = socketFuture.get();
+            }
 
             assertTrue("FindCloudletReply failed!", findCloudletReply != null);
         } catch (ExecutionException ee) {
@@ -1782,16 +1669,9 @@ public class EngineCallTest {
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
-        MeLocation meLoc = new MeLocation(me);
-
-        Location loc = MockUtils.createLocation("findCloudletTest", 122.3321, 47.6062);
+        Location location = getTestLocation();
 
         try {
-            enableMockLocation(context, true);
-            setMockLocation(context, loc);
-
-            Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
-
             registerClient(me);
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
