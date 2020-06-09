@@ -298,6 +298,7 @@ public class FindCloudlet implements Callable {
             mMatchingEngine.setFindCloudletResponse(fcReply);
             mMatchingEngine.setAppOfficialFqdnReply(reply); // has client location token
 
+
             // Let MEL platform know the client location token:
             MelMessaging.sendSetToken(
                 mMatchingEngine.mContext,
@@ -310,6 +311,9 @@ public class FindCloudlet implements Callable {
                 channel.awaitTermination(remainderMs - stopwatch.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
             }
         }
+
+
+
       return fcReply;
     }
 
@@ -320,34 +324,62 @@ public class FindCloudlet implements Callable {
             throw new MissingRequestException("Usage error: FindCloudlet does not have a request object to use MatchEngine!");
         }
 
-        AppClient.FindCloudletReply fcreply;
+        AppClient.FindCloudletReply fcReply;
 
         // Is Wifi Enabled, and has IP?
+        Stopwatch stopwatch = Stopwatch.createStarted();
         long ip = mMatchingEngine.getWifiIp(mMatchingEngine.mContext);
 
         if (MelMessaging.isMelEnabled() && ip == 0) { // MEL is Cellular only. No WiFi.
             // MEL is enabled, alternate findCloudlet behavior:
-            fcreply = FindCloudletMelMode(mTimeoutInMilliseconds);
+            fcReply = FindCloudletMelMode(mTimeoutInMilliseconds);
 
             // Fall back to Proximity mode if Mel Mode DNS resolve fails for whatever reason:
-            String appOfficialFqdnHost = fcreply.getFqdn();
-            try {
-                if (appOfficialFqdnHost == null) {
-                    throw new UnknownHostException("Host is null!");
-                }
-                InetAddress address = InetAddress.getByName(appOfficialFqdnHost);
-                Log.d(TAG, "Public AppOfficialFqdn DNS resolved : " + address.getHostAddress());
-            } catch (UnknownHostException uhe){
-                Log.w(TAG, "Public AppOfficialFqdn DNS resolve FAILURE for: " + appOfficialFqdnHost);
-                fcreply = FindCloudletWithMode();
-            }
+            fcReply = handleMelFallback(fcReply, stopwatch);
         } else {
-            fcreply = FindCloudletWithMode(); // Regular FindCloudlet.
-            mMatchingEngine.setFindCloudletResponse(fcreply); // Done.
-            return fcreply;
+            fcReply = FindCloudletWithMode(); // Regular FindCloudlet.
         }
 
-        mMatchingEngine.setFindCloudletResponse(fcreply);
-        return fcreply;
+        mMatchingEngine.setFindCloudletResponse(fcReply);
+        return fcReply;
+    }
+
+    private AppClient.FindCloudletReply handleMelFallback(AppClient.FindCloudletReply fcReply, Stopwatch stopwatch)
+        throws InterruptedException, ExecutionException {
+
+        String appOfficialFqdnHost = fcReply.getFqdn();
+        // Handle NULL:
+        try {
+            if (appOfficialFqdnHost == null) {
+              throw new UnknownHostException("Host is null!");
+            }
+        } catch (UnknownHostException uhe) {
+            Log.w(TAG, "Public AppOfficialFqdn DNS resolve FAILURE for: " + appOfficialFqdnHost);
+            fcReply = FindCloudletWithMode();
+            return fcReply; // As-is.
+        }
+
+        // Handle MEL DNS Proxy, this does not have proper feedback of MEL errors or Server misconfiguration:
+        boolean found = false;
+        synchronized (appOfficialFqdnHost) {
+            Stopwatch dnsStopwatch = Stopwatch.createStarted();
+            while (stopwatch.elapsed(TimeUnit.MILLISECONDS) < mTimeoutInMilliseconds) {
+                try {
+                    InetAddress address = InetAddress.getByName(appOfficialFqdnHost);
+                    Log.d(TAG, "Public AppOfficialFqdn DNS resolved : " + address.getHostAddress() + "elapsed time in ms: " + dnsStopwatch.elapsed(TimeUnit.MILLISECONDS));
+                    found = true;
+                    break;
+                } catch (UnknownHostException uhe) {
+                    Log.w(TAG, "Public AppOfficialFqdn DNS resolve FAILURE for: " + appOfficialFqdnHost);
+                }
+                appOfficialFqdnHost.wait(300);
+            }
+        }
+        if (found && !appOfficialFqdnHost.isEmpty()) {
+            return fcReply;
+        } else {
+            fcReply = FindCloudletWithMode();
+            return fcReply;
+        }
     }
 }

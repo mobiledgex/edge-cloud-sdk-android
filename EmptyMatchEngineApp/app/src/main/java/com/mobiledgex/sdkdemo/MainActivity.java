@@ -332,7 +332,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     }
                     dmeHostAddress = "us-mexdemo." + MatchingEngine.baseDmeHost;
                     //mMatchingEngine.setUseWifiOnly(true);
-                    //dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+                    dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
 
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
@@ -357,7 +357,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     AppClient.RegisterClientReply registerClientReply =
                             mMatchingEngine.registerClient(registerClientRequest,
-                                    /*dmeHostAddress, port, */ 10000);
+                                    dmeHostAddress, port, 10000);
                     Log.i(TAG, "RegisterReply status is " + registerClientReply.getStatus());
 
                     if (registerClientReply.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {

@@ -122,7 +122,7 @@ public class MelMessaging {
             context.sendBroadcast(intent);
             return token;
         } catch (IllegalStateException ise) {
-            Log.i(TAG, "sendSetToken cannot send." + ise.getMessage());
+            Log.e(TAG, "sendSetToken cannot send." + ise.getMessage());
         }
         return "";
     }
