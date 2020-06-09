@@ -265,7 +265,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     synchronized public List<SubscriptionInfo> getActiveSubscriptionInfoList(boolean clone) throws SecurityException {
 
         if (mActiveSubscriptionInfoList == null) {
-             mActiveSubscriptionInfoList = new ArrayList<>();
+             mActiveSubscriptionInfoList = mSubscriptionManager.getActiveSubscriptionInfoList();
         }
 
         if (clone == false) {
