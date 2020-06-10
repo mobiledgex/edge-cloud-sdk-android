@@ -10,9 +10,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
 
-import static com.mobiledgex.mel.MelMessaging.ACTION_SEND_COOKIES;
 import static com.mobiledgex.mel.MelMessaging.ACTION_SET_TOKEN;
-import static com.mobiledgex.mel.MelMessaging.EXTRA_PARAM_COOKIE;
 import static com.mobiledgex.mel.MelMessaging.EXTRA_PARAM_TOKEN;
 
 public class MelStateReceiver extends BroadcastReceiver {
@@ -36,11 +34,6 @@ public class MelStateReceiver extends BroadcastReceiver {
             case ACTION_SET_TOKEN: {
                 client_token = intent.getStringExtra(EXTRA_PARAM_TOKEN);
                 Log.d(TAG, "currentToken: " + client_token);
-                break;
-            }
-            case ACTION_SEND_COOKIES: {
-                appCookie = intent.getStringExtra(EXTRA_PARAM_COOKIE);
-                Log.d(TAG, "Got Token: " + appCookie);
                 break;
             }
         }

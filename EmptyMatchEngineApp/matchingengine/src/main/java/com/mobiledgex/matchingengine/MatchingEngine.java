@@ -398,7 +398,7 @@ public class MatchingEngine {
         }
 
         String mccmnc = telManager.getNetworkOperator();
-        if (mccmnc == null) {
+        if (mccmnc == null || mccmnc.isEmpty()) {
             Log.e(TAG, "No mcc-mnc string available.");
             return wifiOnlyDmeHost; // fallback to wifi.
         }

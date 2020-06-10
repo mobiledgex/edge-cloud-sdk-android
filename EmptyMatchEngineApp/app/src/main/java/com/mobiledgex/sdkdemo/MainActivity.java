@@ -294,8 +294,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // If no carrierName, or active Subscription networks, the app should use the public cloud instead.
                     List<SubscriptionInfo> subList = mMatchingEngine.getActiveSubscriptionInfoList();
                     if (subList != null && subList.size() > 0) {
-                        for(SubscriptionInfo info: subList) {
-                            if (info.getCarrierName().equals("Android")) {
+                        for (SubscriptionInfo info: subList) {
+                            CharSequence carrierName = info.getCarrierName();
+                            if (carrierName != null && carrierName.equals("Android")) {
                                 someText += "Emulator Active Subscription Network: " + info.toString() + "\n";
                             } else {
                                 someText += "Active Subscription network: " + info.toString() + "\n";
@@ -507,6 +508,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     MelMessaging.getCookie("MobiledgeX SDK Demo"); // Import MEL messaging.
                     Log.e(TAG, e.getMessage());
                     Log.e(TAG, Log.getStackTraceString(e));
+                } catch (Exception e) {
+                  someText += "Exception failure: " + e.getMessage();
+                  ctx.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                      TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+                      tv.setText(someText);
+                    }
+                  });
                 }
             }
         });
