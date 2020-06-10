@@ -185,7 +185,7 @@ public class FindCloudlet implements Callable {
 
         try {
             nm = mMatchingEngine.getNetworkManager();
-            Network network = nm.getCellularNetworkBlocking(false);
+            Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
@@ -271,7 +271,7 @@ public class FindCloudlet implements Callable {
         Stopwatch stopwatch = Stopwatch.createUnstarted();
         try {
             nm = mMatchingEngine.getNetworkManager();
-            Network network = nm.getCellularNetworkBlocking(false);
+            Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
 
             final AppClient.AppOfficialFqdnRequest appOfficialFqdnRequest = AppClient.AppOfficialFqdnRequest.newBuilder()
                 .setSessionCookie(mMatchingEngine.getSessionCookie())

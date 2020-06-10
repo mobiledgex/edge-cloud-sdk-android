@@ -526,6 +526,18 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         mNetwork = switchToNetworkBlocking(request, bindProcess);
         return mNetwork;
     }
+
+    public Network getCellularNetworkOrWifiBlocking(boolean bindProcess, String currentMccMnc) throws InterruptedException, ExecutionException {
+        if (currentMccMnc != null && !currentMccMnc.isEmpty()) {
+            mNetwork = getCellularNetworkBlocking(bindProcess);
+        } else {
+            // Let's try wifi:
+            mNetwork = switchToNetworkBlocking(getWifiNetworkRequest(), bindProcess);
+        }
+
+        return mNetwork;
+    }
+
     /**
      * Switch entire process to a Cellular network type. This is a synchronous call.
      * @return
