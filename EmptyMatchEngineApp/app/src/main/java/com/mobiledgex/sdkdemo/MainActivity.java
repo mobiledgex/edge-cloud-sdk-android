@@ -506,17 +506,24 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     }
                 } catch (IOException | InterruptedException | IllegalArgumentException | Resources.NotFoundException | PackageManager.NameNotFoundException e) {
                     MelMessaging.getCookie("MobiledgeX SDK Demo"); // Import MEL messaging.
-                    Log.e(TAG, e.getMessage());
+                    someText += "Exception failure: " + e.getMessage();
+                    ctx.runOnUiThread(new Runnable() {
+                      @Override
+                      public void run() {
+                        TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+                        tv.setText(someText);
+                      }
+                    });
                     Log.e(TAG, Log.getStackTraceString(e));
                 } catch (Exception e) {
-                  someText += "Exception failure: " + e.getMessage();
-                  ctx.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                      TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                      tv.setText(someText);
-                    }
-                  });
+                    someText += "Exception failure: " + e.getMessage();
+                    ctx.runOnUiThread(new Runnable() {
+                      @Override
+                      public void run() {
+                        TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+                        tv.setText(someText);
+                      }
+                    });
                 }
             }
         });

@@ -245,7 +245,6 @@ public class MatchingEngine {
         return this.mSessionCookie;
     }
 
-
     RegisterClientRequest getLastRegisterClientRequest() {
         return mRegisterClientRequest;
     }
@@ -472,6 +471,12 @@ public class MatchingEngine {
 
     private void ensureSessionCookie() {
         if (mSessionCookie == null || mSessionCookie.equals((""))) {
+            throw new IllegalArgumentException("An unexpired RegisterClient sessionCookie is required.");
+        }
+    }
+
+    public void ensureSessionCookie(String sessionCookie) {
+        if (sessionCookie == null || sessionCookie.equals((""))) {
             throw new IllegalArgumentException("An unexpired RegisterClient sessionCookie is required.");
         }
     }
