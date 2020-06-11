@@ -499,8 +499,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         ctx.runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                                tv.setText(someText);
+                            TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+                            tv.setText(someText);
                             }
                         });
                     }
@@ -510,8 +510,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     ctx.runOnUiThread(new Runnable() {
                       @Override
                       public void run() {
-                        TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                        tv.setText(someText);
+                          TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+                          tv.setText(someText);
                       }
                     });
                     Log.e(TAG, Log.getStackTraceString(e));
@@ -520,8 +520,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     ctx.runOnUiThread(new Runnable() {
                       @Override
                       public void run() {
-                        TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                        tv.setText(someText);
+                          TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+                          tv.setText(someText);
                       }
                     });
                 }

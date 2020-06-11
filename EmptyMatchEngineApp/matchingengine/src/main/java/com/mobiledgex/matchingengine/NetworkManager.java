@@ -529,9 +529,16 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
 
     public Network getCellularNetworkOrWifiBlocking(boolean bindProcess, String currentMccMnc) throws InterruptedException, ExecutionException {
         if (currentMccMnc != null && !currentMccMnc.isEmpty()) {
-            mNetwork = getCellularNetworkBlocking(bindProcess);
+            try {
+                mNetwork = getCellularNetworkBlocking(bindProcess);
+            } catch (ExecutionException ee) {
+                // Cellular failed. Try WiFi:
+                Log.e(TAG, "Cellular Switch failed. Trying Wifi... ");
+                mNetwork = switchToNetworkBlocking(getWifiNetworkRequest(), bindProcess);
+            }
         } else {
-            // Let's try wifi:
+            // Cellular is not available. Let's try wifi:
+            Log.i(TAG, "Cellular is not present. Trying Wifi... ");
             mNetwork = switchToNetworkBlocking(getWifiNetworkRequest(), bindProcess);
         }
 
