@@ -271,7 +271,8 @@ public class FindCloudlet implements Callable {
         Stopwatch stopwatch = Stopwatch.createUnstarted();
         try {
             nm = mMatchingEngine.getNetworkManager();
-            Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
+            // Do not fall back to WiFI for MEL mode.
+            Network network = nm.getCellularNetworkBlocking(false);
 
             final AppClient.AppOfficialFqdnRequest appOfficialFqdnRequest = AppClient.AppOfficialFqdnRequest.newBuilder()
                 .setSessionCookie(mRequest.getSessionCookie())
