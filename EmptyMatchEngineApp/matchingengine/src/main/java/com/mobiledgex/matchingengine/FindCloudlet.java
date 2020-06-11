@@ -185,7 +185,7 @@ public class FindCloudlet implements Callable {
 
         try {
             nm = mMatchingEngine.getNetworkManager();
-            Network network = nm.getCellularNetworkBlocking(false);
+            Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
@@ -271,10 +271,10 @@ public class FindCloudlet implements Callable {
         Stopwatch stopwatch = Stopwatch.createUnstarted();
         try {
             nm = mMatchingEngine.getNetworkManager();
-            Network network = nm.getCellularNetworkBlocking(false);
+            Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
 
             final AppClient.AppOfficialFqdnRequest appOfficialFqdnRequest = AppClient.AppOfficialFqdnRequest.newBuilder()
-                .setSessionCookie(mMatchingEngine.getSessionCookie())
+                .setSessionCookie(mRequest.getSessionCookie())
                 .setGpsLocation(mRequest.getGpsLocation())
                 .build();
 
@@ -323,12 +323,16 @@ public class FindCloudlet implements Callable {
         if (mRequest == null) {
             throw new MissingRequestException("Usage error: FindCloudlet does not have a request object to use MatchEngine!");
         }
+        // Because we're rebuilding messages, check early:
+        mMatchingEngine.ensureSessionCookie(mRequest.getSessionCookie());
 
         AppClient.FindCloudletReply fcReply;
 
         // Is Wifi Enabled, and has IP?
         Stopwatch stopwatch = Stopwatch.createStarted();
         long ip = mMatchingEngine.getWifiIp(mMatchingEngine.mContext);
+
+
 
         if (MelMessaging.isMelEnabled() && ip == 0) { // MEL is Cellular only. No WiFi.
             // MEL is enabled, alternate findCloudlet behavior:

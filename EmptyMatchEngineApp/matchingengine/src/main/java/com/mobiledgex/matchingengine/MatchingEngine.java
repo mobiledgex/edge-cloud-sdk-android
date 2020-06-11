@@ -245,7 +245,6 @@ public class MatchingEngine {
         return this.mSessionCookie;
     }
 
-
     RegisterClientRequest getLastRegisterClientRequest() {
         return mRegisterClientRequest;
     }
@@ -398,7 +397,7 @@ public class MatchingEngine {
         }
 
         String mccmnc = telManager.getNetworkOperator();
-        if (mccmnc == null) {
+        if (mccmnc == null || mccmnc.isEmpty()) {
             Log.e(TAG, "No mcc-mnc string available.");
             return wifiOnlyDmeHost; // fallback to wifi.
         }
@@ -472,6 +471,12 @@ public class MatchingEngine {
 
     private void ensureSessionCookie() {
         if (mSessionCookie == null || mSessionCookie.equals((""))) {
+            throw new IllegalArgumentException("An unexpired RegisterClient sessionCookie is required.");
+        }
+    }
+
+    public void ensureSessionCookie(String sessionCookie) {
+        if (sessionCookie == null || sessionCookie.equals((""))) {
             throw new IllegalArgumentException("An unexpired RegisterClient sessionCookie is required.");
         }
     }
