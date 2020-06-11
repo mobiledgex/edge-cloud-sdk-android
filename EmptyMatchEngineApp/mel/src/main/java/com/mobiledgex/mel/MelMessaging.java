@@ -20,7 +20,6 @@ public class MelMessaging {
 
     // Action Filters to declare on the Service side (TBD):
     public static final String ACTION_SET_TOKEN = "com.mobiledgex.intent.action.SET_TOKEN"; // SEC name confirmed.
-    public static final String ACTION_SEND_COOKIES = "com.mobiledgex.intent.action.SEND_COOKIES"; // SEC name confirmed.
 
     // Parcel Keys TODO: Rename keys.
     public static final String EXTRA_PARAM_TOKEN = "com.mobiledgex.intent.extra.PARAM_TOKEN"; // SEC name confirmed.
@@ -79,12 +78,6 @@ public class MelMessaging {
         if (mMelStateReceiver == null) {
             mMelStateReceiver = new MelStateReceiver();
         }
-        // Register Receivers
-        IntentFilter filter;
-
-        filter = new IntentFilter(ACTION_SEND_COOKIES);
-        filter.addCategory(Intent.CATEGORY_DEFAULT);
-        context.registerReceiver(mMelStateReceiver, filter);
     }
 
     static public void unregisterReceivers(Context context) {
@@ -93,9 +86,7 @@ public class MelMessaging {
         }
     }
 
-    // FIXME: Set a dummy token if not already set on system.
-    // Intents fired need the caller to return control to activity to start processing.
-    // Poll for completion.
+    // Early init for potential intent receivers.
     public static void sendForMelStatus(final Context context, String appName) {
         if (mMelStateReceiver == null && listenForAppStatus == true) {
             registerReceivers(context);
@@ -104,9 +95,6 @@ public class MelMessaging {
         }
 
         getUid();
-
-        // Does this check if our app is registered on platform?
-        sendGetAppRegStatus(context, appName);
     }
 
     // For use in PlatformFindCloudlet.
@@ -125,21 +113,6 @@ public class MelMessaging {
             Log.e(TAG, "sendSetToken cannot send." + ise.getMessage());
         }
         return "";
-    }
-
-    // FIXME: Why get and receive this? Current known usage is to populate a property to read reg app status.
-    public static void sendGetAppRegStatus(Context context, String appName) {
-        Intent intent = new Intent(ACTION_SEND_COOKIES);
-        intent.setClassName(pkg, cls);
-        intent.setAction(ACTION_SEND_COOKIES);
-        intent.putExtra(EXTRA_PARAM_APP_NAME_KEY, appName);
-
-        try {
-            Log.i(TAG, "sendGetAppRegStatus triggered.");
-            context.sendBroadcast(intent);
-        } catch (IllegalStateException ise) {
-            Log.i(TAG, "sendGetAppRegStatus cannot send." + ise.getMessage());
-        }
     }
 }
 

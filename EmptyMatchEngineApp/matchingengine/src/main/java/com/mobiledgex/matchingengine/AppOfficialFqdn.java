@@ -84,7 +84,7 @@ class AppOfficialFqdn implements Callable {
     NetworkManager nm;
     try {
       nm = mMatchingEngine.getNetworkManager();
-      Network network = nm.getCellularNetworkBlocking(false);
+      Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
 
       channel = mMatchingEngine.channelPicker(mHost, mPort, network);
       MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
