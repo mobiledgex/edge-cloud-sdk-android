@@ -22,6 +22,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.Location;
+import android.net.Network;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -333,7 +334,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     //mMatchingEngine.setUseWifiOnly(true);
                     dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
 
-
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
                     String orgName = "MobiledgeX"; // Always supplied by application, and in the MobiledgeX web admin console.
@@ -370,7 +370,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
                     AppClient.FindCloudletRequest findCloudletRequest =
                             mMatchingEngine.createDefaultFindCloudletRequest(ctx, location)
-                                .setCarrierName("cerust")
+                                //.setCarrierName("cerust")
                                 .build();
                     AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
                             dmeHostAddress, port, 10000);

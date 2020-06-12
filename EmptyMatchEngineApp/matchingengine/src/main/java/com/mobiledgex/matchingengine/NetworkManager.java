@@ -313,7 +313,11 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
                 if (mNetwork == null) {
                     mNetwork = mConnectivityManager.getActiveNetwork();
                 }
-                return mNetwork;
+
+                if (mNetwork != null) {
+                    return mNetwork;
+                }
+                // If there is no active network, attempt to switch despite preference to avoid it.
             }
 
             // If the target is cellular, and there's no subscriptions, just return.
