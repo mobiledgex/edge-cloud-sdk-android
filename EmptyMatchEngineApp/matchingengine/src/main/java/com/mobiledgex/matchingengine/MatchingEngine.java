@@ -388,18 +388,13 @@ public class MatchingEngine {
         TelephonyManager telManager = (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
         if (telManager.getSimState() != TelephonyManager.SIM_STATE_READY) {
             Log.w(TAG, "SIM is not in ready state.");
-            throw new DmeDnsException("SIM not in ready state.");
-        }
-
-        /* May be unreliable */
-        if (telManager.getPhoneType() == TelephonyManager.PHONE_TYPE_CDMA) {
-
+            return wifiOnlyDmeHost; // fallback to wifi, which will be geo-located.
         }
 
         String mccmnc = telManager.getNetworkOperator();
         if (mccmnc == null || mccmnc.isEmpty()) {
             Log.e(TAG, "No mcc-mnc string available.");
-            return wifiOnlyDmeHost; // fallback to wifi.
+            return wifiOnlyDmeHost; // fallback to wifi, which will be geo-located.
         }
 
         if (mccmnc.length() < 5 || mccmnc.length() > 6) {
