@@ -407,15 +407,18 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
                         mConnectivityManager.unregisterNetworkCallback(networkCallback);
                         mNetwork = null;
                         mNetworkRequest = null;
-
                         logTransportCapabilities(networkCapabilities);
 
                         // It is possible to start the switch, and find that there are no current networks during the switch.
-                        if (mActiveSubscriptionInfoList == null || mActiveSubscriptionInfoList.size() == 0) {
-                            String msg = "There are no data subscriptions for the requested network switch.";
-                            Log.e(TAG, msg);
-                            throw new NetworkRequestNoSubscriptionInfoException(msg);
+                        boolean cellRequest = networkCapabilities != null && networkCapabilities.hasCapability(NetworkCapabilities.TRANSPORT_CELLULAR);
+                        if (cellRequest) {
+                            if (mActiveSubscriptionInfoList == null || mActiveSubscriptionInfoList.size() == 0) {
+                                String msg = "There are no data subscriptions for the requested network switch.";
+                                Log.e(TAG, msg);
+                                throw new NetworkRequestNoSubscriptionInfoException(msg);
+                            }
                         }
+
                         throw new NetworkRequestTimeoutException("NetworkRequest timed out with no availability.");
                     }
                     elapsed = System.currentTimeMillis() - timeStart;

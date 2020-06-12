@@ -303,11 +303,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             }
                         }
                         mMatchingEngine.setNetworkSwitchingEnabled(true);
-                        NetworkManager networkManager = mMatchingEngine.getNetworkManager();
                     } else {
                         // This example will continue to execute anyway, as Demo DME may still be reachable to discover nearby edge cloudlets.
                         someText += "No active cellular networks: app should use public cloud instead of the edgecloudlet at this time.\n";
-                        mMatchingEngine.setNetworkSwitchingEnabled(false);
                     }
 
                     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ctx);
