@@ -414,7 +414,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             OkHttpClient client = new OkHttpClient(); //mMatchingEngine.getAppConnectionManager().getHttpClient(10000).get();
 
                             Request request = new Request.Builder()
-                              .url("http://" + host + ":8008")
+                              .url("http://" + host + ":8008" + "/test/")
                               .build();
                             Response response = client.newCall(request).execute();
                             String out = response.toString();
