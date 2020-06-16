@@ -22,6 +22,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.Location;
+import android.net.Network;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -303,11 +304,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             }
                         }
                         mMatchingEngine.setNetworkSwitchingEnabled(true);
-                        NetworkManager networkManager = mMatchingEngine.getNetworkManager();
                     } else {
                         // This example will continue to execute anyway, as Demo DME may still be reachable to discover nearby edge cloudlets.
                         someText += "No active cellular networks: app should use public cloud instead of the edgecloudlet at this time.\n";
-                        mMatchingEngine.setNetworkSwitchingEnabled(false);
                     }
 
                     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ctx);
@@ -334,7 +333,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     dmeHostAddress = "us-mexdemo." + MatchingEngine.baseDmeHost;
                     //mMatchingEngine.setUseWifiOnly(true);
                     dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
-
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
@@ -372,7 +370,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
                     AppClient.FindCloudletRequest findCloudletRequest =
                             mMatchingEngine.createDefaultFindCloudletRequest(ctx, location)
-                                .setCarrierName("telus")
+                                //.setCarrierName("telus")
                                 .build();
                     AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
                             dmeHostAddress, port, 10000);
