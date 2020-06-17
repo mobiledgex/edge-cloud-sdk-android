@@ -33,7 +33,7 @@ dependencies {
     implementation project(":mel")
     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
     // Use maven:
-    //implementation 'com.mobiledgex:matchingengine:2.0.14'
+    //implementation 'com.mobiledgex:matchingengine:2.1.0'
     //implementation 'com.mobiledgex:mel:1.0.11'
     // Dependencies of Matching Engine, if using Maven:
     implementation "io.grpc:grpc-okhttp:${grpcVersion}"
