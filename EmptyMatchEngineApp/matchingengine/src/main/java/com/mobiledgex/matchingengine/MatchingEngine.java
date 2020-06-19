@@ -486,8 +486,6 @@ public class MatchingEngine {
      * @throws PackageManager.NameNotFoundException
      */
     public RegisterClientRequest.Builder createDefaultRegisterClientRequest(Context context,
-                                                                            String applicationName,
-                                                                            String appVersion,
                                                                             String organizationName)
             throws PackageManager.NameNotFoundException {
 
@@ -504,8 +502,8 @@ public class MatchingEngine {
         }
 
         // App
-        String appName = applicationName == null || applicationName == "" ? getAppName(context) : applicationName;
-        String versionName = appVersion == null || appVersion == "" ? getAppVersion(context) : appVersion;
+        String appName = getAppName(context);
+        String versionName = getAppVersion(context);
 
         // Invalid application name state
         if (appName == null || appName.equals("")) {
@@ -1210,7 +1208,9 @@ public class MatchingEngine {
         Callable<FindCloudletReply> future = new Callable<FindCloudletReply>() {
             @Override
             public FindCloudletReply call() throws Exception {
-                RegisterClientRequest.Builder registerClientRequestBuilder = createDefaultRegisterClientRequest(context, organizationName, applicationName, appVersion)
+                RegisterClientRequest.Builder registerClientRequestBuilder = createDefaultRegisterClientRequest(context, organizationName)
+                        .setAppName(applicationName)
+                        .setAppVers(appVersion)
                         .setAuthToken(authToken)
                         .setCellId(cellId);
                 if (tags != null) {

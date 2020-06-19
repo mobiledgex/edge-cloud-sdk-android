@@ -346,9 +346,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
                     // like AuthToken or Tag key value pairs.
                     AppClient.RegisterClientRequest registerClientRequest =
-                            mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName, appName, appVers)
-                              //.setCarrierName("telus")
-                              .build();
+                            mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName)
+                                    //.setCarrierName("telus")
+                                    .setAppName(appName)
+                                    .setAppVers(appVers)
+                                    .build();
                     Log.i(TAG, "registerclient request is " + registerClientRequest);
 
                     AppClient.RegisterClientReply registerClientReply =
