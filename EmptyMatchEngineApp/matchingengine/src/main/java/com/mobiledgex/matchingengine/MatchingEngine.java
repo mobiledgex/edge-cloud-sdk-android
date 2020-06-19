@@ -282,7 +282,7 @@ public class MatchingEngine {
      * @param context
      * @return
      */
-    public String getMccMnc(Context context) {
+    String getMccMnc(Context context) {
         TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
 
         int subId = SubscriptionManager.getDefaultDataSubscriptionId();
@@ -367,7 +367,7 @@ public class MatchingEngine {
         return list;
     }
 
-    public String getUniqueId(Context context) {
+    String getUniqueId(Context context) {
         String uuid = Secure.getString(context.getContentResolver(),
                 Secure.ANDROID_ID);
         Log.d(TAG, "uuid is " + uuid);
@@ -442,7 +442,7 @@ public class MatchingEngine {
      * @param context
      * @return May return null.
      */
-    public String getAppName(Context context) {
+    String getAppName(Context context) {
         String appName;
         ApplicationInfo appInfo = context.getApplicationInfo();
         int stringId = appInfo.labelRes;
@@ -457,7 +457,7 @@ public class MatchingEngine {
      * @param context
      * @return May return null.
      */
-    public String getAppVersion(Context context)
+    String getAppVersion(Context context)
             throws PackageManager.NameNotFoundException {
         PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
 
@@ -998,70 +998,6 @@ public class MatchingEngine {
     }
 
     /**
-     * getLocation returns the network verified location of this device.
-     * @param context
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
-     * @throws StatusRuntimeException
-     * @throws InterruptedException
-     * @throws ExecutionException
-     */
-    public GetLocationReply getLocation(Context context,
-                                        GetLocationRequest request,
-                                        long timeoutInMilliseconds)
-            throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
-        return getLocation(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
-    }
-    /**
-     * getLocation returns the network verified location of this device.
-     * @param request
-     * @param host Distributed Matching Engine hostname
-     * @param port Distributed Matching Engine port
-     * @param timeoutInMilliseconds
-     * @return
-     * @throws StatusRuntimeException
-     */
-    public GetLocationReply getLocation(GetLocationRequest request,
-                                        String host, int port,
-                                        long timeoutInMilliseconds)
-            throws StatusRuntimeException, InterruptedException, ExecutionException {
-        GetLocation getLocation = new GetLocation(this);
-        getLocation.setRequest(request, host, port, timeoutInMilliseconds);
-        return getLocation.call();
-    }
-
-    /**
-     * getLocation returns the network verified location of this device. Returns a Future.
-     * @param context
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
-     */
-    public Future<GetLocationReply> getLocationFuture(Context context,
-                                                      GetLocationRequest request,
-                                                      long timeoutInMilliseconds)
-            throws DmeDnsException {
-        return getLocationFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
-    }
-    /**
-     * getLocation returns the network verified location of this device. Returns a Future.
-     * @param request
-     * @param host Distributed Matching Engine hostname
-     * @param port Distributed Matching Engine port
-     * @param timeoutInMilliseconds
-     * @return
-     */
-    public Future<GetLocationReply> getLocationFuture(GetLocationRequest request,
-                                                      String host, int port,
-                                                      long timeoutInMilliseconds) {
-        GetLocation getLocation = new GetLocation(this);
-        getLocation.setRequest(request, host, port, timeoutInMilliseconds);
-        return submit(getLocation);
-    }
-
-
-    /**
      * addUserToGroup is a blocking call.
      * @param request
      * @param timeoutInMilliseconds
@@ -1069,7 +1005,7 @@ public class MatchingEngine {
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    public DynamicLocGroupReply addUserToGroup(DynamicLocGroupRequest request,
+    DynamicLocGroupReply addUserToGroup(DynamicLocGroupRequest request,
                                                long timeoutInMilliseconds)
             throws DmeDnsException, InterruptedException, ExecutionException {
         return addUserToGroup(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
@@ -1082,7 +1018,7 @@ public class MatchingEngine {
      * @param timeoutInMilliseconds
      * @return
      */
-    public DynamicLocGroupReply addUserToGroup(DynamicLocGroupRequest request,
+    DynamicLocGroupReply addUserToGroup(DynamicLocGroupRequest request,
                                                String host, int port,
                                                long timeoutInMilliseconds)
             throws InterruptedException, ExecutionException {
@@ -1097,7 +1033,7 @@ public class MatchingEngine {
      * @param timeoutInMilliseconds
      * @return
      */
-    public Future<DynamicLocGroupReply> addUserToGroupFuture(DynamicLocGroupRequest request,
+    Future<DynamicLocGroupReply> addUserToGroupFuture(DynamicLocGroupRequest request,
                                                              long timeoutInMilliseconds)
             throws DmeDnsException {
         return addUserToGroupFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
@@ -1110,7 +1046,7 @@ public class MatchingEngine {
      * @param timeoutInMilliseconds
      * @return
      */
-    public Future<DynamicLocGroupReply> addUserToGroupFuture(DynamicLocGroupRequest request,
+    Future<DynamicLocGroupReply> addUserToGroupFuture(DynamicLocGroupRequest request,
                                                              String host, int port,
                                                              long timeoutInMilliseconds) {
         AddUserToGroup addUserToGroup = new AddUserToGroup(this);
@@ -1261,6 +1197,8 @@ public class MatchingEngine {
      */
     public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
                                                              final String organizationName,
+                                                             final String applicationName,
+                                                             final String appVersion,
                                                              final Location location,
                                                              final String authToken,
                                                              final int cellId,
@@ -1271,6 +1209,8 @@ public class MatchingEngine {
             @Override
             public FindCloudletReply call() throws Exception {
                 RegisterClientRequest.Builder registerClientRequestBuilder = createDefaultRegisterClientRequest(context, organizationName)
+                        .setAppName(applicationName)
+                        .setAppVers(appVersion)
                         .setAuthToken(authToken)
                         .setCellId(cellId);
                 if (tags != null) {
