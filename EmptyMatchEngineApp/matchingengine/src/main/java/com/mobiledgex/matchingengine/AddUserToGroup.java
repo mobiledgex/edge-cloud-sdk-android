@@ -30,7 +30,7 @@ import distributed_match_engine.MatchEngineApiGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 
-public class AddUserToGroup implements Callable {
+class AddUserToGroup implements Callable {
     public static final String TAG = "AddUserToGroup";
 
     private MatchingEngine mMatchingEngine;

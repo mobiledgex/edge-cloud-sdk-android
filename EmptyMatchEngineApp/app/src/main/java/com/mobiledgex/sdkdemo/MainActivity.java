@@ -340,17 +340,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // For illustration, the matching engine can be used to programatically get the name of your application details
                     // so it can go to the correct appInst version. That AppInst on the server side must match the application
                     // version or else it won't be found and cannot be used.
-                    String appName = mMatchingEngine.getAppName(ctx); // AppName must be added to the MobiledgeX web admin console.
-                    appName = "MobiledgeX SDK Demo"; // override with a known registered appName.
+                    String appName = "MobiledgeX SDK Demo"; // AppName must be added to the MobiledgeX web admin console.
                     String appVers = "2.0"; // override the version of that known registered app.
 
                     // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
                     // like AuthToken or Tag key value pairs.
                     AppClient.RegisterClientRequest registerClientRequest =
-                            mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName)
+                            mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName, appName, appVers)
                               //.setCarrierName("telus")
-                              .setAppName(appName)
-                              .setAppVers(appVers)
                               .build();
                     Log.i(TAG, "registerclient request is " + registerClientRequest);
 
