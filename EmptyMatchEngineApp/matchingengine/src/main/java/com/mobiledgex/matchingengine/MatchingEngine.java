@@ -368,7 +368,8 @@ public class MatchingEngine {
     }
 
     String getUniqueId(Context context) {
-        String uuid = Secure.getString(context.getContentResolver(),
+        String uuid;
+        uuid = Secure.getString(context.getContentResolver(),
                 Secure.ANDROID_ID);
         Log.d(TAG, "uuid is " + uuid);
         return uuid;

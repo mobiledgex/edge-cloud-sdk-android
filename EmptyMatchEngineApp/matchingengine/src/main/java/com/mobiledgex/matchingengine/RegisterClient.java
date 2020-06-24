@@ -18,6 +18,7 @@
 package com.mobiledgex.matchingengine;
 
 import android.net.Network;
+import android.os.Build;
 import android.util.Log;
 
 import com.mobiledgex.mel.MelMessaging;
@@ -71,6 +72,31 @@ public class RegisterClient implements Callable {
 
     }
 
+    private AppClient.RegisterClientRequest updateRequestFoMel() {
+        String uid = MelMessaging.getUid();
+        String android_id = mMatchingEngine.getUniqueId(mMatchingEngine.mContext);
+        String manufacturer = Build.MANUFACTURER;
+
+
+        // Whether MEL is activated or not, look for a UID. If there is one, we can attempt to
+        // activate the device at the DME.
+        if (uid != null && !uid.isEmpty()) {
+            mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
+                .setUniqueIdType("Samsung:SamsungEnablingLayer") // TBD: Only one enabling layer.
+                .setUniqueId(uid)
+                .build();
+        } else if (manufacturer != null && manufacturer.toLowerCase().equals("samsung") &&
+                   android_id != null && !android_id.isEmpty()) {
+            mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
+                .setUniqueIdType("Samsung:ANDROID_ID")
+                .setUniqueId(android_id)
+                .build();
+        }
+
+        return mRequest;
+    }
+
+
     @Override
     public AppClient.RegisterClientReply call() throws MissingRequestException, StatusRuntimeException, InterruptedException, ExecutionException {
         if (mRequest == null) {
@@ -87,15 +113,7 @@ public class RegisterClient implements Callable {
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
-            String uid = MelMessaging.getUid();
-            // Whether MEL is activated or not, look for a UID. If there is one, we can attempt to
-            // activate the device at the DME.
-            if (uid != null && !uid.isEmpty()) {
-                mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
-                  .setUniqueIdType("Samsung:SamsungEnablingLayer") // TBD: Only one enabling layer.
-                  .setUniqueId(MelMessaging.getUid())
-                  .build();
-            }
+            mRequest = updateRequestFoMel();
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .registerClient(mRequest);
