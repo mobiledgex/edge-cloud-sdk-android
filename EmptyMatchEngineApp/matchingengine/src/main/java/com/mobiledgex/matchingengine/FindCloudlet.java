@@ -37,6 +37,7 @@ import java.util.concurrent.Callable;
 import distributed_match_engine.AppClient;
 import distributed_match_engine.AppClient.FindCloudletRequest;
 import distributed_match_engine.Appcommon;
+import distributed_match_engine.LocOuterClass;
 import distributed_match_engine.MatchEngineApiGrpc;
 
 import io.grpc.ManagedChannel;
@@ -81,12 +82,13 @@ public class FindCloudlet implements Callable {
         return true;
     }
 
-    private AppClient.FindCloudletReply.Builder createFindCloudletReplyFromAppInstance(AppClient.FindCloudletReply findCloudletReply, AppClient.Appinstance appinstance) {
+    private AppClient.FindCloudletReply.Builder createFindCloudletReplyFromBestSite(AppClient.FindCloudletReply findCloudletReply, Site bestSite) {
         return AppClient.FindCloudletReply.newBuilder()
                 .setVer(findCloudletReply.getVer())
                 .setStatus(findCloudletReply.getStatus())
-                .setFqdn(appinstance.getFqdn())
-                .addAllPorts(appinstance.getPortsList())
+                .setFqdn(bestSite.appInstance.getFqdn())
+                .setCloudletLocation(bestSite.cloudlet_location)
+                .addAllPorts(bestSite.appInstance.getPortsList())
                 .addAllTags(findCloudletReply.getTagsList());
     }
 
@@ -139,6 +141,7 @@ public class FindCloudlet implements Callable {
                     }
                     if (site != null) {
                         site.setAppinstance(appInstance);
+                        site.setCloudletLocation(cloudletLocation.getGpsLocation());
                         netTest.addSite(site);
                     }
                 }
@@ -245,8 +248,9 @@ public class FindCloudlet implements Callable {
             // Using default comparator for selecting the current best.
             Site bestSite = netTest.bestSite();
 
-            AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletReplyFromAppInstance(fcreply, bestSite.appInstance)
-              .build();
+            AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletReplyFromBestSite(fcreply,
+                                                                                                    bestSite)
+                .build();
             fcreply = bestFindCloudletReply;
 
         } finally {

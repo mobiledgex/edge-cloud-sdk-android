@@ -492,6 +492,9 @@ public class EngineCallTest {
         assertNotNull("FindCloudletReply1 is null!", findCloudletReply1);
         assertNotNull("FindCloudletReply2 is null!", findCloudletReply2);
 
+        assertNotNull(findCloudletReply1.getCloudletLocation());
+        assertNotNull(findCloudletReply2.getCloudletLocation());
+
         NetTest netTest = me.getNetTest();
         if (!findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn())) {
             Site site1 = netTest.getSite(findCloudletReply1.getPorts(0).getFqdnPrefix() + findCloudletReply1.getFqdn());
@@ -610,6 +613,9 @@ public class EngineCallTest {
 
         assertNotNull("FindCloudletReply1 is null!", findCloudletReply1);
         assertNotNull("FindCloudletReply2 is null!", findCloudletReply2);
+
+        assertNotNull(findCloudletReply1.getCloudletLocation());
+        assertNotNull(findCloudletReply2.getCloudletLocation());
 
         NetTest netTest = me.getNetTest();
         if (!findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn())) {
@@ -767,109 +773,6 @@ public class EngineCallTest {
         assertEquals(AppClient.VerifyLocationReply.TowerStatus.TOWER_UNKNOWN, verifyLocationReply.getTowerStatus());
         assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_ROAMING_COUNTRY_MATCH, verifyLocationReply.getGpsLocationStatus()); // Based on test data.
 
-    }
-
-    @Test
-    public void getLocationTest() {
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        MatchingEngine me = new MatchingEngine(context);
-        me.setMatchingEngineLocationAllowed(true);
-        me.setAllowSwitchIfNoSubscriberInfo(true);
-
-        AppClient.GetLocationReply getLocationReply = null;
-
-        String carrierName = me.getCarrierName(context);
-        Location loc = getTestLocation();
-        try {
-            registerClient(me);
-            AppClient.GetLocationRequest getLocationRequest = me.createDefaultGetLocationRequest(context)
-                    .build();
-
-            if (useHostOverride) {
-                getLocationReply = me.getLocation(getLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            } else {
-                getLocationReply = me.getLocation(context, getLocationRequest, GRPC_TIMEOUT_MS);
-            }
-            assert(getLocationReply != null);
-        } catch (DmeDnsException dde) {
-            Log.e(TAG, Log.getStackTraceString(dde));
-            assertFalse("getLocationTest: DmeDnsException", true);
-        } catch (ExecutionException ee) {
-            Log.e(TAG, Log.getStackTraceString(ee));
-            assertFalse("getLocationTest: ExecutionExecution!", true);
-        } catch (StatusRuntimeException sre) {
-            Log.e(TAG, Log.getStackTraceString(sre));
-            assertFalse("getLocationTest: StatusRuntimeException Failed!", true);
-        } catch (InterruptedException ie) {
-            Log.e(TAG, Log.getStackTraceString(ie));
-            assertFalse("getLocationTest: InterruptedException!", true);
-        } finally {
-            enableMockLocation(context,false);
-        }
-
-        // Temporary.
-        Log.i(TAG, "getLocation() response: " + getLocationReply.toString());
-        assertEquals(0, getLocationReply.getVer());
-
-        assertEquals(carrierName, getLocationReply.getCarrierName());
-        assertEquals(AppClient.GetLocationReply.LocStatus.LOC_FOUND, getLocationReply.getStatus());
-
-        assertEquals(0, getLocationReply.getTower());
-        // FIXME: Server is currently a pure echo of client location.
-        assertEquals((int) loc.getLatitude(), (int) getLocationReply.getNetworkLocation().getLatitude());
-        assertEquals((int) loc.getLongitude(), (int) getLocationReply.getNetworkLocation().getLongitude());
-    }
-
-    @Test
-    public void getLocationFutureTest() {
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        MatchingEngine me = new MatchingEngine(context);
-        me.setMatchingEngineLocationAllowed(true);
-        me.setAllowSwitchIfNoSubscriberInfo(true);
-
-        Future<AppClient.GetLocationReply> getLocationReplyFuture;
-        AppClient.GetLocationReply getLocationReply = null;
-
-        Location loc = getTestLocation();
-
-        String carrierName = me.getCarrierName(context);
-        try {
-            registerClient(me);
-            AppClient.GetLocationRequest getLocationRequest = me.createDefaultGetLocationRequest(context)
-                    .build();
-
-            if (useHostOverride) {
-                getLocationReplyFuture = me.getLocationFuture(getLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            } else {
-                getLocationReplyFuture = me.getLocationFuture(context, getLocationRequest, GRPC_TIMEOUT_MS);
-            }
-            getLocationReply = getLocationReplyFuture.get();
-            assert(getLocationReply != null);
-        } catch (DmeDnsException dde) {
-            Log.e(TAG, Log.getStackTraceString(dde));
-            assertFalse("getLocationFutureTest: DmeDnsException", true);
-        } catch (ExecutionException ee) {
-            Log.e(TAG, Log.getStackTraceString(ee));
-            assertFalse("getLocationFutureTest: ExecutionException!", true);
-        } catch (InterruptedException ie) {
-            Log.e(TAG, Log.getStackTraceString(ie));
-            assertFalse("getLocationFutureTest: InterruptedException!", true);
-        } finally {
-            enableMockLocation(context,false);
-        }
-
-        // Temporary.
-        Log.i(TAG, "getLocationFutureTest() response: " + getLocationReply.toString());
-        assertEquals(0, getLocationReply.getVer());
-        assertEquals(carrierName, getLocationReply.getCarrierName());
-        assertEquals(AppClient.GetLocationReply.LocStatus.LOC_FOUND, getLocationReply.getStatus());
-
-        assertEquals(getLocationReply.getTower(), 0);
-        // FIXME: Server is currently a pure echo of client location.
-        assertEquals((int) loc.getLatitude(), (int) getLocationReply.getNetworkLocation().getLatitude());
-        assertEquals((int) loc.getLongitude(), (int) getLocationReply.getNetworkLocation().getLongitude());
-
-        assertEquals("Carriers must match", carrierName, getLocationReply.getCarrierName());
     }
 
     @Test

@@ -20,6 +20,7 @@ package com.mobiledgex.matchingengine.performancemetrics;
 import android.net.Network;
 
 import distributed_match_engine.AppClient;
+import distributed_match_engine.LocOuterClass;
 
 public class Site
 {
@@ -40,6 +41,7 @@ public class Site
     public double stddev;
 
     public AppClient.Appinstance appInstance;
+    public LocOuterClass.Loc cloudlet_location;
 
     public static final int DEFAULT_NUM_SAMPLES = 3;
 
@@ -71,6 +73,10 @@ public class Site
         return this.appInstance = appinstance;
     }
 
+    // GPS Cloudlet location
+    public LocOuterClass.Loc setCloudletLocation(LocOuterClass.Loc cloudlet_location) {
+        return this.cloudlet_location = cloudlet_location;
+    }
 
     public void addSample(double time)
     {
@@ -113,5 +119,4 @@ public class Site
 
         return false;
     }
-
 }
