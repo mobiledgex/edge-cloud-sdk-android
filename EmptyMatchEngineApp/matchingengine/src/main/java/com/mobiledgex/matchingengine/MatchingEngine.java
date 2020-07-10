@@ -777,6 +777,8 @@ public class MatchingEngine {
             throws StatusRuntimeException, InterruptedException, ExecutionException {
         RegisterClient registerClient = new RegisterClient(this); // Instanced, so just add host, port as field.
         registerClient.setRequest(request, host, port, timeoutInMilliseconds);
+
+        Log.i(TAG, "DME host is: " + host);
         return registerClient.call();
     }
 
@@ -843,12 +845,13 @@ public class MatchingEngine {
                                         String host, int port,
                                         long timeoutInMilliseconds)
     throws StatusRuntimeException, InterruptedException, ExecutionException {
-    FindCloudlet findCloudlet = new FindCloudlet(this);
+      FindCloudlet findCloudlet = new FindCloudlet(this);
 
-    // This also needs some info for MEL.
-    findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
+      // This also needs some info for MEL.
+      findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
 
-    return findCloudlet.call();
+      Log.i(TAG, "DME host is: " + host);
+      return findCloudlet.call();
   }
     /**
      * findCloudlet finds the closest cloudlet instance as per request.
@@ -870,6 +873,7 @@ public class MatchingEngine {
         // This also needs some info for MEL.
         findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, mode);
 
+        Log.i(TAG, "DME host is: " + host);
         return findCloudlet.call();
     }
 
@@ -969,6 +973,7 @@ public class MatchingEngine {
         VerifyLocation verifyLocation = new VerifyLocation(this);
         verifyLocation.setRequest(request, host, port, timeoutInMilliseconds);
 
+        Log.i(TAG, "DME host is: " + host);
         return verifyLocation.call();
     }
 
@@ -1025,6 +1030,8 @@ public class MatchingEngine {
             throws InterruptedException, ExecutionException {
         AddUserToGroup addUserToGroup = new AddUserToGroup(this);
         addUserToGroup.setRequest(request, host, port, timeoutInMilliseconds);
+
+        Log.i(TAG, "DME host is: " + host);
         return addUserToGroup.call();
     }
 
@@ -1081,6 +1088,8 @@ public class MatchingEngine {
             throws InterruptedException, ExecutionException {
         GetAppInstList getAppInstList = new GetAppInstList(this);
         getAppInstList.setRequest(request, host, port, timeoutInMilliseconds);
+
+        Log.i(TAG, "DME host is: " + host);
         return getAppInstList.call();
     }
 
@@ -1127,6 +1136,8 @@ public class MatchingEngine {
             throws DmeDnsException, InterruptedException, ExecutionException {
         QosPositionKpi qosPositionKpi = new QosPositionKpi(this);
         qosPositionKpi.setRequest(request,generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
+
+        Log.i(TAG, "DME host is: " + host);
         return qosPositionKpi.call();
     }
 
@@ -1163,6 +1174,8 @@ public class MatchingEngine {
             throws InterruptedException, ExecutionException {
         QosPositionKpi qosPositionKpi = new QosPositionKpi(this);
         qosPositionKpi.setRequest(request, host, port, timeoutInMilliseconds);
+
+        Log.i(TAG, "DME host is: " + host);
         return qosPositionKpi.call();
     }
 
