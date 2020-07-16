@@ -1205,8 +1205,13 @@ public class MatchingEngine {
      * registerAndFindCloudlet with most defaults filled in.
      * @param context
      * @param organizationName
+     * @param applicationName
+     * @param appVersion
      * @param location
      * @param authToken
+     * @param cellId
+     * @param tags
+     * @param mode FindCloudletMode performance rated mode, or proximity mode.
      * @return
      */
     public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
@@ -1216,7 +1221,8 @@ public class MatchingEngine {
                                                              final Location location,
                                                              final String authToken,
                                                              final int cellId,
-                                                             final List<AppClient.Tag> tags) {
+                                                             final List<AppClient.Tag> tags,
+                                                             final FindCloudletMode mode) {
         final MatchingEngine me = this;
 
         Callable<FindCloudletReply> future = new Callable<FindCloudletReply>() {
@@ -1238,11 +1244,17 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest findCloudletRequest = createDefaultFindCloudletRequest(context, location)
-                    .setCellId(cellId)
-                    .addAllTags(tags)
-                    .build();
-                FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, me.getNetworkManager().getTimeout());
+                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location)
+                    .setCellId(cellId);
+                if (tags != null) {
+                  findCloudletRequestBuilder.addAllTags(tags);
+                }
+                FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
+                FindCloudletMode useMode = mode;
+                if (useMode == null) {
+                    useMode = FindCloudletMode.PROXIMITY;
+                }
+                FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, me.getNetworkManager().getTimeout(), useMode);
 
                 return findCloudletReply;
             }
@@ -1263,7 +1275,8 @@ public class MatchingEngine {
                                                              final int cellId,
                                                              final String uniqueIdType,
                                                              final String uniqueId,
-                                                             final List<AppClient.Tag> tags) {
+                                                             final List<AppClient.Tag> tags,
+                                                             final FindCloudletMode mode) {
 
         final MatchingEngine me = this;
 
@@ -1281,12 +1294,15 @@ public class MatchingEngine {
 
                 FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location)
                         .setCellId(cellId);
-
                 if (tags != null) {
                     findCloudletRequestBuilder.addAllTags(tags);
                 }
                 FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
-                FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, me.getNetworkManager().getTimeout());
+                FindCloudletMode useMode = mode;
+                if (useMode == null) {
+                    useMode = FindCloudletMode.PROXIMITY;
+                }
+                FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, me.getNetworkManager().getTimeout(), useMode);
 
                 return findCloudletReply;
             }
@@ -1295,6 +1311,9 @@ public class MatchingEngine {
         return threadpool.submit(future);
     }
 
+    /**
+     * Register and FindCloudlet with DME host and port parameters, to get FindCloudletReply for cloudlet AppInsts info all at once:
+     */
     public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
                                                              final String host,
                                                              final int port,
@@ -1306,7 +1325,8 @@ public class MatchingEngine {
                                                              final int cellId,
                                                              final String uniqueIdType,
                                                              final String uniqueId,
-                                                             final List<AppClient.Tag> tags) {
+                                                             final List<AppClient.Tag> tags,
+                                                             final FindCloudletMode mode) {
 
         final MatchingEngine me = this;
 
@@ -1329,9 +1349,12 @@ public class MatchingEngine {
                     findCloudletRequestBuilder.addAllTags(tags);
                 }
                 FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
-
+                FindCloudletMode useMode = mode;
+                if (useMode == null) {
+                    useMode = FindCloudletMode.PROXIMITY;
+                }
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest,
-                        host, port, me.getNetworkManager().getTimeout(), FindCloudletMode.PROXIMITY);
+                        host, port, me.getNetworkManager().getTimeout(), useMode);
 
                 return findCloudletReply;
             }
