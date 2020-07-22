@@ -27,6 +27,7 @@ import com.mobiledgex.mel.MelMessaging;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -294,10 +295,17 @@ public class FindCloudlet implements Callable {
                 AppClient.FindCloudletReply.FindStatus.FIND_FOUND : AppClient.FindCloudletReply.FindStatus.FIND_NOTFOUND;
 
             // Create a very basic FindCloudletReply from AppOfficialFqdn reply:
+            List<Appcommon.AppPort> portList = new LinkedList<>();
+            if (reply.getPortsCount() > 0) {
+                portList = reply.getPortsList();
+            } else {
+                // Port num of 0 means the App must use known values.
+                portList.add(Appcommon.AppPort.newBuilder().build());
+            }
             fcReply = AppClient.FindCloudletReply.newBuilder()
                 .setFqdn(reply.getAppOfficialFqdn()) // Straight copy.
                 .setStatus(fcStatus)
-                .addPorts(Appcommon.AppPort.newBuilder().build()) // Port is unknown here.
+                .addAllPorts(portList)
                 .build();
 
             mMatchingEngine.setFindCloudletResponse(fcReply);
