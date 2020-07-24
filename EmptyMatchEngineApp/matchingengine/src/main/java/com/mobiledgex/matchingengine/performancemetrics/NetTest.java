@@ -35,6 +35,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -67,7 +69,7 @@ public class NetTest
     /**
      * Synchronized List of Sites.
      */
-    private List<Site> sites;
+    private CopyOnWriteArrayList<Site> sites;
     private Comparator<Site> siteComparator;
 
     class DefaultSiteComparator implements Comparator<Site>{
@@ -103,8 +105,7 @@ public class NetTest
     public NetTest()
     {
         siteComparator = new DefaultSiteComparator();
-        List<Site> list = new ArrayList<Site>();
-        sites = Collections.synchronizedList(list);
+        sites =  new CopyOnWriteArrayList<Site>();
     }
 
     public Comparator<Site> getSiteComparator() {
@@ -338,12 +339,12 @@ public class NetTest
      * @return
      */
     public Site bestSite() {
-        synchronized (sites) {
-            sites.sort(siteComparator); // Sort after testing, or for current best.
-            if (sites.size() > 0) {
-                return sites.get(0);
-            }
+
+        sites.sort(siteComparator); // Sort after testing, or for current best.
+        if (sites.size() > 0) {
+          return sites.get(0);
         }
+
         return null;
     }
 
