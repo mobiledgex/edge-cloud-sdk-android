@@ -20,7 +20,7 @@ android {
         minSdkVersion 24
         targetSdkVersion 28
         versionCode 4
-        versionName "2.1.0"
+        versionName "2.1.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -87,7 +87,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.0.0'
 
     implementation project(":mel")
-    //implementation 'com.mobiledgex:mel:1.0.8'
+    //implementation 'com.mobiledgex:mel:1.0.11'
 
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.0'
@@ -99,8 +99,9 @@ dependencies {
     protobuf 'com.google.protobuf:protobuf-java:3.0.2' // FIXME: Timestamp, for lite version: old lib: https://github.com/google/protobuf/issues/1889
     implementation 'javax.annotation:javax.annotation-api:1.2'
 
-    // For Google Location Services.
-    implementation 'com.google.android.gms:play-services-location:15.0.1'
+    // For Google Services
+    implementation 'com.google.android.gms:play-services-location:17.0.0'
+    implementation 'com.google.android.gms:play-services-ads-identifier:17.0.0'
 
     // For JWT validation
     implementation 'com.auth0.android:jwtdecode:2.0.0'
