@@ -59,6 +59,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
@@ -353,9 +354,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                     .build();
                     Log.i(TAG, "registerclient request is " + registerClientRequest);
 
-                    AppClient.RegisterClientReply registerClientReply =
-                            mMatchingEngine.registerClient(registerClientRequest,
+                    // This exercises a threadpool that can have a dependent call depth larger than 1
+                    AppClient.RegisterClientReply registerClientReply;
+                    Future<AppClient.RegisterClientReply> registerClientReplyFuture =
+                            mMatchingEngine.registerClientFuture(registerClientRequest,
                                     dmeHostAddress, port, 10000);
+                    registerClientReply = registerClientReplyFuture.get();
+
                     Log.i(TAG, "RegisterReply status is " + registerClientReply.getStatus());
 
                     if (registerClientReply.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {

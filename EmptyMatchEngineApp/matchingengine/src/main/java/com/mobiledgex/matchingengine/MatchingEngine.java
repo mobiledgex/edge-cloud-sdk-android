@@ -65,6 +65,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -150,7 +151,7 @@ public class MatchingEngine {
     private boolean threadedPerformanceTest = false;
 
     public MatchingEngine(Context context) {
-        threadpool = Executors.newSingleThreadExecutor();
+        threadpool = Executors.newCachedThreadPool();
         ConnectivityManager connectivityManager = context.getSystemService(ConnectivityManager.class);
         mNetworkManager = NetworkManager.getInstance(connectivityManager, getSubscriptionManager(context));
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
@@ -401,18 +402,18 @@ public class MatchingEngine {
 
         // FIXME: 1.0.0 Alpha version allows checking whether the AD ID provider even exists before starting the future.
         completableAdIdFuture = CompletableFuture.supplyAsync(new Supplier<AdvertisingIdClient.Info>() {
-          @Override
-          public AdvertisingIdClient.Info get() {
-              AdvertisingIdClient.Info aInfo = null;
-              try {
-                  aInfo = AdvertisingIdClient.getAdvertisingIdInfo(mContext);
-              } catch (IOException e) {
-                  e.printStackTrace();
-              } catch (GooglePlayServicesNotAvailableException | GooglePlayServicesRepairableException e) {
-                  e.printStackTrace();
-              }
-              return aInfo;
-          }
+            @Override
+            public AdvertisingIdClient.Info get() {
+                AdvertisingIdClient.Info aInfo = null;
+                try {
+                    aInfo = AdvertisingIdClient.getAdvertisingIdInfo(mContext);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (GooglePlayServicesNotAvailableException | GooglePlayServicesRepairableException e) {
+                    e.printStackTrace();
+                }
+                return aInfo;
+            }
         }, threadpool);
 
         try {
