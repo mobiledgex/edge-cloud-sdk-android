@@ -27,8 +27,14 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
-import android.provider.Settings.Secure;
+
+import com.google.android.gms.ads.identifier.AdvertisingIdClient;
+
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.GooglePlayServicesRepairableException;
+
 import androidx.annotation.RequiresApi;
+
 import android.telephony.CarrierConfigManager;
 import android.telephony.CellIdentityCdma;
 import android.telephony.CellIdentityGsm;
@@ -51,14 +57,21 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.AppClient.RegisterClientRequest;
@@ -91,7 +104,6 @@ import android.content.pm.PackageInfo;
 import android.util.Log;
 import android.util.Pair;
 
-
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.mel.MelMessaging;
 
@@ -102,7 +114,7 @@ public class MatchingEngine {
     public static final String TAG = "MatchingEngine";
     public static final String baseDmeHost = "dme.mobiledgex.net";
     public static final String WIFIHOST = "wifi";
-    public static final String wifiOnlyDmeHost =  WIFIHOST + "." + baseDmeHost; // Demo mode only.
+    public static final String wifiOnlyDmeHost = WIFIHOST + "." + baseDmeHost; // Demo mode only.
     private String host = baseDmeHost;
     private NetworkManager mNetworkManager;
     private AppConnectionManager mAppConnectionManager;
@@ -139,7 +151,7 @@ public class MatchingEngine {
     private boolean threadedPerformanceTest = false;
 
     public MatchingEngine(Context context) {
-        threadpool = Executors.newSingleThreadExecutor();
+        threadpool = Executors.newCachedThreadPool();
         ConnectivityManager connectivityManager = context.getSystemService(ConnectivityManager.class);
         mNetworkManager = NetworkManager.getInstance(connectivityManager, getSubscriptionManager(context));
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
@@ -150,6 +162,7 @@ public class MatchingEngine {
             MelMessaging.sendForMelStatus(context, getAppName(context));
         }
     }
+
     public MatchingEngine(Context context, ExecutorService executorService) {
         threadpool = executorService;
         ConnectivityManager connectivityManager = context.getSystemService(ConnectivityManager.class);
@@ -158,8 +171,8 @@ public class MatchingEngine {
         mContext = context;
         mNetTest = new NetTest();
         if (MelMessaging.isMelEnabled()) {
-          // Updates and sends for MEL status:
-          MelMessaging.sendForMelStatus(context, getAppName(context));
+            // Updates and sends for MEL status:
+            MelMessaging.sendForMelStatus(context, getAppName(context));
         }
     }
 
@@ -287,7 +300,7 @@ public class MatchingEngine {
 
         int subId = SubscriptionManager.getDefaultDataSubscriptionId();
         if (subId == SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
-          return null;
+            return null;
         }
 
         return telManager.createForSubscriptionId(subId).getNetworkOperator();
@@ -367,11 +380,39 @@ public class MatchingEngine {
         return list;
     }
 
+    public String HashSha512(String aString) throws NoSuchAlgorithmException {
+        MessageDigest digest = MessageDigest.getInstance("SHA-512");
+
+        if (aString != null) {
+            byte[] encodedHash = digest.digest(aString.getBytes(StandardCharsets.UTF_8));
+            StringBuffer sb = new StringBuffer();
+            // Construct unsigned byte hex version (lower case).
+            for (byte b : encodedHash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        }
+
+        return null;
+    }
+
+    String getHashedAndroidId(Context context) throws NoSuchAlgorithmException{
+        String id;
+        id = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+        return HashSha512(id);
+    }
+
+    // Returns a HEX String of a HASHED unique ads identifer. Or null if ID not found. Do not cache value.
     String getUniqueId(Context context) {
-        String uuid;
-        uuid = Secure.getString(context.getContentResolver(),
-                Secure.ANDROID_ID);
-        Log.d(TAG, "uuid is " + uuid);
+        String uuid = null;
+
+        try {
+            uuid = getHashedAndroidId(context);
+        } catch (NoSuchAlgorithmException nsae) {
+            Log.e(TAG, "Hash algorithm missing. Cannot create hashed ID." + nsae.getStackTrace());
+            uuid = null;
+        }
+
         return uuid;
     }
 

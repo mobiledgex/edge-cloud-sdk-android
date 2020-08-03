@@ -74,22 +74,23 @@ public class RegisterClient implements Callable {
 
     private AppClient.RegisterClientRequest updateRequestFoMel() {
         String uid = MelMessaging.getUid();
-        String android_id = mMatchingEngine.getUniqueId(mMatchingEngine.mContext);
-        String manufacturer = Build.MANUFACTURER;
 
+        // This is the hashed value of Advertising ID.
+        String ad_id = mMatchingEngine.getUniqueId(mMatchingEngine.mContext);
+        String manufacturer = Build.MANUFACTURER;
+        String model = Build.MODEL;
 
         // Whether MEL is activated or not, look for a UID. If there is one, we can attempt to
         // activate the device at the DME.
         if (uid != null && !uid.isEmpty()) {
             mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
-                .setUniqueIdType("Samsung:SamsungEnablingLayer") // TBD: Only one enabling layer.
+                .setUniqueIdType("Samsung:" + model + ":SamsungEnablingLayer") // TBD: Only one enabling layer.
                 .setUniqueId(uid)
                 .build();
-        } else if (manufacturer != null && manufacturer.toLowerCase().equals("samsung") &&
-                   android_id != null && !android_id.isEmpty()) {
+        } else if (manufacturer != null && ad_id != null && !ad_id.isEmpty()) {
             mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
-                .setUniqueIdType("Samsung:ANDROID_ID")
-                .setUniqueId(android_id)
+                .setUniqueIdType(manufacturer + ":" + model + ":HASHED_ID")
+                .setUniqueId(ad_id)
                 .build();
         }
 
