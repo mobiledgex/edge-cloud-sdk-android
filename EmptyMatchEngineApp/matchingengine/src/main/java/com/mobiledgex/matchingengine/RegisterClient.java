@@ -89,7 +89,7 @@ public class RegisterClient implements Callable {
                 .build();
         } else if (manufacturer != null && ad_id != null && !ad_id.isEmpty()) {
             mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
-                .setUniqueIdType(manufacturer + ":" + model + ":HASHED_ADVERTISING_ID")
+                .setUniqueIdType(manufacturer + ":" + model + ":HASHED_ID")
                 .setUniqueId(ad_id)
                 .build();
         }

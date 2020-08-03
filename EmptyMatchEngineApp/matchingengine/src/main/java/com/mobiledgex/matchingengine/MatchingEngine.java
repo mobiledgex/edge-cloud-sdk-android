@@ -396,37 +396,10 @@ public class MatchingEngine {
         return null;
     }
 
-    public String GetHashedAdvertisingID(Context context) throws ExecutionException, InterruptedException, NoSuchAlgorithmException {
-        CompletableFuture<AdvertisingIdClient.Info> completableAdIdFuture;
-        AdvertisingIdClient.Info info = null;
-
-        // FIXME: 1.0.0 Alpha version allows checking whether the AD ID provider even exists before starting the future.
-        completableAdIdFuture = CompletableFuture.supplyAsync(new Supplier<AdvertisingIdClient.Info>() {
-            @Override
-            public AdvertisingIdClient.Info get() {
-                AdvertisingIdClient.Info aInfo = null;
-                try {
-                    aInfo = AdvertisingIdClient.getAdvertisingIdInfo(mContext);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (GooglePlayServicesNotAvailableException | GooglePlayServicesRepairableException e) {
-                    e.printStackTrace();
-                }
-                return aInfo;
-            }
-        }, threadpool);
-
-        try {
-            info = completableAdIdFuture.get(3, TimeUnit.SECONDS); // ID provider (if it exists) shouldn't take too long.
-        } catch (TimeoutException e) {
-            e.printStackTrace();
-        }
-
-        if (info != null && info.getId() != null && info.getId().length() > 0) {
-            return HashSha512(info.getId()); // Just hashed to limit usage.
-        }
-
-        return null;
+    String getHashedAndroidId(Context context) throws NoSuchAlgorithmException{
+        String id;
+        id = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+        return HashSha512(id);
     }
 
     // Returns a HEX String of a HASHED unique ads identifer. Or null if ID not found. Do not cache value.
@@ -434,12 +407,9 @@ public class MatchingEngine {
         String uuid = null;
 
         try {
-            uuid = GetHashedAdvertisingID(context);
+            uuid = getHashedAndroidId(context);
         } catch (NoSuchAlgorithmException nsae) {
             Log.e(TAG, "Hash algorithm missing. Cannot create hashed ID." + nsae.getStackTrace());
-            uuid = null;
-        } catch (InterruptedException | ExecutionException e) {
-            Log.e(TAG, "Exception getting UUID. Returning: " + uuid);
             uuid = null;
         }
 
