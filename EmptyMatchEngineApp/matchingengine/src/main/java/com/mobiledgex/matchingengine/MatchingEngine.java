@@ -28,11 +28,6 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
 
-import com.google.android.gms.ads.identifier.AdvertisingIdClient;
-
-import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
-import com.google.android.gms.common.GooglePlayServicesRepairableException;
-
 import androidx.annotation.RequiresApi;
 
 import android.telephony.CarrierConfigManager;
