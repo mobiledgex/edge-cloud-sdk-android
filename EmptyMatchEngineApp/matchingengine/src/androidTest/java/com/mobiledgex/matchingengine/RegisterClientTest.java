@@ -362,7 +362,7 @@ public class RegisterClientTest {
         .setAppName(applicationNamePlatos)
         .setAppVers(appVersion)
         .setCellId(getCellId(context, me))
-        .setUniqueIdType("applicationInstallId")
+        .setUniqueIdType("TestAdvertisingID")
         .setUniqueId(me.getUniqueId(context))
         .build();
       if (useHostOverride) {
