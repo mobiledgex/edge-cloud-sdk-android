@@ -294,10 +294,12 @@ public class NetTest
 
 
     public Site getSite(String hostOrL7Path) {
-        for (Site s : sites) {
-            if ((s.L7Path != null && s.L7Path.equals(hostOrL7Path)) ||
-                (s.host != null && s.host.equals(hostOrL7Path))) {
-                return s;
+        synchronized (sites) {
+            for (Site s : sites) {
+                if ((s.L7Path != null && s.L7Path.equals(hostOrL7Path)) ||
+                        (s.host != null && s.host.equals(hostOrL7Path))) {
+                    return s;
+                }
             }
         }
         return null;
@@ -305,17 +307,19 @@ public class NetTest
 
     public boolean addSite(Site site) {
 
-        for (Site s : sites) {
-            if (s.sameSite(site)) {
-                return false;
+        synchronized (sites) {
+            for (Site s : sites) {
+                if (s.sameSite(site)) {
+                    return false;
+                }
             }
-        }
 
-        int size = sites.size();
-        if (site.L7Path == null) {
-            sites.add(site);
-        } else {
-            sites.add(site);
+            int size = sites.size();
+            if (site.L7Path == null) {
+                sites.add(site);
+            } else {
+                sites.add(site);
+            }
         }
 
         return true;
@@ -384,13 +388,15 @@ public class NetTest
     public void testSites(long TimeoutMS) {
         Stopwatch testStopwatch = Stopwatch.createStarted();
 
-        for (Site s : sites) {
-            if (TimeoutMS - testStopwatch.elapsed(TimeUnit.MILLISECONDS) < 0) {
-                Log.d(TAG, "Timeout hit.");
-                return;
-            }
-            for (int n = 0; n < s.samples.length; n++) {
-                testSite(s);
+        synchronized (sites) {
+            for (Site s : sites) {
+                if (TimeoutMS - testStopwatch.elapsed(TimeUnit.MILLISECONDS) < 0) {
+                    Log.d(TAG, "Timeout hit.");
+                    return;
+                }
+                for (int n = 0; n < s.samples.length; n++) {
+                    testSite(s);
+                }
             }
         }
     }
@@ -402,36 +408,38 @@ public class NetTest
     public void testSitesOnExecutor(long TimeoutMS) {
         Stopwatch testStopwatch = Stopwatch.createStarted();
 
-        for (final Site s: sites) {
-            if (TimeoutMS - testStopwatch.elapsed(TimeUnit.MILLISECONDS) < 0) {
-                Log.d(TAG, "Timeout hit.");
-                return;
-            }
-
-            // Create some CompletableFutures per round of sites:
-            CompletableFuture<Double>[] cfArray = new CompletableFuture[s.samples.length];
-            for (int n = 0; n < s.samples.length; n++) {
-                CompletableFuture<Double> future;
-                if (mExecutorService == null) {
-                     future = CompletableFuture.supplyAsync(new Supplier<Double>() {
-                        @Override
-                        public Double get() {
-                            return testSite(s);
-                        }
-                    });
-                } else {
-                    future = CompletableFuture.supplyAsync(new Supplier<Double>() {
-                        @Override
-                        public Double get() {
-                            return testSite(s);
-                        }
-                    }, mExecutorService);
+        synchronized (sites) {
+            for (final Site s : sites) {
+                if (TimeoutMS - testStopwatch.elapsed(TimeUnit.MILLISECONDS) < 0) {
+                    Log.d(TAG, "Timeout hit.");
+                    return;
                 }
-                cfArray[n] = future;
-            }
 
-            // Wait for all to complete:
-            CompletableFuture.allOf(cfArray).join(); // Every test has TimeoutMS.
+                // Create some CompletableFutures per round of sites:
+                CompletableFuture<Double>[] cfArray = new CompletableFuture[s.samples.length];
+                for (int n = 0; n < s.samples.length; n++) {
+                    CompletableFuture<Double> future;
+                    if (mExecutorService == null) {
+                        future = CompletableFuture.supplyAsync(new Supplier<Double>() {
+                            @Override
+                            public Double get() {
+                                return testSite(s);
+                            }
+                        });
+                    } else {
+                        future = CompletableFuture.supplyAsync(new Supplier<Double>() {
+                            @Override
+                            public Double get() {
+                                return testSite(s);
+                            }
+                        }, mExecutorService);
+                    }
+                    cfArray[n] = future;
+                }
+
+                // Wait for all to complete:
+                CompletableFuture.allOf(cfArray).join(); // Every test has TimeoutMS.
+            }
         }
     }
 

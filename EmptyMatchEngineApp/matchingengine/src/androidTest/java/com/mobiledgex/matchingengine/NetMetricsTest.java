@@ -17,6 +17,8 @@
 
 package com.mobiledgex.matchingengine;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.location.Location;
 import android.net.Network;
 import android.os.Looper;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -25,11 +27,16 @@ import android.util.Log;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.Before;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
+import distributed_match_engine.AppClient;
+
+import static android.content.pm.PackageManager.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -49,25 +56,48 @@ public class NetMetricsTest {
         NetTest netTest = new NetTest();
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
 
         Network network = me.getNetworkManager().getActiveNetwork();
 
-        // These sites can go stale! Ensure a the site data structure has correct insertion and test properties:
-        Site site1 = new Site(network, NetTest.TestType.CONNECT, Site.DEFAULT_NUM_SAMPLES, "mobiledgexsdkdemo-tcp.sdkdemo-app-cluster.munich-main.tdg.mobiledgex.net", 8008);
-        Site site2 = new Site(network, NetTest.TestType.CONNECT, Site.DEFAULT_NUM_SAMPLES, "mobiledgexsdkdemo-tcp.sdkdemo-app-cluster.frankfurt-main.tdg.mobiledgex.net", 8008);
-        Site site3 = new Site(network, NetTest.TestType.CONNECT, Site.DEFAULT_NUM_SAMPLES, "mobiledgexsdkdemo-tcp.sdkdemo-app-cluster.berlin-main.tdg.mobiledgex.net", 8008);
+        Location location = new Location("EngineCallTestLocation");
+        location.setLongitude(-122.3321);
+        location.setLatitude(47.6062);
 
-        Site dup = new Site(network, NetTest.TestType.CONNECT, Site.DEFAULT_NUM_SAMPLES, "mobiledgexsdkdemo-tcp.sdkdemo-app-cluster.munich-main.tdg.mobiledgex.net", 8008);
+        AppClient.RegisterClientRequest.Builder registerClientRequestBuilder = null;
+        try {
+            registerClientRequestBuilder = me.createDefaultRegisterClientRequest(context, "MobiledgeX")
+                    .setAppName("MobiledgeX SDK Demo")
+                    .setAppVers("2.0");
+            AppClient.RegisterClientRequest req = registerClientRequestBuilder.build();
 
+            AppClient.RegisterClientReply regReply = me.registerClient(req, 10000);
+            AppClient.AppInstListRequest  appInstListRequest = me.createDefaultAppInstListRequest(context, location)
+                    .setCarrierName("")
+                    .build();
 
-        netTest.addSite(site1);
-        netTest.addSite(site2);
-        netTest.addSite(site3);
-        netTest.addSite(dup);
+            AppClient.AppInstListReply appInstListReply = me.getAppInstList(appInstListRequest, 10000);
+            for (AppClient.CloudletLocation cloudletLoc : appInstListReply.getCloudletsList()) {
+                for (AppClient.Appinstance appInst : cloudletLoc.getAppinstancesList()) {
+                    String host = appInst.getPortsList().get(0).getFqdnPrefix() + appInst.getFqdn(); // +  appInst.getPortsList().get(0).getPathPrefix();
+                    int port = 8008;
+                    Site site = new Site(me.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, host, port);
+                    netTest.addSite(site);
+                }
+            }
+        } catch (DmeDnsException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            Assert.assertFalse(String.valueOf(e.getStackTrace()), true);
+        } catch (NameNotFoundException pmnf) {
+            Assert.assertTrue("Missing package manager!", false);
+        }
+
 
         List<Site> sites = netTest.sortedSiteList();
         assertEquals("Site list size wrong!", 3, sites.size());
-
 
         Site bestSite;
         // Emulator WiFi unit test only! (and still unstable)
@@ -75,21 +105,26 @@ public class NetMetricsTest {
         // with some 2K of data to prime the network to send data.
         netTest.testSites(TimeoutMS);
         bestSite = netTest.bestSite();
+        Site site2 = netTest.sortedSiteList().get(0);
         Log.d(TAG, "Host expected: " + site2.host + ", avg: " + site2.average + ", got: " + "Got best site: " + bestSite.host + ", avg: " + bestSite.average);
         if (!site2.host.equals(bestSite.host)) {
             assertTrue("Serial winner Not within 10% margin: ", Math.abs(bestSite.average-site2.average)/site2.average < 0.1d);
         } else {
-            assertEquals("Test expectation is frankfurt wins: ", site2.host, netTest.bestSite().host);
+            assertEquals("Test expectation is LA wins: ", site2.host, netTest.bestSite().host);
         }
 
         netTest.testSitesOnExecutor(TimeoutMS);
         bestSite = netTest.bestSite();
+        // Not switching the site. It's supposed to be usually the same "best" server, mostly.
         Log.d(TAG, "Host expected: " + site2.host + ", avg: " + site2.average + ", got: " + "Got best site: " + bestSite.host + ", avg: " + bestSite.average);
         if (!site2.host.equals(bestSite.host)) {
             assertTrue("Threaded winner Not within 10% margin: ", Math.abs(bestSite.average-site2.average)/site2.average < 0.1d);
         } else {
             Log.d(TAG, "Got best site: " + netTest.bestSite().host);
-            assertEquals("Test expectation is frankfurt wins: ", site2.host, netTest.bestSite().host);
+            assertEquals("Test expectation is LA wins: ", site2.host, netTest.bestSite().host);
         }
+        // Might fail:
+        assertEquals("mobiledgexsdkdemo-tcp.mobiledgexmobiledgexsdkdemo20.sdkdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net", bestSite.host);
+
     }
 }
