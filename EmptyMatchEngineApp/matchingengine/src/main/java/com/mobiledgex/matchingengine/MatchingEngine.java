@@ -1411,6 +1411,10 @@ public class MatchingEngine {
         return mNetTest;
     }
 
+    NetTest clearNetTest() {
+        return mNetTest = new NetTest();
+    }
+
     public boolean isThreadedPerformanceTest() {
         return threadedPerformanceTest;
     }

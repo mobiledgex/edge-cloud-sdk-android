@@ -240,7 +240,7 @@ public class FindCloudlet implements Callable {
                 return fcreply;
             }
 
-            NetTest netTest = mMatchingEngine.getNetTest();
+            NetTest netTest = mMatchingEngine.clearNetTest();
 
             insertAppInstances(netTest, network, appInstListReply);
             rankSites(netTest, mMatchingEngine.isThreadedPerformanceTest(), timeout, stopwatch);

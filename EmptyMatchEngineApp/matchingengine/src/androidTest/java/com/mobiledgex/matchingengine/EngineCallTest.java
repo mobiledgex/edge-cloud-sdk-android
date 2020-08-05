@@ -1149,6 +1149,7 @@ public class EngineCallTest {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
             }
 
+            assertTrue(findCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
             // Just using first one. This depends entirely on the server design.
             if (!MelMessaging.isMelEnabled()) {
                 List<AppPort> appPorts = findCloudletReply.getPortsList();
@@ -1411,6 +1412,7 @@ public class EngineCallTest {
             // FIXME: UI Console exposes HTTP as TCP only, so the test here uses getTcpList().
             String url = null;
 
+            assertTrue(findCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
             if (!MelMessaging.isMelEnabled()) {
               HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
               // Choose the TCP port, and we happen to know our server is on one port only: 3001.
@@ -1424,7 +1426,7 @@ public class EngineCallTest {
             }
 
 
-            assertTrue("URL for server seems very incorrect. ", url != null && url.length() > "http://:".length());
+            assertTrue("URL for server seems very incorrect. ", url != null && url.length() > "http://:3001".length());
 
             // Interface bound TCP socket, has default timeout equal to NetworkManager.
             OkHttpClient httpClient = httpClientFuture.get();
@@ -1524,7 +1526,7 @@ public class EngineCallTest {
             assertTrue("FindCloudletReply failed!", findCloudletReply != null);
         } catch (ExecutionException ee) {
             Log.i(TAG, Log.getStackTraceString(ee));
-            assertFalse("testRegisterAndFindCloudlet_001: ExecutionException!", true);
+            assertFalse("testRegisterAndFindCloudlet_001: ExecutionException!" + ee.getCause(), true);
         } catch (StatusRuntimeException sre) {
             Log.i(TAG, Log.getStackTraceString(sre));
             assertFalse("testRegisterAndFindCloudlet_001: StatusRuntimeException!", true);
