@@ -325,6 +325,7 @@ public class EngineCallTest {
             }
             assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
                     registerReply.getSessionCookie(), me.getSessionCookie());
+            assertTrue(registerReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertTrue("ExecutionException registering client.", false);

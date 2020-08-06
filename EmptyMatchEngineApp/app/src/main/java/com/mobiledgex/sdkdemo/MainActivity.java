@@ -374,12 +374,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
                     AppClient.FindCloudletRequest findCloudletRequest =
                             mMatchingEngine.createDefaultFindCloudletRequest(ctx, location)
-                                //.setCarrierName("telus")
+                                .setCarrierName("")
                                 .build();
                     AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
                             dmeHostAddress, port, 10000);
                     Log.i(TAG, "closest Cloudlet is " + closestCloudlet);
 
+                    registerClientReplyFuture =
+                            mMatchingEngine.registerClientFuture(registerClientRequest,
+                                    dmeHostAddress, port, 10000);
+                    registerClientReply = registerClientReplyFuture.get();
+                    Log.i(TAG, "Register status: " + registerClientReply.getStatus());
                     AppClient.VerifyLocationRequest verifyRequest =
                             mMatchingEngine.createDefaultVerifyLocationRequest(ctx, location)
                                 .build();
@@ -387,13 +392,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     if (verifyRequest != null) {
                         // Location Verification (Blocking, or use verifyLocationFuture):
                         AppClient.VerifyLocationReply verifiedLocation =
-                                mMatchingEngine.verifyLocation(verifyRequest, /*dmeHostAddress, port, */10000);
+                                mMatchingEngine.verifyLocation(verifyRequest, dmeHostAddress, port, 10000);
                         Log.i(TAG, "VerifyLocationReply is " + verifiedLocation);
 
                         someText += "[Location Verified: Tower: " + verifiedLocation.getTowerStatus() +
                                 ", GPS LocationStatus: " + verifiedLocation.getGpsLocationStatus() +
                                 ", Location Accuracy: " + verifiedLocation.getGpsLocationAccuracyKm() + " ]\n";
-
                         List<distributed_match_engine.Appcommon.AppPort> ports = closestCloudlet.getPortsList();
                         String portListStr = "";
                         boolean first = true;
@@ -413,19 +417,25 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             //String l7Url = mMatchingEngine.getAppConnectionManager().createUrl(closestCloudlet, aPort, aPort.getPublicPort(), "http", null);
 
                             String host = aPort.getFqdnPrefix() + closestCloudlet.getFqdn();
-                            int serverport = aPort.getPublicPort();
+                            int knownPort = 8008;
+                            int serverPort = aPort.getPublicPort() == 0 ? knownPort : aPort.getPublicPort();
 
                             OkHttpClient client = new OkHttpClient(); //mMatchingEngine.getAppConnectionManager().getHttpClient(10000).get();
 
-                            Request request = new Request.Builder()
-                              .url("http://" + host + ":8008" + "/test/")
-                              .build();
-                            Response response = client.newCall(request).execute();
-                            String out = response.toString();
-                            System.out.println(response.toString());
+                            // Our example server might not like random connections to non-existing /test.
+                            String api = serverPort == knownPort ? "/test" : "";
+                            try {
+                                Request request = new Request.Builder()
+                                        .url("http://" + host + ":" + serverPort + api)
+                                        .build();
+                                Response response = client.newCall(request).execute();
+                                someText += "[Test Server response: " + response.toString() + "]";
+                            } catch (IOException ioe) {
+                                someText += "[Error connecting to host: " + host + ", port: " + serverPort + ", api: " + api + ", Reason: " + ioe.getMessage() + "]";
+                            }
 
                             // Test from a particular network path. Here, the active one is Celluar since we switched the whole process over earlier.
-                            Site site = new Site(mMatchingEngine.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, host, serverport);
+                            Site site = new Site(mMatchingEngine.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, host, serverPort);
                             netTest.addSite(site);
                         }
 
@@ -490,7 +500,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     // Set network back to last default one, if desired:
                     mMatchingEngine.getNetworkManager().resetNetworkToDefault();
-                } catch (DmeDnsException | ExecutionException | StatusRuntimeException e) {
+                } catch (/*DmeDnsException |*/ ExecutionException | StatusRuntimeException e) {
                     Log.e(TAG, e.getMessage());
                     Log.e(TAG, Log.getStackTraceString(e));
                     if (e.getCause() instanceof NetworkRequestTimeoutException) {
@@ -506,7 +516,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             }
                         });
                     }
-                } catch (IOException | InterruptedException | IllegalArgumentException | Resources.NotFoundException | PackageManager.NameNotFoundException e) {
+                } catch (InterruptedException | IllegalArgumentException | Resources.NotFoundException | PackageManager.NameNotFoundException e) {
                     MelMessaging.getCookie("MobiledgeX SDK Demo"); // Import MEL messaging.
                     someText += "Exception failure: " + e.getMessage();
                     ctx.runOnUiThread(new Runnable() {
