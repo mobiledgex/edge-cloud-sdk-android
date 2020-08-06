@@ -27,6 +27,7 @@ import com.mobiledgex.mel.MelMessaging;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -37,7 +38,6 @@ import java.util.concurrent.Callable;
 import distributed_match_engine.AppClient;
 import distributed_match_engine.AppClient.FindCloudletRequest;
 import distributed_match_engine.Appcommon;
-import distributed_match_engine.LocOuterClass;
 import distributed_match_engine.MatchEngineApiGrpc;
 
 import io.grpc.ManagedChannel;
@@ -293,16 +293,28 @@ public class FindCloudlet implements Callable {
             AppClient.FindCloudletReply.FindStatus fcStatus = reply.getStatus() == AppClient.AppOfficialFqdnReply.AOFStatus.AOF_SUCCESS ?
                 AppClient.FindCloudletReply.FindStatus.FIND_FOUND : AppClient.FindCloudletReply.FindStatus.FIND_NOTFOUND;
 
+            // Copy ports into MEL:
+            List<Appcommon.AppPort> portList = new ArrayList<>();
+            for (Appcommon.AppPort aPort : reply.getPortsList()) {
+                Appcommon.AppPort port = Appcommon.AppPort.newBuilder(aPort)
+                        .setPublicPort(aPort.getPublicPort() == 0 ? aPort.getInternalPort() : aPort.getPublicPort())
+                        .build();
+                portList.add(port);
+            }
+            // Compatibility with mel unaware clients, if empty, give app something to iterate on (to find no public port, use known port):
+            if (portList.size() == 0) {
+                portList.add(Appcommon.AppPort.newBuilder().build());
+            }
+
             // Create a very basic FindCloudletReply from AppOfficialFqdn reply:
             fcReply = AppClient.FindCloudletReply.newBuilder()
                 .setFqdn(reply.getAppOfficialFqdn()) // Straight copy.
                 .setStatus(fcStatus)
-                .addPorts(Appcommon.AppPort.newBuilder().build()) // Port is unknown here.
+                .addAllPorts(portList)
                 .build();
 
             mMatchingEngine.setFindCloudletResponse(fcReply);
             mMatchingEngine.setAppOfficialFqdnReply(reply); // has client location token
-
 
             // Let MEL platform know the client location token:
             MelMessaging.sendSetToken(
