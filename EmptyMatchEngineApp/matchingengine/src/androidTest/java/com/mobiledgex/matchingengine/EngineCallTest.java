@@ -49,6 +49,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.DatagramSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.channels.FileChannel;
@@ -1099,6 +1100,18 @@ public class EngineCallTest {
 
     }
 
+    private void closeSocket(Socket s) {
+        if (s != null && !s.isClosed()) {
+            try {
+                s.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                s = null;
+            }
+        }
+    }
+
     @Test
     public void FindCloudletPortMappingsTest() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
@@ -1114,6 +1127,13 @@ public class EngineCallTest {
                 .setInternalPort(8008)
                 .setEndPort(8010)
                 .setProto(Appcommon.LProto.L_PROTO_TCP)
+                .build();
+
+        AppPort uport = AppPort.newBuilder()
+                .setPublicPort(3000)
+                .setInternalPort(8008)
+                .setEndPort(8010)
+                .setProto(Appcommon.LProto.L_PROTO_UDP)
                 .build();
 
         AppPort portReal = AppPort.newBuilder()
@@ -1137,15 +1157,19 @@ public class EngineCallTest {
 
 
         Future<Socket> sf = null;
+        Socket s = null;
         try {
             sf = me.getAppConnectionManager().getTcpSocket(reply, port, 4000, 10000);
-            sf.get();
+            s = sf.get();
         } catch (ExecutionException ee) {
             // Expected invalid port.
             assertTrue("Expected invalid port", ee.getCause() instanceof InvalidPortException);
         } catch (Exception e) {
             assertFalse("Unexpected Exception hit: " + e.getMessage(), true);
+        } finally {
+            closeSocket(s);
         }
+
         try {
             sf = me.getAppConnectionManager().getTcpSocket(reply, port, 3000, 10000);
             sf.get();
@@ -1154,11 +1178,13 @@ public class EngineCallTest {
             assertTrue("Expected invalid port", ee.getCause() instanceof InvalidPortException);
         } catch (Exception e) {
             assertFalse("Unexpected Exception hit: " + e.getMessage(), true);
+        } finally {
+            closeSocket(s);
         }
 
         try {
             sf = me.getAppConnectionManager().getTcpSocket(reply, port, 8008, 10000);
-            Socket s = sf.get();
+            s = sf.get();
             assertTrue("Not connected!", s.isConnected() == true);
         } catch (Exception e) {
             // 4000 isn't valid.
@@ -1167,22 +1193,27 @@ public class EngineCallTest {
 
         try {
             sf = me.getAppConnectionManager().getTcpSocket(reply, port, 8009, 10000);
-            Socket s = sf.get(); // Wrong port, and we know it doesn't exist.
+            s = sf.get(); // Wrong port, and we know it doesn't exist.
             assertTrue("Not connected!", s.isConnected() == false);
         } catch (ExecutionException ee) {
             // 8009 isn't valid.
             assertTrue("Expected Connection Exception!", ee.getCause() instanceof ConnectException);
         } catch (InterruptedException ie) {
             assertFalse("Not expected InterruptedException: " + ie.getMessage(), true);
+        } finally {
+            closeSocket(s);
         }
 
         try {
             sf = me.getAppConnectionManager().getTcpSocket(reply, port, 8011, 10000);
-            Socket s = sf.get();
+            s = sf.get();
             assertTrue("Not connected!", s.isConnected() == false);
+            s.close();
         } catch (Exception e) {
             // 8011 isn't valid.
             assertFalse("Exception hit: " + e.getMessage(), false);
+        } finally {
+            closeSocket(s);
         }
 
         try {
@@ -1205,16 +1236,30 @@ public class EngineCallTest {
             assertFalse("Exception hit: " + e.getMessage(), false);
         }
 
+        // This is...actually quite invalid, but just exercising code.
+        try {
+            Future<DatagramSocket> dsf = me.getAppConnectionManager().getUdpSocket(reply, uport, 8008, 10000);
+            DatagramSocket ds = dsf.get(); // Wrong port, and we know it doesn't exist.
+            assertTrue("Not bound!", ds.isBound() == true);
+        } catch (ExecutionException ee) {
+            // 8009 isn't valid.
+            assertTrue("Expected Connection Exception!", ee.getCause() instanceof ConnectException);
+        } catch (InterruptedException ie) {
+            assertFalse("Not expected InterruptedException: " + ie.getMessage(), true);
+        }
+
         // Slowest test one last in this test stream (apparently takes a while to fail to non-exported port/blackhole).
         try {
             sf = me.getAppConnectionManager().getTcpSocket(reply, port, 8009, 10000);
-            Socket s = sf.get(); // Wrong port, and we know it doesn't exist.
+            s = sf.get(); // Wrong port, and we know it doesn't exist.
             assertTrue("Not connected!", s.isConnected() == false);
         } catch (ExecutionException ee) {
             // 8009 isn't valid.
             assertTrue("Expected Connection Exception!", ee.getCause() instanceof ConnectException);
         } catch (InterruptedException ie) {
             assertFalse("Not expected InterruptedException: " + ie.getMessage(), true);
+        } finally {
+            closeSocket(s);
         }
 
     }
