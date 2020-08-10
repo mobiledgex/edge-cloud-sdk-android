@@ -48,6 +48,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.ConnectException;
+import java.net.DatagramSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.channels.FileChannel;
@@ -62,6 +64,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import distributed_match_engine.AppClient;
+import distributed_match_engine.Appcommon;
 import distributed_match_engine.Appcommon.AppPort;
 import io.grpc.StatusRuntimeException;
 
@@ -1093,6 +1096,170 @@ public class EngineCallTest {
             assertFalse("getQosPositionKpiFutureTest: InterruptedException!", true);
         } finally {
             enableMockLocation(context,false);
+        }
+
+    }
+
+    private void closeSocket(Socket s) {
+        if (s != null && !s.isClosed()) {
+            try {
+                s.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                s = null;
+            }
+        }
+    }
+
+    @Test
+    public void FindCloudletPortMappingsTest() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        MatchingEngine me = new MatchingEngine(context);
+        AppConnectionManager appConnect = me.getAppConnectionManager();
+        me.setMatchingEngineLocationAllowed(true);
+        //me.setNetworkSwitchingEnabled(false); // Not testing this, disable for sim and no sim.
+
+        // Construct a FindCloudlet Reply for testing.
+        AppPort port = AppPort.newBuilder()
+                .setPublicPort(3000)
+                .setInternalPort(8008)
+                .setEndPort(8010)
+                .setProto(Appcommon.LProto.L_PROTO_TCP)
+                .build();
+
+        AppPort uport = AppPort.newBuilder()
+                .setPublicPort(3000)
+                .setInternalPort(8008)
+                .setEndPort(8010)
+                .setProto(Appcommon.LProto.L_PROTO_UDP)
+                .build();
+
+        AppPort portReal = AppPort.newBuilder()
+                .setPublicPort(8008)
+                .setInternalPort(8008)
+                .setEndPort(0)
+                .setProto(Appcommon.LProto.L_PROTO_TCP)
+                .build();
+
+        // A dummy FindCloudletReply:
+        AppClient.FindCloudletReply reply = AppClient.FindCloudletReply.newBuilder()
+                .setFqdn("mobiledgexmobiledgexsdkdemo20.sdkdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net")
+                .addPorts(port)
+                .build();
+
+        // A dummy FindCloudletReply:
+        AppClient.FindCloudletReply replyReal = AppClient.FindCloudletReply.newBuilder()
+                .setFqdn("mobiledgexmobiledgexsdkdemo20.sdkdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net")
+                .addPorts(portReal)
+                .build();
+
+
+        Future<Socket> sf = null;
+        Socket s = null;
+        try {
+            sf = me.getAppConnectionManager().getTcpSocket(reply, port, 4000, 10000);
+            s = sf.get();
+        } catch (ExecutionException ee) {
+            // Expected invalid port.
+            assertTrue("Expected invalid port", ee.getCause() instanceof InvalidPortException);
+        } catch (Exception e) {
+            assertFalse("Unexpected Exception hit: " + e.getMessage(), true);
+        } finally {
+            closeSocket(s);
+        }
+
+        try {
+            sf = me.getAppConnectionManager().getTcpSocket(reply, port, 3000, 10000);
+            sf.get();
+        } catch (ExecutionException ee) {
+            // Expected invalid port.
+            assertTrue("Expected invalid port", ee.getCause() instanceof InvalidPortException);
+        } catch (Exception e) {
+            assertFalse("Unexpected Exception hit: " + e.getMessage(), true);
+        } finally {
+            closeSocket(s);
+        }
+
+        try {
+            sf = me.getAppConnectionManager().getTcpSocket(reply, port, 8008, 10000);
+            s = sf.get();
+            assertTrue("Not connected!", s.isConnected() == true);
+        } catch (Exception e) {
+            // 4000 isn't valid.
+            assertFalse("Exception hit: " + e.getMessage(), false);
+        }
+
+        try {
+            sf = me.getAppConnectionManager().getTcpSocket(reply, port, 8009, 10000);
+            s = sf.get(); // Wrong port, and we know it doesn't exist.
+            assertTrue("Not connected!", s.isConnected() == false);
+        } catch (ExecutionException ee) {
+            // 8009 isn't valid.
+            assertTrue("Expected Connection Exception!", ee.getCause() instanceof ConnectException);
+        } catch (InterruptedException ie) {
+            assertFalse("Not expected InterruptedException: " + ie.getMessage(), true);
+        } finally {
+            closeSocket(s);
+        }
+
+        try {
+            sf = me.getAppConnectionManager().getTcpSocket(reply, port, 8011, 10000);
+            s = sf.get();
+            assertTrue("Not connected!", s.isConnected() == false);
+            s.close();
+        } catch (Exception e) {
+            // 8011 isn't valid.
+            assertFalse("Exception hit: " + e.getMessage(), false);
+        } finally {
+            closeSocket(s);
+        }
+
+        try {
+            // Need a real port in order to connect test:
+            int resolvedPort = me.getAppConnectionManager().getPort(portReal, 0);
+            assertEquals("Ports should match!", resolvedPort, portReal.getPublicPort());
+            int publicPort = me.getAppConnectionManager().getPort(portReal, 8008);
+            assertEquals("Ports not the same!", publicPort, portReal.getPublicPort()); // Identity.
+
+            String url = me.getAppConnectionManager().createUrl(replyReal, portReal, 8008, "http", "/test");
+            Future<OkHttpClient> httpClientFuture = me.getAppConnectionManager().getHttpClient(5000);
+            OkHttpClient httpClient = httpClientFuture.get();
+            Request request = new Request.Builder()
+                    .url(url)
+                    .build();
+
+            Response response = httpClient.newCall(request).execute();
+            assertTrue("Failed connect!", response.isSuccessful());
+        } catch (Exception e) {
+            assertFalse("Exception hit: " + e.getMessage(), false);
+        }
+
+        // This is...actually quite invalid, but just exercising code.
+        try {
+            Future<DatagramSocket> dsf = me.getAppConnectionManager().getUdpSocket(reply, uport, 8008, 10000);
+            DatagramSocket ds = dsf.get(); // Wrong port, and we know it doesn't exist.
+            assertTrue("Not bound!", ds.isBound() == true);
+        } catch (ExecutionException ee) {
+            // 8009 isn't valid.
+            assertTrue("Expected Connection Exception!", ee.getCause() instanceof ConnectException);
+        } catch (InterruptedException ie) {
+            assertFalse("Not expected InterruptedException: " + ie.getMessage(), true);
+        }
+
+        // Slowest test one last in this test stream (apparently takes a while to fail to non-exported port/blackhole).
+        try {
+            sf = me.getAppConnectionManager().getTcpSocket(reply, port, 8009, 10000);
+            s = sf.get(); // Wrong port, and we know it doesn't exist.
+            assertTrue("Not connected!", s.isConnected() == false);
+        } catch (ExecutionException ee) {
+            // 8009 isn't valid.
+            assertTrue("Expected Connection Exception!", ee.getCause() instanceof ConnectException);
+        } catch (InterruptedException ie) {
+            assertFalse("Not expected InterruptedException: " + ie.getMessage(), true);
+        } finally {
+            closeSocket(s);
         }
 
     }

@@ -142,26 +142,62 @@ public class AppConnectionManager {
      * @return appPort that matches spec.
      */
     public AppPort validatePublicPort(AppClient.FindCloudletReply findCloudletReply, AppPort appPort, LProto proto, int portNum) {
-        AppPort found = null;
+
         for (AppPort aPort : findCloudletReply.getPortsList()) {
             // See if spec matches:
             if (aPort.getProto() != proto) {
                 continue;
             }
-            if (isValidPortNumber(appPort, portNum)) {
-                found = aPort;
+
+            if (!AppPortIsEqual(aPort, appPort)) {
+                return null;
+            }
+
+            if (isValidInternalPortNumber(aPort, portNum)) {
+                return aPort;
             }
         }
-        return found;
+        return null;
     }
 
-    private boolean isValidPortNumber(AppPort appPort, int port) {
-        int publicPort = appPort.getPublicPort();
-        int end = appPort.getEndPort();
+    private static boolean AppPortIsEqual(AppPort port1, AppPort port2)
+    {
+        if (port1.getEndPort() != port2.getEndPort()) {
+            return false;
+        }
+        if (!port1.getFqdnPrefix().equals(port2.getFqdnPrefix())) {
+            return false;
+        }
+        if (port1.getInternalPort() != port2.getInternalPort())	{
+            return false;
+        }
+        if (port1.getPathPrefix() != port2.getPathPrefix()) {
+            return false;
+        }
+        if (port1.getProto() != port2.getProto()) {
+            return false;
+        }
+        if (port1.getPublicPort() != (port2.getPublicPort())) {
+            return false;
+        }
+        return true;
+    }
 
-        end = (end < publicPort) ? publicPort : end;
+    private boolean isValidInternalPortNumber(AppPort appPort, int port) {
+        int internalPort = appPort.getInternalPort();
+        int end = appPort.getEndPort() == 0 ? internalPort : appPort.getEndPort();
 
-        if (port >= publicPort && port <= end) {
+        if (port >= internalPort && port <= end) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isValidPublicPortNumber(AppPort appPort, int port, int internalPortInRange) {
+        int offset = appPort.getInternalPort() - internalPortInRange;
+        int publicOffsetRange = port - appPort.getPublicPort();
+
+        if (publicOffsetRange < offset) {
             return true;
         }
         return false;
@@ -177,9 +213,9 @@ public class AppConnectionManager {
      *
      * @param appPort This is the AppPort you want to connect to, based on the unmapped internal
      *                port number.
-     * @param portNum This is the mapped public port number of where the AppInst is actually made
+     * @param portNum This is the internal port number of where the AppInst is actually made
      *                available in a particular cloudlet region. It may not match the appPort
-     *                internal port number.
+     *                mapped public port number.
      *                If <= 0, it defaults to the first public port.
      * @param timeoutMs timeout in milliseconds. 0 for infinite.
      * @return May be null if SSL socket factory cannot be created, or if it cannot find a cellular
@@ -200,10 +236,8 @@ public class AppConnectionManager {
                 int timeout = timeoutMs < 0 ? 0 : timeoutMs;
                 int aPortNum = getPort(appPort, portNum);
 
-                AppPort foundPort = validatePublicPort(findCloudletReply, appPort, LProto.L_PROTO_TCP, aPortNum);
-                if (foundPort == null) {
-                    throw new InvalidPortException("Cannot find portNum [" + aPortNum + "] in AppPort list");
-                }
+                AppPort foundPort = appPort; // We have the public port + offset, from given appPort.
+
                 Network net = mNetworkManager.switchToCellularInternetNetworkBlocking();
 
                 if (net == null && mNetworkManager.isNetworkSwitchingEnabled()) {
@@ -239,9 +273,9 @@ public class AppConnectionManager {
      * @param findCloudletReply A FindCloudletReply for the current location.
      * @param appPort This is the AppPort you want to connect to, based on the unmapped internal
      *                port number.
-     * @param portNum This is the mapped public port number of where the AppInst is actually made
-     *                available in a particular cloudlet region. It may not match the appPort \
-     *                internal port number.
+     * @param portNum This is the internal port number of where the AppInst is actually made
+     *                available in a particular cloudlet region. It may not match the appPort
+     *                mapped public port number.
      *                If <= 0, it defaults to the public port.
      * @param timeoutMs timeout in milliseconds. 0 for infinite.
      * @return null can be returned if the network does not exist, or if network switching is disabled.
@@ -259,12 +293,9 @@ public class AppConnectionManager {
             @Override
             public Socket call() throws Exception {
                 int timeout = timeoutMs < 0 ? 0 : timeoutMs;
-                int aPortNum = getPort(appPort, portNum);
+                int publicPortNum = getPort(appPort, portNum);
 
-                AppPort foundPort = validatePublicPort(findCloudletReply, appPort, LProto.L_PROTO_TCP, aPortNum);
-                if (foundPort == null) {
-                    throw new InvalidPortException("Cannot find portNum [" + aPortNum + "] in AppPort list");
-                }
+                AppPort foundPort = appPort; // We have the public port + offset, from given appPort.
 
                 Network net = mNetworkManager.switchToCellularInternetNetworkBlocking();
 
@@ -278,7 +309,7 @@ public class AppConnectionManager {
                 Socket socket = sf.createSocket();
 
                 String host = getHost(findCloudletReply, foundPort);
-                InetSocketAddress socketAddress = new InetSocketAddress(host, aPortNum);
+                InetSocketAddress socketAddress = new InetSocketAddress(host, publicPortNum);
                 socket.connect(socketAddress);
                 socket.setSoTimeout(timeout);
 
@@ -300,9 +331,9 @@ public class AppConnectionManager {
      * @param findCloudletReply A FindCloudletReply for the current location.
      * @param appPort This is the AppPort you want to connect to, based on the unmapped internal
      *                port number.
-     * @param portNum This is the mapped public port number of where the AppInst is actually made
+     * @param portNum This is the internal port number of where the AppInst is actually made
      *                available in a particular cloudlet region. It may not match the appPort
-     *                internal port number.
+     *                mapped public port number.
      *                If <= 0, it defaults to the first public port.
      * @param timeoutMs timeout in milliseconds. 0 for infinite.
      * @return null can be returned if the network does not exist, or if network switching is disabled.
@@ -313,12 +344,10 @@ public class AppConnectionManager {
             @Override
             public DatagramSocket call() throws Exception {
                 int timeout = timeoutMs < 0 ? 0 : timeoutMs;
-                int aPortNum = getPort(appPort, portNum);
+                int publicPortNum = getPort(appPort, portNum);
 
-                AppPort foundPort = validatePublicPort(findCloudletReply, appPort, LProto.L_PROTO_TCP, aPortNum);
-                if (foundPort == null) {
-                    throw new InvalidPortException("Cannot find " + aPortNum + "in AppPort list");
-                }
+                // getPort will throw Exception if the AppPort is bad.
+                AppPort foundPort =  appPort;
 
                 Network net = mNetworkManager.switchToCellularInternetNetworkBlocking();
 
@@ -332,7 +361,7 @@ public class AppConnectionManager {
                 net.bindSocket(ds);
 
                 String host = getHost(findCloudletReply, foundPort);
-                InetSocketAddress socketAddress = new InetSocketAddress(host, aPortNum);
+                InetSocketAddress socketAddress = new InetSocketAddress(host, publicPortNum);
                 ds.setSoTimeout(timeout);
                 ds.connect(socketAddress);
 
@@ -400,18 +429,25 @@ public class AppConnectionManager {
      * @param findCloudletReply A FindCloudletReply for the current location.
      * @param appPort This is the AppPort you want to connect to, based on the unmapped internal
      *                port number.
-     * @param portNum This is the mapped public port number of where the AppInst is actually made
+     * @param desiredPortNum This is the desired internal port number of where the AppInst is actually made
      *                available in a particular cloudlet region. It may not match the appPort
-     *                internal port number.
+     *                mapped public port number.
      *                If <= 0, it defaults to the first public port.
      * @param protocol The L7 protocol (eg. http, https, ws)
      * @param path Path to be appended at the end of the url. Defaults to "" if null is provided.
      * @return completed URL, or null if invalid.
      */
-    public String createUrl(FindCloudletReply findCloudletReply, AppPort appPort, int portNum, String protocol, String path) {
-        int aPortNum = portNum <= 0 ? appPort.getPublicPort() : portNum;
-        AppPort foundPort = validatePublicPort(findCloudletReply, appPort, LProto.L_PROTO_TCP, aPortNum);
+    public String createUrl(FindCloudletReply findCloudletReply, AppPort appPort, int desiredPortNum, String protocol, String path) {
+        int publicPortNum = 0;
+        AppPort foundPort = validatePublicPort(findCloudletReply, appPort, LProto.L_PROTO_TCP, desiredPortNum);
         if (foundPort == null) {
+            return null;
+        }
+
+        try {
+            publicPortNum = getPort(foundPort, desiredPortNum);
+        } catch (InvalidPortException ipe) {
+            ipe.printStackTrace();
             return null;
         }
 
@@ -420,7 +456,7 @@ public class AppConnectionManager {
                 appPort.getFqdnPrefix() +
                 findCloudletReply.getFqdn() +
                 ":" +
-                aPortNum +
+                publicPortNum +
                 appPort.getPathPrefix() +
                 path;
 
@@ -434,10 +470,16 @@ public class AppConnectionManager {
     public int getPort(AppPort appPort, int portNum) throws InvalidPortException {
         int aPortNum = portNum <= 0 ? appPort.getPublicPort() : portNum;
 
-        if (!isValidPortNumber(appPort, aPortNum)) {
-            throw new InvalidPortException("Port " + portNum + "is not a valid port number");
+        if (portNum == 0) {
+            return appPort.getPublicPort(); // Done.
         }
 
-        return aPortNum;
+        if (!isValidInternalPortNumber(appPort, aPortNum)) {
+            throw new InvalidPortException("Port " + portNum + " is not a valid port number");
+        }
+
+        int offset = portNum - appPort.getInternalPort();
+
+        return aPortNum + offset;
     }
 }
