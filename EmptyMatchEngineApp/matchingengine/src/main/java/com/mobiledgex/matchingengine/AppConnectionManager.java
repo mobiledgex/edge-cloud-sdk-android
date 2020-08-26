@@ -137,15 +137,14 @@ public class AppConnectionManager {
      *
      * @param findCloudletReply
      * @param appPort
-     * @param proto A supported protocol from LProto
      * @param portNum
      * @return appPort that matches spec.
      */
-    public AppPort validatePublicPort(AppClient.FindCloudletReply findCloudletReply, AppPort appPort, LProto proto, int portNum) {
+    public AppPort validatePublicPort(AppClient.FindCloudletReply findCloudletReply, AppPort appPort, int portNum) {
 
         for (AppPort aPort : findCloudletReply.getPortsList()) {
             // See if spec matches:
-            if (aPort.getProto() != proto) {
+            if (aPort.getProto() != appPort.getProto()) {
                 continue;
             }
 
@@ -439,7 +438,7 @@ public class AppConnectionManager {
      */
     public String createUrl(FindCloudletReply findCloudletReply, AppPort appPort, int desiredPortNum, String protocol, String path) {
         int publicPortNum = 0;
-        AppPort foundPort = validatePublicPort(findCloudletReply, appPort, LProto.L_PROTO_TCP, desiredPortNum);
+        AppPort foundPort = validatePublicPort(findCloudletReply, appPort, desiredPortNum);
         if (foundPort == null) {
             return null;
         }
