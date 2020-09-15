@@ -527,7 +527,7 @@ public class MatchingEngine {
             throws PackageManager.NameNotFoundException {
 
         if (!mMatchingEngineLocationAllowed) {
-            Log.e(TAG, "Create RegisterClientRequest disabled. Matching engine is not configured to allow use.");
+            Log.e(TAG, "Location Permission required to Create DefaultRegisterClientRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
         }
         if (context == null) {
@@ -578,7 +578,7 @@ public class MatchingEngine {
             throws PackageManager.NameNotFoundException
     {
         if (!mMatchingEngineLocationAllowed) {
-            Log.e(TAG, "Create RegisterClientRequest disabled. Matching engine is not configured to allow use.");
+            Log.e(TAG, "Location Permission required to Create RegisterClientRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
         }
         if (context == null) {
@@ -637,7 +637,7 @@ public class MatchingEngine {
         ensureSessionCookie();
 
         if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
+            Log.e(TAG, "Location Permission required to Create DefaultVerifyLocationRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
         }
 
@@ -675,7 +675,7 @@ public class MatchingEngine {
      */
     public AppClient.FindCloudletRequest.Builder createDefaultFindCloudletRequest(Context context, Location location) {
         if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
+            Log.e(TAG, "Location Permission required to Create DefaultFindCloudletRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
         }
         if (context == null) {
@@ -694,7 +694,7 @@ public class MatchingEngine {
 
     public AppClient.GetLocationRequest.Builder createDefaultGetLocationRequest(Context context) {
         if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
+            Log.e(TAG, "Location Permission required to Create DefaultGetLocationRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
         }
         if (context == null) {
@@ -710,7 +710,7 @@ public class MatchingEngine {
 
     public AppClient.AppInstListRequest.Builder createDefaultAppInstListRequest(Context context, android.location.Location location) {
         if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
+            Log.e(TAG, "Location Permission required to Create DefaultAppInstListRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
         }
         if (context == null) {
@@ -730,7 +730,7 @@ public class MatchingEngine {
 
     public AppClient.DynamicLocGroupRequest.Builder createDefaultDynamicLocGroupRequest(Context context, DynamicLocGroupRequest.DlgCommType commType) {
         if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
+            Log.e(TAG, "Location Permission required to Create DefaultDynamicLocGroupRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
         }
         if (context == null) {
@@ -748,7 +748,7 @@ public class MatchingEngine {
     public AppClient.QosPositionRequest.Builder createDefaultQosPositionRequest(List<QosPosition> requests, int lte_category, BandSelection band_selection) {
 
         if (!mMatchingEngineLocationAllowed) {
-            Log.d(TAG, "Create Request disabled. Matching engine is not configured to allow use.");
+            Log.e(TAG, "Location Permission required to Create DefaultQosPositionRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
         }
         ensureSessionCookie();
