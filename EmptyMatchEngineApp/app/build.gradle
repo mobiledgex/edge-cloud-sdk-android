@@ -6,8 +6,8 @@ android {
         applicationId "com.mobiledgex.sdkdemo"
         minSdkVersion 24
         targetSdkVersion 28
-        versionCode 3
-        versionName "2.1.2"
+        versionCode 4
+        versionName "2.1.3"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -33,7 +33,7 @@ dependencies {
     implementation project(":mel")
     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
     // Use maven:
-    //implementation 'com.mobiledgex:matchingengine:2.1.2'
+    //implementation 'com.mobiledgex:matchingengine:2.1.3'
     //implementation 'com.mobiledgex:mel:1.0.11'
     // Dependencies of Matching Engine, if using Maven:
     implementation "io.grpc:grpc-okhttp:${grpcVersion}"
