@@ -5,7 +5,7 @@ properties.load(project.rootProject.file('local.properties').newDataInputStream(
 def artifactory_user = properties.getProperty("artifactory_user")
 def artifactory_password = properties.getProperty("artifactory_password")
 
-project.ext.grpcVersion = '1.20.0'
+project.ext.grpcVersion = '1.32.1'
 
 buildscript {
 
@@ -16,7 +16,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:4.0.1'
-        classpath "com.google.protobuf:protobuf-gradle-plugin:0.8.8"
+        classpath "com.google.protobuf:protobuf-gradle-plugin:0.8.13"
 
         // JFrog Artifactory:
         classpath "org.jfrog.buildinfo:build-info-extractor-gradle:latest.release"

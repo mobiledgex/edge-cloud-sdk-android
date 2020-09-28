@@ -55,22 +55,22 @@ android {
 
 protobuf {
     protoc {
-        artifact = 'com.google.protobuf:protoc:3.5.1-1'
+        artifact = 'com.google.protobuf:protoc:3.12.0'
     }
     plugins {
-        javalite {
-            artifact = "com.google.protobuf:protoc-gen-javalite:3.0.0"
-        }
-        grpc {
-            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        plugins {
+            grpc {
+                artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+            }
         }
     }
     generateProtoTasks {
         all().each { task ->
+            task.builtins {
+                java { option 'lite' }
+            }
             task.plugins {
-                javalite {}
                 grpc {
-                    // Options added to --grpc_out
                     option 'lite'
                 }
             }
@@ -96,8 +96,9 @@ dependencies {
     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
     implementation "io.grpc:grpc-stub:${grpcVersion}"
 
-    protobuf 'com.google.protobuf:protobuf-java:3.0.2' // FIXME: Timestamp, for lite version: old lib: https://github.com/google/protobuf/issues/1889
-    implementation 'javax.annotation:javax.annotation-api:1.2'
+    // FIXME: https://github.com/google/protobuf-gradle-plugin/issues/431 get a copy of descriptor.proto.
+    protobuf 'com.google.protobuf:protobuf-java:3.13.0'
+    implementation 'org.apache.tomcat:annotations-api:6.0.53'
 
     // For Google Services
     implementation 'com.google.android.gms:play-services-location:17.0.0'
