@@ -8,12 +8,13 @@ import java.util.Set;
 
 import distributed_match_engine.AppClient;
 
-public class EdgeEvents {
+public class EdgeEventsListener {
     @Subscribe
     public void ClientEdgeEventReceiver(AppClient.ClientEdgeEvent cee) {
         // Do stuff.
         Map<String, String> tm = cee.getTagsMap();
         String count = tm.get("count"); // Should be an internal HashMap with a Map interface.
+        String bort = tm.get("foo");
         System.out.println("Count from server: " + count);
     }
 
