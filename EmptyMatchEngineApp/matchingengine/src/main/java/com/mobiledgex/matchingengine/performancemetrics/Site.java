@@ -45,17 +45,6 @@ public class Site
 
     public static final int DEFAULT_NUM_SAMPLES = 3;
 
-    public Site(Network network, NetTest.TestType testType, int numSamples, String L7Path)
-    {
-        this.network = network;
-        this.testType = testType;
-        this.L7Path = L7Path;
-        if (numSamples <= 0) {
-            numSamples = DEFAULT_NUM_SAMPLES;
-        }
-        samples = new double[numSamples];
-    }
-
     public Site(Network network, NetTest.TestType testType, int numSamples, String host, int port)
     {
         this.network = network;

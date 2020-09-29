@@ -111,27 +111,6 @@ public class AppConnectionManager {
     }
 
     /**
-     * Utility function that returns a hashMap of HTTP ports in the reply parameter.
-     * @param findCloudletReply
-     * @return
-     */
-    public HashMap<Integer, AppPort> getHttpMap(AppClient.FindCloudletReply findCloudletReply) {
-        String fqdn = findCloudletReply.getFqdn();
-
-        if (fqdn != null && fqdn.length() == 0) {
-            return null;
-        }
-
-        HashMap<Integer, AppPort> map = new HashMap<>();
-        for (AppPort port : findCloudletReply.getPortsList()) {
-            if (port.getProto() == LProto.L_PROTO_HTTP) {
-                map.put(port.getInternalPort(), port);
-            }
-        }
-        return map;
-    }
-
-    /**
      * With the given FindCloudletReply, verify the AppPort and sub port in port range is good,
      * and return it.
      *
@@ -168,9 +147,6 @@ public class AppConnectionManager {
             return false;
         }
         if (port1.getInternalPort() != port2.getInternalPort())	{
-            return false;
-        }
-        if (port1.getPathPrefix() != port2.getPathPrefix()) {
             return false;
         }
         if (port1.getProto() != port2.getProto()) {
@@ -456,7 +432,6 @@ public class AppConnectionManager {
                 findCloudletReply.getFqdn() +
                 ":" +
                 publicPortNum +
-                appPort.getPathPrefix() +
                 path;
 
         return url;
