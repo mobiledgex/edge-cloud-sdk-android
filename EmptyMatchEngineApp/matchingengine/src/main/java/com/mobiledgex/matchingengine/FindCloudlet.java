@@ -112,27 +112,15 @@ public class FindCloudlet implements Callable {
                     Site site = null;
                     switch (appPort.getProto()) {
                         case L_PROTO_TCP: {
-                            if (appPort.getPathPrefix() == null || appPort.getPathPrefix().isEmpty()) {
-                                int port = appPort.getPublicPort();
-                                String host = appPort.getFqdnPrefix() + appInstance.getFqdn();
-                                site = new Site(network, NetTest.TestType.CONNECT, numSamples, host, port);
-                            } else {
-                                int port = appPort.getPublicPort();
-                                String l7path = appPort.getFqdnPrefix() + appInstance.getFqdn() + ":" + port + appPort.getPathPrefix();
-                                site = new Site(network, NetTest.TestType.CONNECT, numSamples, l7path);
-                            }
+                            int port = appPort.getPublicPort();
+                            String host = appPort.getFqdnPrefix() + appInstance.getFqdn();
+                            site = new Site(network, NetTest.TestType.CONNECT, numSamples, host, port);
                             break;
                         }
                         case L_PROTO_UDP: {
                             int port = appPort.getPublicPort();
                             String host = appPort.getFqdnPrefix() + appInstance.getFqdn();
                             site = new Site(network, NetTest.TestType.PING, numSamples, host, port);
-                            break;
-                        }
-                        case L_PROTO_HTTP: {
-                            int port = appPort.getPublicPort();
-                            String l7path = appPort.getFqdnPrefix() + appInstance.getFqdn() + ":" + port + appPort.getPathPrefix();
-                            site = new Site(network, NetTest.TestType.CONNECT, numSamples, l7path);
                             break;
                         }
                         default:

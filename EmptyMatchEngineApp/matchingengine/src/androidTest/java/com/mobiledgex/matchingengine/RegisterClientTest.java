@@ -35,19 +35,13 @@ import com.auth0.android.jwt.DecodeException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.gson.JsonObject;
 import com.google.protobuf.ByteString;
-import com.mobiledgex.matchingengine.DmeDnsException;
-import com.mobiledgex.matchingengine.MatchingEngine;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.lang.reflect.Method;
-import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -58,7 +52,6 @@ import com.mobiledgex.mel.MelMessaging;
 import distributed_match_engine.AppClient;
 import io.grpc.StatusRuntimeException;
 
-import static java.lang.System.getProperty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
