@@ -98,7 +98,10 @@ import android.content.pm.PackageInfo;
 import android.util.Log;
 import android.util.Pair;
 
+import com.google.common.eventbus.AsyncEventBus;
+import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.mel.MelMessaging;
 
@@ -122,6 +125,7 @@ public class MatchingEngine {
 
     // A threadpool for all the MatchEngine API callable interfaces:
     final ExecutorService threadpool;
+    private boolean externalExecutor = false;
 
     // State info for engine
     private String mSessionCookie; // TODO: Session Map lookup for multiple Edge Apps.
@@ -154,9 +158,7 @@ public class MatchingEngine {
     private NetTest mNetTest;
     private boolean threadedPerformanceTest = false;
 
-    public EventBus edgeEventBus;
-    // A listener:
-    EdgeEventsListener listener;
+    private EventBus mEdgeEventBus;
 
     /*!
      * Constructor for MatchingEngine class.
@@ -171,16 +173,15 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-        edgeEventBus = new EventBus();
-        listener = new EdgeEventsListener();
-        edgeEventBus.register(listener);
+        mEdgeEventBus = new EventBus();
+        mEdgeEventBus.register(this);
         if (MelMessaging.isMelEnabled()) {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
         }
 
         // Self event Test (client internal):
-        edgeEventBus.post(AppClient.ClientEdgeEvent.newBuilder().putTags("foo", "bort").build());
+        mEdgeEventBus.post(AppClient.ClientEdgeEvent.newBuilder().putTags("foo", "bort").build());
     }
 
     /*!
@@ -190,18 +191,67 @@ public class MatchingEngine {
      */
     public MatchingEngine(Context context, ExecutorService executorService) {
         threadpool = executorService;
+        externalExecutor = true;
         ConnectivityManager connectivityManager = context.getSystemService(ConnectivityManager.class);
         mNetworkManager = NetworkManager.getInstance(connectivityManager, getSubscriptionManager(context), threadpool);
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-        edgeEventBus = new EventBus();
-        listener = new EdgeEventsListener();
-        edgeEventBus.register(listener);
+        mEdgeEventBus = new AsyncEventBus(executorService); // TODO: Should not be implicit.
+        mEdgeEventBus.register(threadpool);
         if (MelMessaging.isMelEnabled()) {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
         }
+    }
+
+    @Subscribe
+    private void handleEdgeEvent(AppClient.ClientEdgeEvent clientEdgeEvent) {
+        // Do stuff. Switch on type.
+        Map<String, String> tm = clientEdgeEvent.getTagsMap();
+        String count = tm.get("count"); // Should be an internal HashMap with a Map interface.
+        String bort = tm.get("foo");
+        System.out.println("Count from server: " + count);
+    }
+
+    @Subscribe
+    private void handleDeadEdgeEvent(DeadEvent deadEvent) {
+        System.out.println("You have messages, but are not subscribed to events.");
+    }
+
+    /**
+     * MatchingEngine contains some long lived resources.
+     */
+    public void close() {
+        // Kill ExecutorService if created by MatchingEngine.
+        if (!externalExecutor && threadpool != null) {
+            threadpool.shutdown();
+        }
+        // Kill DME persistent connections.
+
+        // Inform close, and unregister known listener (this). Simple bus.
+        AppClient.ClientEdgeEvent evt = AppClient.ClientEdgeEvent.newBuilder()
+                .putTags("shutdown", "true")
+                .build();
+        mEdgeEventBus.post(evt);
+        mEdgeEventBus.unregister(this);
+
+        mSessionCookie = null;
+        mTokenServerToken = null;
+        mTokenServerURI = null;
+        mRegisterClientReply = null;
+        mContext = null;
+        mNetworkManager = null;
+        mAppConnectionManager = null;
+    }
+
+    /**
+     * This is an event bus for EdgeEvents.
+     * TODO: It is Async if you specify your own ExecutorService with MatchingEgnine init.
+     * @return
+     */
+    public EventBus getEdgeEventBus() {
+        return mEdgeEventBus;
     }
 
     // Application state Bundle Key.

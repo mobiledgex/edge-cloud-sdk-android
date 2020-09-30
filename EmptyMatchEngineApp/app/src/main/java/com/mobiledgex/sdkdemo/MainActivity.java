@@ -25,6 +25,7 @@ import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -43,9 +44,9 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.DmeDnsException;
 import com.mobiledgex.matchingengine.MatchingEngine;
-import com.mobiledgex.matchingengine.NetworkManager;
 import com.mobiledgex.matchingengine.NetworkRequestTimeoutException;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
@@ -58,6 +59,7 @@ import com.squareup.okhttp.Response;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -197,10 +199,25 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         if (mMatchingEngine == null) {
             // Permissions available. Create a MobiledgeX MatchingEngine instance (could also use Application wide instance).
             mMatchingEngine = new MatchingEngine(this);
+            // Register ourselves. The Subscribe annotation will be called on ClientEdgeEvents.
+            mMatchingEngine.getEdgeEventBus().register(this);
         }
 
         if (mDoLocationUpdates) {
             startLocationUpdates();
+        }
+    }
+
+    /**
+     * Subscribe to ClientEdgeEvents!
+     */
+    @Subscribe
+    public void onMessageEvent(AppClient.ClientEdgeEvent event) {
+        Map<String, String> tagsMap = event.getTagsMap();
+        // TODO: Need event switch of some kind to handle.
+        if (tagsMap.containsKey("shutdown")) {
+            // unregister self.
+            mMatchingEngine.getEdgeEventBus().unregister(this);
         }
     }
 

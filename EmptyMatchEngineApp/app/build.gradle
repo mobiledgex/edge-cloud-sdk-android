@@ -32,6 +32,8 @@ dependencies {
     implementation project(":matchingengine")
     implementation project(":mel")
 
+    implementation 'com.google.guava:guava:29.0-android'
+
     // Use maven:
     //implementation 'com.mobiledgex:matchingengine:2.4.2'
     //implementation 'com.mobiledgex:mel:1.0.11'
