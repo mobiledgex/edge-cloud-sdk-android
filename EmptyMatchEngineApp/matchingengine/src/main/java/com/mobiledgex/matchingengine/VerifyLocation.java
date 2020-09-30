@@ -82,23 +82,30 @@ public class VerifyLocation implements Callable {
         httpClient.setFollowSslRedirects(false);
         httpClient.setFollowRedirects(false);
 
-        Request request = new Request.Builder()
-                .url(mMatchingEngine.getTokenServerURI())
-                .build();
+        Response response = null;
+        try {
+            Request request = new Request.Builder()
+                    .url(mMatchingEngine.getTokenServerURI())
+                    .build();
 
-        Response response = httpClient.newCall(request).execute();
-        if (!response.isRedirect()) {
-            throw new IllegalStateException("Expected a redirect!");
-        } else {
-            Headers headers = response.headers();
-            String locationHeaderUrl = headers.get("Location");
-            if (locationHeaderUrl == null) {
-                throw new IllegalStateException("Required Location Header Missing.");
+            response = httpClient.newCall(request).execute();
+            if (!response.isRedirect()) {
+                throw new IllegalStateException("Expected a redirect!");
+            } else {
+                Headers headers = response.headers();
+                String locationHeaderUrl = headers.get("Location");
+                if (locationHeaderUrl == null) {
+                    throw new IllegalStateException("Required Location Header Missing.");
+                }
+                HttpUrl url = HttpUrl.parse(locationHeaderUrl);
+                token = url.queryParameter("dt-id");
+                if (token == null) {
+                    throw new IllegalStateException("Required Token ID Missing");
+                }
             }
-            HttpUrl url = HttpUrl.parse(locationHeaderUrl);
-            token = url.queryParameter("dt-id");
-            if (token == null) {
-                throw new IllegalStateException("Required Token ID Missinng");
+        } finally {
+            if (response != null) {
+                response.body().close();
             }
         }
 
