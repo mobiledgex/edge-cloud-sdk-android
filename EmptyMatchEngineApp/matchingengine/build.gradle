@@ -58,10 +58,8 @@ protobuf {
         artifact = 'com.google.protobuf:protoc:3.12.0'
     }
     plugins {
-        plugins {
-            grpc {
-                artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
-            }
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
         }
     }
     generateProtoTasks {
@@ -94,12 +92,10 @@ dependencies {
     androidTestImplementation 'com.google.code.gson:gson:2.8.6'
     androidTestImplementation "com.squareup.okio:okio:1.13.0"
 
-    implementation "io.grpc:grpc-okhttp:${grpcVersion}"
-    implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
     implementation "io.grpc:grpc-stub:${grpcVersion}"
+    implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
+    implementation "io.grpc:grpc-okhttp:${grpcVersion}"
 
-    // FIXME: https://github.com/google/protobuf-gradle-plugin/issues/431 get a copy of descriptor.proto.
-    protobuf 'com.google.protobuf:protobuf-java:3.13.0'
     implementation 'org.apache.tomcat:annotations-api:6.0.53'
 
     // For Google Services
