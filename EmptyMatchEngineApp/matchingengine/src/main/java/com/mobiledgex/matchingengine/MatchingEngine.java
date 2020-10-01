@@ -159,6 +159,7 @@ public class MatchingEngine {
     private boolean threadedPerformanceTest = false;
 
     private EventBus mEdgeEventBus;
+    private DMEConnection mDmeConnection;
 
     /*!
      * Constructor for MatchingEngine class.
@@ -182,6 +183,7 @@ public class MatchingEngine {
 
         // Self event Test (client internal):
         mEdgeEventBus.post(AppClient.ClientEdgeEvent.newBuilder().putTags("foo", "bort").build());
+        mDmeConnection = new DMEConnection(this);
     }
 
     /*!
@@ -203,10 +205,13 @@ public class MatchingEngine {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
         }
+
+        mDmeConnection = new DMEConnection(this);
     }
 
+    // Ingress:
     @Subscribe
-    private void handleEdgeEvent(AppClient.ClientEdgeEvent clientEdgeEvent) {
+    private void handleClientEdgeEvent(AppClient.ClientEdgeEvent clientEdgeEvent) {
         // Do stuff. Switch on type.
         Map<String, String> tm = clientEdgeEvent.getTagsMap();
         String count = tm.get("count"); // Should be an internal HashMap with a Map interface.
