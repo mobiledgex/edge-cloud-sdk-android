@@ -423,14 +423,19 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                             // Our example server might not like random connections to non-existing /test.
                             String api = serverPort == knownPort ? "/test" : "";
+                            Response response = null;
                             try {
                                 Request request = new Request.Builder()
                                         .url("http://" + host + ":" + serverPort + api)
                                         .build();
-                                Response response = client.newCall(request).execute();
+                                response = client.newCall(request).execute();
                                 someText += "[Test Server response: " + response.toString() + "]";
-                            } catch (IOException ioe) {
-                                someText += "[Error connecting to host: " + host + ", port: " + serverPort + ", api: " + api + ", Reason: " + ioe.getMessage() + "]";
+                            } catch (IOException | IllegalStateException e) {
+                                someText += "[Error connecting to host: " + host + ", port: " + serverPort + ", api: " + api + ", Reason: " + e.getMessage() + "]";
+                            } finally {
+                                if (response != null) {
+                                    response.body().close();
+                                }
                             }
 
                             // Test from a particular network path. Here, the active one is Celluar since we switched the whole process over earlier.
