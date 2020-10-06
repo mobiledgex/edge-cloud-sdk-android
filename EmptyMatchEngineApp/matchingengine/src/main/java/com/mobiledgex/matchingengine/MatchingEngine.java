@@ -183,7 +183,6 @@ public class MatchingEngine {
 
         // Self event Test (client internal):
         mEdgeEventBus.post(AppClient.ClientEdgeEvent.newBuilder().putTags("foo", "bort").build());
-        mDmeConnection = new DMEConnection(this);
     }
 
     /*!
@@ -205,8 +204,23 @@ public class MatchingEngine {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
         }
+    }
 
-        mDmeConnection = new DMEConnection(this);
+    /**
+     * Gets or re-establishes a connection to the DME, and returns a DMEConnection instance.
+     * @param dmeHost
+     * @param port
+     * @param network
+     * @return a connected DMEConnection instance
+     */
+    DMEConnection getDmeConnection(String dmeHost, int port, Network network) {
+        if (mDmeConnection == null || mDmeConnection.isShutdown()) {
+            mDmeConnection = new DMEConnection(this, dmeHost, port, null);
+            // Send dummy:
+            mDmeConnection.send(AppClient.ClientEdgeEvent.newBuilder().build());
+        }
+
+        return mDmeConnection;
     }
 
     // Ingress:

@@ -44,6 +44,7 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.DmeDnsException;
 import com.mobiledgex.matchingengine.MatchingEngine;
@@ -350,7 +351,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     }
                     dmeHostAddress = "us-mexdemo." + MatchingEngine.baseDmeHost;
                     //mMatchingEngine.setUseWifiOnly(true);
-                    //dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+                    dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+                    dmeHostAddress = "localhost"; // TODO: Remove when Persistent Connection is deployed.
+                    EventBus bus = mMatchingEngine.getEdgeEventBus();
+                    bus.post(AppClient.ClientEdgeEvent.newBuilder().build());
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
@@ -521,7 +525,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     // Set network back to last default one, if desired:
                     mMatchingEngine.getNetworkManager().resetNetworkToDefault();
-                } catch ( /*DmeDnsException |*/  ExecutionException | StatusRuntimeException e) {
+                } catch (/*DmeDnsException |*/ ExecutionException | StatusRuntimeException e) {
                     Log.e(TAG, e.getMessage());
                     Log.e(TAG, Log.getStackTraceString(e));
                     if (e.getCause() instanceof NetworkRequestTimeoutException) {
