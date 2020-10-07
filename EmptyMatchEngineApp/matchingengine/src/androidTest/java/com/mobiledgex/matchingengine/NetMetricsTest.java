@@ -66,9 +66,9 @@ public class NetMetricsTest {
 
         AppClient.RegisterClientRequest.Builder registerClientRequestBuilder = null;
         try {
-            registerClientRequestBuilder = me.createDefaultRegisterClientRequest(context, "MobiledgeX")
-                    .setAppName("MobiledgeX SDK Demo")
-                    .setAppVers("2.0");
+            registerClientRequestBuilder = me.createDefaultRegisterClientRequest(context, "MobiledgeX-Samples")
+                    .setAppName("ComputerVision")
+                    .setAppVers("2.2");
             AppClient.RegisterClientRequest req = registerClientRequestBuilder.build();
 
             AppClient.RegisterClientReply regReply = me.registerClient(req, 10000);
@@ -97,7 +97,7 @@ public class NetMetricsTest {
 
 
         List<Site> sites = netTest.sortedSiteList();
-        assertEquals("Site list size wrong!", 3, sites.size());
+        assertEquals("Site list size wrong!", 2, sites.size());
 
         Site bestSite;
         // Emulator WiFi unit test only! (and still unstable)
@@ -124,7 +124,84 @@ public class NetMetricsTest {
             assertEquals("Test expectation is LA wins: ", site2.host, netTest.bestSite().host);
         }
         // Might fail:
-        assertEquals("mobiledgexsdkdemo-tcp.mobiledgexmobiledgexsdkdemo20.sdkdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net", bestSite.host);
+        assertEquals("computervision-tcp.mobiledgex-samplescomputervision22.cv-cluster.us-north-virginia.gcp.mobiledgex.net", bestSite.host);
+
+    }
+
+    @Test
+    public void testMetrics2() {
+        NetTest netTest = new NetTest();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+
+        Network network = me.getNetworkManager().getActiveNetwork();
+
+        Location location = new Location("EngineCallTestLocation");
+        location.setLongitude(-122.3321);
+        location.setLatitude(47.6062);
+
+        AppClient.RegisterClientRequest.Builder registerClientRequestBuilder = null;
+        try {
+            registerClientRequestBuilder = me.createDefaultRegisterClientRequest(context, "MobiledgeX-Samples")
+                    .setAppName("ComputerVision")
+                    .setAppVers("2.2");
+            AppClient.RegisterClientRequest req = registerClientRequestBuilder.build();
+
+            AppClient.RegisterClientReply regReply = me.registerClient(req, 10000);
+            AppClient.AppInstListRequest  appInstListRequest = me.createDefaultAppInstListRequest(context, location)
+                    .setCarrierName("")
+                    .build();
+
+            AppClient.AppInstListReply appInstListReply = me.getAppInstList(appInstListRequest, 10000);
+            for (AppClient.CloudletLocation cloudletLoc : appInstListReply.getCloudletsList()) {
+                for (AppClient.Appinstance appInst : cloudletLoc.getAppinstancesList()) {
+                    String host = appInst.getPortsList().get(0).getFqdnPrefix() + appInst.getFqdn(); // +  appInst.getPortsList().get(0).getPathPrefix();
+                    int port = 8008;
+                    Site site = new Site(context, NetTest.TestType.CONNECT, 5, host, port);
+                    netTest.addSite(site);
+                }
+            }
+        } catch (DmeDnsException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            Assert.assertFalse(String.valueOf(e.getStackTrace()), true);
+        } catch (NameNotFoundException pmnf) {
+            Assert.assertTrue("Missing package manager!", false);
+        }
+
+
+        List<Site> sites = netTest.sortedSiteList();
+        assertEquals("Site list size wrong!", 2, sites.size());
+
+        Site bestSite;
+        // Emulator WiFi unit test only! (and still unstable)
+        // The expectation is on a cellular network, net test needs to be paired with a dummy DME call
+        // with some 2K of data to prime the network to send data.
+        netTest.testSites(TimeoutMS);
+        bestSite = netTest.bestSite();
+        Site site2 = netTest.sortedSiteList().get(0);
+        Log.d(TAG, "Host expected: " + site2.host + ", avg: " + site2.average + ", got: " + "Got best site: " + bestSite.host + ", avg: " + bestSite.average);
+        if (!site2.host.equals(bestSite.host)) {
+            assertTrue("Serial winner Not within 10% margin: ", Math.abs(bestSite.average-site2.average)/site2.average < 0.1d);
+        } else {
+            assertEquals("Test expectation is Virgina wins: ", site2.host, netTest.bestSite().host);
+        }
+
+        netTest.testSitesOnExecutor(TimeoutMS);
+        bestSite = netTest.bestSite();
+        // Not switching the site. It's supposed to be usually the same "best" server, mostly.
+        Log.d(TAG, "Host expected: " + site2.host + ", avg: " + site2.average + ", got: " + "Got best site: " + bestSite.host + ", avg: " + bestSite.average);
+        if (!site2.host.equals(bestSite.host)) {
+            assertTrue("Threaded winner Not within 10% margin: ", Math.abs(bestSite.average-site2.average)/site2.average < 0.10d);
+        } else {
+            Log.d(TAG, "Got best site: " + netTest.bestSite().host);
+            assertEquals("Test expectation is Virginia wins: ", site2.host, netTest.bestSite().host);
+        }
+        // Might fail:
+        assertEquals("computervision-tcp.mobiledgex-samplescomputervision22.cv-cluster.us-north-virginia.gcp.mobiledgex.net", bestSite.host);
 
     }
 }
