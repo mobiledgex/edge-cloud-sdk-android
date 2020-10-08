@@ -17,6 +17,8 @@
 
 package com.mobiledgex.matchingengine.performancemetrics;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
 import android.net.Network;
 
 import distributed_match_engine.AppClient;
@@ -45,6 +47,36 @@ public class Site
 
     public static final int DEFAULT_NUM_SAMPLES = 3;
 
+    /**
+     * Create a Site instance from the default network interface. Once set, it does not change automatically.
+     * @param context Application Context
+     * @param testType
+     * @param numSamples
+     * @param host
+     * @param port
+     */
+    public Site(Context context, NetTest.TestType testType, int numSamples, String host, int port)
+    {
+        ConnectivityManager connectivityManager = context.getSystemService(ConnectivityManager.class);
+        this.network = connectivityManager.getActiveNetwork();
+        this.testType = testType;
+        this.host = host;
+        this.port = port;
+        if (numSamples <= 0) {
+            numSamples = DEFAULT_NUM_SAMPLES;
+        }
+        samples = new double[numSamples];
+    }
+
+    /**
+     * Test performance from a specific network interface. This interface may not be available at the time
+     * of test.
+     * @param network
+     * @param testType
+     * @param numSamples
+     * @param host
+     * @param port
+     */
     public Site(Network network, NetTest.TestType testType, int numSamples, String host, int port)
     {
         this.network = network;
