@@ -28,7 +28,9 @@ import com.mobiledgex.mel.MelMessaging;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -89,7 +91,7 @@ public class FindCloudlet implements Callable {
                 .setFqdn(bestSite.appInstance.getFqdn())
                 .setCloudletLocation(bestSite.cloudlet_location)
                 .addAllPorts(bestSite.appInstance.getPortsList())
-                .addAllTags(findCloudletReply.getTagsList());
+                .putAllTags(findCloudletReply.getTagsMap());
     }
 
     // If UDP, then ICMP must respond. TODO: Allow UDP "response"?
@@ -209,15 +211,13 @@ public class FindCloudlet implements Callable {
 
             // Have more time for AppInstList:
             // GetAppInstList, using the same FindCloudlet Request values.
-            byte[] dummy = new byte[2048];
-            AppClient.Tag dummyTag = AppClient.Tag.newBuilder().setType("Buffer").setData(new String(dummy)).build();
 
             AppClient.AppInstListRequest appInstListRequest = GetAppInstList.createFromFindCloudletRequest(mRequest)
                 // Do non-trivial transfer, stuffing Tag to do so.
                 .setCarrierName(mRequest.getCarrierName() == null ?
                   mMatchingEngine.getLastRegisterClientRequest().getCarrierName() :
                   mRequest.getCarrierName())
-                .addTags(dummyTag)
+                .putTags("Buffer", new String(new byte[2048]))
                 .build();
 
             AppClient.AppInstListReply appInstListReply = stub.withDeadlineAfter(remainder, TimeUnit.MILLISECONDS)

@@ -57,6 +57,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -574,7 +575,7 @@ public class MatchingEngine {
                                                              String applicationName, String appVersion,
                                                              String authToken,
                                                              int cellId, String uniqueIdType,
-                                                             String uniqueId, List<AppClient.Tag> tags)
+                                                             String uniqueId, Map<String, String> tags)
             throws PackageManager.NameNotFoundException
     {
         if (!mMatchingEngineLocationAllowed) {
@@ -617,7 +618,7 @@ public class MatchingEngine {
                 .setCellId(cellId);
 
         if (tags != null) {
-            builder.addAllTags(tags);
+            builder.putAllTags(tags);
         }
 
         if (uniqueId != null && uniqueId.length() > 0) {
@@ -1257,7 +1258,7 @@ public class MatchingEngine {
                                                              final Location location,
                                                              final String authToken,
                                                              final int cellId,
-                                                             final List<AppClient.Tag> tags,
+                                                             final Map<String, String> tags,
                                                              final FindCloudletMode mode) {
         final MatchingEngine me = this;
 
@@ -1270,7 +1271,7 @@ public class MatchingEngine {
                         .setAuthToken(authToken)
                         .setCellId(cellId);
                 if (tags != null) {
-                    registerClientRequestBuilder.addAllTags(tags);
+                    registerClientRequestBuilder.putAllTags(tags);
                 }
                 RegisterClientRequest registerClientRequest = registerClientRequestBuilder.build();
 
@@ -1283,7 +1284,7 @@ public class MatchingEngine {
                 FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location)
                     .setCellId(cellId);
                 if (tags != null) {
-                  findCloudletRequestBuilder.addAllTags(tags);
+                  findCloudletRequestBuilder.putAllTags(tags);
                 }
                 FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
                 FindCloudletMode useMode = mode;
@@ -1311,7 +1312,7 @@ public class MatchingEngine {
                                                              final int cellId,
                                                              final String uniqueIdType,
                                                              final String uniqueId,
-                                                             final List<AppClient.Tag> tags,
+                                                             final Map<String, String> tags,
                                                              final FindCloudletMode mode) {
 
         final MatchingEngine me = this;
@@ -1331,7 +1332,7 @@ public class MatchingEngine {
                 FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location)
                         .setCellId(cellId);
                 if (tags != null) {
-                    findCloudletRequestBuilder.addAllTags(tags);
+                    findCloudletRequestBuilder.putAllTags(tags);
                 }
                 FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
                 FindCloudletMode useMode = mode;
@@ -1361,7 +1362,7 @@ public class MatchingEngine {
                                                              final int cellId,
                                                              final String uniqueIdType,
                                                              final String uniqueId,
-                                                             final List<AppClient.Tag> tags,
+                                                             final Map<String, String> tags,
                                                              final FindCloudletMode mode) {
 
         final MatchingEngine me = this;
@@ -1382,7 +1383,7 @@ public class MatchingEngine {
                 FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location)
                         .setCellId(cellId);
                 if (tags != null) {
-                    findCloudletRequestBuilder.addAllTags(tags);
+                    findCloudletRequestBuilder.putAllTags(tags);
                 }
                 FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
                 FindCloudletMode useMode = mode;
