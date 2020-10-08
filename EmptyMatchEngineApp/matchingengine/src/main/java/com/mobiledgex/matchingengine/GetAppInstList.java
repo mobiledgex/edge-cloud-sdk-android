@@ -89,7 +89,7 @@ public class GetAppInstList implements Callable {
             appInstListRequestBuilder.setCellId(findCloudletRequest.getCellId());
         }
         if (findCloudletRequest.getTagsCount() > 0) {
-            appInstListRequestBuilder.addAllTags(findCloudletRequest.getTagsList());
+            appInstListRequestBuilder.putAllTags(findCloudletRequest.getTagsMap());
         }
 
         return appInstListRequestBuilder;
