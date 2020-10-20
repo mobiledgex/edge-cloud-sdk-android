@@ -100,13 +100,7 @@ public class RegisterClient implements Callable {
 
     private AppClient.RegisterClientRequest.Builder appendDeviceDetails(AppClient.RegisterClientRequest.Builder builder) {
         HashMap<String, String> map = mMatchingEngine.getDeviceDetails();
-        for (String key : map.keySet()) {
-            AppClient.Tag aTag = AppClient.Tag.newBuilder()
-                    .setType(key)
-                    .setData(map.get(key))
-                    .build();
-            builder.addTags(aTag);
-        }
+        builder.putAllTags(map);
         return builder;
     }
 
