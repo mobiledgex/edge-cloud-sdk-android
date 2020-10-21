@@ -309,7 +309,7 @@ public class MatchingEngine {
 
     /**
      * General Device Details
-     * @return qkey value string pairs.
+     * @return key value string pairs.
      */
     public HashMap<String, String> getDeviceDetails() {
 
@@ -350,7 +350,8 @@ public class MatchingEngine {
         if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.READ_PHONE_STATE)
                 == PackageManager.PERMISSION_GRANTED) {
             int nType = telManager.getDataNetworkType(); // Type Name is not visible.
-            map.put("DataNetworkType", Integer.toString(nType));
+            NetworkManager.DataNetworkType dataType = NetworkManager.DataNetworkType.intMap.get(nType);
+            map.put("DataNetworkType", dataType.name());
         }
 
         map.put("PhoneType", Integer.toString(telManager.getPhoneType()));
@@ -364,7 +365,7 @@ public class MatchingEngine {
         // Default one.
         String networkOperator = telManager.getNetworkOperatorName();
         if (networkOperator != null) {
-            map.put("networkOperator", networkOperator);
+            map.put("NetworkOperator", networkOperator);
         }
 
         return map;

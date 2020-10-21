@@ -31,7 +31,9 @@ import android.telephony.SubscriptionManager;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -62,6 +64,47 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     private boolean mNetworkSwitchingEnabled = true;
     private boolean mSSLEnabled = true;
     private boolean mAllowSwitchIfNoSubscriberInfo = false;
+
+    // Source: https://developer.android.com/reference/android/telephony/TelephonyManager
+    public enum DataNetworkType {
+        NETWORK_TYPE_1xRTT(7),
+        NETWORK_TYPE_CDMA(4),
+        NETWORK_TYPE_EDGE(2),
+        NETWORK_TYPE_EHRPD(14),
+        NETWORK_TYPE_EVDO_0(5),
+        NETWORK_TYPE_EVDO_A(6),
+        NETWORK_TYPE_EVDO_B(12),
+        NETWORK_TYPE_GPRS(1),
+        NETWORK_TYPE_GSM(16),
+        NETWORK_TYPE_HSDPA(8),
+        NETWORK_TYPE_HSPA(10),
+        NETWORK_TYPE_HSPAP(15),
+        NETWORK_TYPE_HSUPA(9),
+        NETWORK_TYPE_IDEN(11),
+        NETWORK_TYPE_IWLAN(18),
+        NETWORK_TYPE_LTE(13),
+        NETWORK_TYPE_NR(20),
+        NETWORK_TYPE_TD_SCDMA(17),
+        NETWORK_TYPE_UMTS(3),
+        NETWORK_TYPE_UNKNOWN(0);
+
+        private int value;
+        public static Map<Integer, DataNetworkType> intMap;
+
+        static {
+            intMap = new HashMap<Integer, DataNetworkType>();
+            for (DataNetworkType d : DataNetworkType.values()) {
+                intMap.put(d.getValue(), d);
+            }
+        }
+
+        DataNetworkType(int val) {
+            this.value = val;
+        }
+        public int getValue() {
+            return value;
+        }
+    }
 
     public boolean isNetworkSwitchingEnabled() {
         return mNetworkSwitchingEnabled;
