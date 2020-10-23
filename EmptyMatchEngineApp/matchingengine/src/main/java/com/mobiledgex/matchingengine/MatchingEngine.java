@@ -17,6 +17,7 @@
 
 package com.mobiledgex.matchingengine;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -29,6 +30,7 @@ import android.os.Build;
 import android.provider.Settings;
 
 import androidx.annotation.RequiresApi;
+import androidx.core.app.ActivityCompat;
 
 import android.telephony.CarrierConfigManager;
 import android.telephony.CellIdentityCdma;
@@ -56,6 +58,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -194,7 +197,7 @@ public class MatchingEngine {
     }
 
     private SubscriptionManager getSubscriptionManager(Context context) {
-        return (SubscriptionManager)context.getSystemService(TELEPHONY_SUBSCRIPTION_SERVICE);
+        return (SubscriptionManager) context.getSystemService(TELEPHONY_SUBSCRIPTION_SERVICE);
     }
 
     public boolean isNetworkSwitchingEnabled() {
@@ -250,6 +253,7 @@ public class MatchingEngine {
     void setSessionCookie(String sessionCookie) {
         this.mSessionCookie = sessionCookie;
     }
+
     String getSessionCookie() {
         return this.mSessionCookie;
     }
@@ -257,6 +261,7 @@ public class MatchingEngine {
     RegisterClientRequest getLastRegisterClientRequest() {
         return mRegisterClientRequest;
     }
+
     void setLastRegisterClientRequest(AppClient.RegisterClientRequest registerRequest) {
         mRegisterClientRequest = registerRequest;
     }
@@ -292,7 +297,7 @@ public class MatchingEngine {
      * @return
      */
     String getMccMnc(Context context) {
-        TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+        TelephonyManager telManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
 
         int subId = SubscriptionManager.getDefaultDataSubscriptionId();
         if (subId == SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
@@ -300,6 +305,70 @@ public class MatchingEngine {
         }
 
         return telManager.createForSubscriptionId(subId).getNetworkOperator();
+    }
+
+    /**
+     * General Device Details
+     * @return key value string pairs.
+     */
+    public HashMap<String, String> getDeviceDetails() {
+
+        HashMap<String, String> map = new HashMap<>();
+
+        TelephonyManager telManager = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        if (telManager == null) {
+            return map;
+        }
+
+        map.put("Build.VERSION.SDK_INT", Integer.toString(Build.VERSION.SDK_INT));
+
+        try {
+            String ver = telManager.getDeviceSoftwareVersion();
+            if (ver != null) {
+                map.put("DeviceSoftwareVersion", ver);
+            }
+        } catch (SecurityException se) {
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            String mc = telManager.getManufacturerCode();
+            if (mc != null) {
+                map.put("ManufacturerCode", mc);
+            }
+        }
+
+        String niso = telManager.getNetworkCountryIso();
+        if (niso != null) {
+            map.put("NetworkCountryIso", niso);
+        }
+
+        String siso = telManager.getSimCountryIso();
+        if (siso != null) {
+            map.put("SimCountryCodeIso", siso);
+        }
+
+        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.READ_PHONE_STATE)
+                == PackageManager.PERMISSION_GRANTED) {
+            int nType = telManager.getDataNetworkType(); // Type Name is not visible.
+            NetworkManager.DataNetworkType dataType = NetworkManager.DataNetworkType.intMap.get(nType);
+            map.put("DataNetworkType", dataType.name());
+        }
+
+        map.put("PhoneType", Integer.toString(telManager.getPhoneType()));
+
+        // Default one.
+        String simOperatorName = telManager.getSimOperatorName();
+        if (simOperatorName != null) {
+            map.put("SimOperator", simOperatorName);
+        }
+
+        // Default one.
+        String networkOperator = telManager.getNetworkOperatorName();
+        if (networkOperator != null) {
+            map.put("NetworkOperator", networkOperator);
+        }
+
+        return map;
     }
 
     /**
