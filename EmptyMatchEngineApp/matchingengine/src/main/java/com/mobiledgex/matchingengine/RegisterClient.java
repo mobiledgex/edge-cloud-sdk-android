@@ -23,6 +23,7 @@ import android.util.Log;
 
 import com.mobiledgex.mel.MelMessaging;
 
+import java.util.HashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -72,7 +73,7 @@ public class RegisterClient implements Callable {
 
     }
 
-    private AppClient.RegisterClientRequest updateRequestFoMel() {
+    private AppClient.RegisterClientRequest.Builder updateRequestFoMel(AppClient.RegisterClientRequest.Builder builder) {
         String uid = MelMessaging.getUid();
 
         // This is the hashed value of Advertising ID.
@@ -83,18 +84,24 @@ public class RegisterClient implements Callable {
         // Whether MEL is activated or not, look for a UID. If there is one, we can attempt to
         // activate the device at the DME.
         if (uid != null && !uid.isEmpty()) {
-            mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
+             builder
                 .setUniqueIdType("Platos:" + model + ":PlatosEnablingLayer") // TBD: Only one enabling layer.
                 .setUniqueId(uid)
                 .build();
         } else if (manufacturer != null && ad_id != null && !ad_id.isEmpty()) {
-            mRequest = AppClient.RegisterClientRequest.newBuilder(mRequest)
+            builder
                 .setUniqueIdType(manufacturer + ":" + model + ":HASHED_ID")
                 .setUniqueId(ad_id)
                 .build();
         }
 
-        return mRequest;
+        return builder;
+    }
+
+    private AppClient.RegisterClientRequest.Builder appendDeviceDetails(AppClient.RegisterClientRequest.Builder builder) {
+        HashMap<String, String> map = mMatchingEngine.getDeviceDetails();
+        builder.putAllTags(map);
+        return builder;
     }
 
 
@@ -114,7 +121,10 @@ public class RegisterClient implements Callable {
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
-            mRequest = updateRequestFoMel();
+            AppClient.RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder(mRequest);
+            updateRequestFoMel(builder);
+            appendDeviceDetails(builder);
+            mRequest = builder.build();
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .registerClient(mRequest);
