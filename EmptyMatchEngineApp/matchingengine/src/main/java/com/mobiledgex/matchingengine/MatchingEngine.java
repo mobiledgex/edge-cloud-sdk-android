@@ -308,10 +308,10 @@ public class MatchingEngine {
     }
 
     /**
-     * General Device Details
+     * General DeviceInfo Details
      * @return key value string pairs.
      */
-    public HashMap<String, String> getDeviceDetails() {
+    public HashMap<String, String> getDeviceInfo() {
 
         HashMap<String, String> map = new HashMap<>();
 
@@ -322,12 +322,13 @@ public class MatchingEngine {
 
         map.put("Build.VERSION.SDK_INT", Integer.toString(Build.VERSION.SDK_INT));
 
-        try {
+
+        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.READ_PHONE_STATE)
+                == PackageManager.PERMISSION_GRANTED) {
             String ver = telManager.getDeviceSoftwareVersion();
             if (ver != null) {
                 map.put("DeviceSoftwareVersion", ver);
             }
-        } catch (SecurityException se) {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
