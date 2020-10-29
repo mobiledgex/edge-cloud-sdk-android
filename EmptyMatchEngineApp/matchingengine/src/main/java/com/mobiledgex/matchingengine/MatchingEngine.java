@@ -360,13 +360,13 @@ public class MatchingEngine {
         // Default one.
         String simOperatorName = telManager.getSimOperatorName();
         if (simOperatorName != null) {
-            map.put("SimOperator", simOperatorName);
+            map.put("SimOperatorName", simOperatorName);
         }
 
         // Default one.
         String networkOperator = telManager.getNetworkOperatorName();
         if (networkOperator != null) {
-            map.put("NetworkOperator", networkOperator);
+            map.put("NetworkOperatorName", networkOperator);
         }
 
         return map;
