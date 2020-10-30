@@ -211,14 +211,24 @@ public class MatchingEngine {
      * @param dmeHost
      * @param port
      * @param network
+     * @param edgeEventsCookie This events session cookie part of FindClooudletReply for the app's
+     *                         resolved edge AppInst.
      * @return a connected DMEConnection instance
      */
-    DMEConnection getDmeConnection(String dmeHost, int port, Network network) {
+    DMEConnection getDmeConnection(String dmeHost, int port, Network network, String edgeEventsCookie) {
         if (mDmeConnection == null || mDmeConnection.isShutdown()) {
             mDmeConnection = new DMEConnection(this, dmeHost, port, null);
             // Send dummy:
             mDmeConnection.send(AppClient.ClientEdgeEvent.newBuilder().build());
         }
+
+        // Client identifies itself with an Init message to DME EdgeEvents Connection.
+        AppClient.ClientEdgeEvent initDmeEvent = AppClient.ClientEdgeEvent.newBuilder()
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
+                .setSessionCookie(mSessionCookie)
+                .setEdgeEventsCookie(edgeEventsCookie)
+                .build();
+        mDmeConnection.send(initDmeEvent);
 
         return mDmeConnection;
     }

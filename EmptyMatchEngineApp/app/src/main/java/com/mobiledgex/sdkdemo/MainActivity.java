@@ -350,7 +350,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
                     }
                     dmeHostAddress = "us-mexdemo." + MatchingEngine.baseDmeHost;
-                    //mMatchingEngine.setUseWifiOnly(true);
+                    mMatchingEngine.setUseWifiOnly(true);
+                    mMatchingEngine.setSSLEnabled(false);
                     dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
                     dmeHostAddress = "localhost"; // TODO: Remove when Persistent Connection is deployed.
                     EventBus bus = mMatchingEngine.getEdgeEventBus();

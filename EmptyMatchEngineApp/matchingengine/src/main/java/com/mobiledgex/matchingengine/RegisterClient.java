@@ -151,10 +151,6 @@ public class RegisterClient implements Callable {
         mMatchingEngine.setLastRegisterClientRequest(mRequest);
         mMatchingEngine.setMatchEngineStatus(reply);
 
-        if (reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS) {
-            mMatchingEngine.getDmeConnection(mHost, mPort, network);
-        }
-
         mRequest = null;
         mHost = null;
         mPort = 0;

@@ -56,7 +56,11 @@ class DMEConnection {
     public void open(String host, int port, Network network) throws DmeDnsException {
         if (network == null) {
             try {
-                network = me.getNetworkManager().getCellularNetworkBlocking(false);
+                if (!me.isUseWifiOnly()) {
+                    network = me.getNetworkManager().getCellularNetworkBlocking(false);
+                } else {
+                    network = me.getNetworkManager().getActiveNetwork();
+                }
             } catch (InterruptedException | ExecutionException e) {
                 network = me.getNetworkManager().getActiveNetwork();
             }
@@ -66,7 +70,7 @@ class DMEConnection {
             }
         }
 
-        this.channel = me.channelPicker(me.generateDmeHostAddress(), me.getPort(), network);
+        this.channel = me.channelPicker(host, port, network);
         this.stub = MatchEngineApiGrpc.newStub(channel);
 
         receiver = new StreamObserver<AppClient.ServerEdgeEvent>() {
@@ -88,7 +92,8 @@ class DMEConnection {
         };
 
         sender = stub.withDeadlineAfter(10000, TimeUnit.MILLISECONDS)
-            .sendEdgeEvent(receiver);
+            .streamEdgeEvent(receiver);
+
         open = true;
     }
 
