@@ -99,7 +99,7 @@ public class RegisterClient implements Callable {
     }
 
     private AppClient.RegisterClientRequest.Builder appendDeviceDetails(AppClient.RegisterClientRequest.Builder builder) {
-        HashMap<String, String> map = mMatchingEngine.getDeviceDetails();
+        HashMap<String, String> map = mMatchingEngine.getDeviceInfo();
         builder.putAllTags(map);
         return builder;
     }
