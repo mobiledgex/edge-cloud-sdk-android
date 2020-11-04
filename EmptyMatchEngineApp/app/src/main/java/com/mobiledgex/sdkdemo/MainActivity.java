@@ -69,6 +69,7 @@ import java.util.concurrent.Future;
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
 import distributed_match_engine.MatchEngineApiGrpc;
+import io.grpc.Server;
 import io.grpc.StatusRuntimeException;
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -229,19 +230,22 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 break;
             case EVENT_APPINST_HEALTH:
                 System.out.println("Received: AppInst Health: " + event);
+                handleAppInstHealth(event);
                 break;
             case EVENT_CLOUDLET_STATE:
                 System.out.println("Received: Cloutlet State event: " + event);
+                handleCloudletState(event);
                 break;
             case EVENT_CLOUDLET_MAINTENANCE:
                 System.out.println("Received: Cloutlet Maintenance event." + event);
+                handleCloudletMaintenance(event);
                 break;
             case EVENT_LATENCY_PROCESSED:
                 System.out.println("Received: Latency has been processed on server: " + event);
                 break;
             case EVENT_LATENCY_REQUEST:
                 System.out.println("Received: Latency has been requested to be tested (client perspective): " + event);
-                handleLatencyRequest();
+                handleLatencyRequest(event);
                 break;
             case EVENT_UNKNOWN:
                 System.out.println("Received UnknownEvent.");
@@ -256,9 +260,29 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
     }
 
+    void handleAppInstHealth(AppClient.ServerEdgeEvent event) {
+        if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_APPINST_HEALTH) {
+            return;
+        }
+    }
+
+    void handleCloudletMaintenance(AppClient.ServerEdgeEvent event) {
+        if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_MAINTENANCE) {
+            return;
+        }
+    }
+
+    void handleCloudletState(AppClient.ServerEdgeEvent event) {
+        if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_STATE) {
+            return;
+        }
+    }
     // Only the app knows with any certainty which AppPort (and internal port array)
     // it wants to test, so this is in the application.
-    void handleLatencyRequest() {
+    void handleLatencyRequest(AppClient.ServerEdgeEvent event) {
+        if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_LATENCY_REQUEST) {
+            return;
+        }
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
