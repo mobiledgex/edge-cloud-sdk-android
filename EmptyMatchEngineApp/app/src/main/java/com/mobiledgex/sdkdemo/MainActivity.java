@@ -273,10 +273,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                 // Assuming some knowledge of your own internal un-remapped server port
                 // discover, and test with the PerformanceMetrics API:
-                int internalPort = 3838;
+                int internalPort = 7777;
                 int publicPort;
                 HashMap<Integer, Appcommon.AppPort> ports = mMatchingEngine.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
-                Appcommon.AppPort anAppPort = ports.get(3838);
+                Appcommon.AppPort anAppPort = ports.get(internalPort);
                 if (anAppPort == null) {
                     System.out.println("Your expected server (or port) doesn't seem to be here!");
                 }
@@ -285,9 +285,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 publicPort = anAppPort.getPublicPort();
                 String host = mMatchingEngine.getAppConnectionManager().getHost(mLastFindCloudlet, anAppPort);
 
-                // Bad find cloudlet string.
+                // Bad find cloudlet string (test.dme)
                 host = "192.168.1.172";
-                netTest.testSite(new Site(getApplicationContext(), NetTest.TestType.CONNECT, 5, host, publicPort));
+                publicPort = mMatchingEngine.getPort(); // We'll just ping DME since the AppInst isn't there.
+                Site site = new Site(getApplicationContext(), NetTest.TestType.CONNECT, 5, host, publicPort);
+                netTest.addSite(site);
+                netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
 
                 mMatchingEngine.getDmeConnection().postLatencyResult(netTest.getSite(host), mLastLocationResult, mLastFindCloudlet);
             }

@@ -163,7 +163,7 @@ public class DMEConnection {
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        me.getEdgeEventBus().post(clientEdgeEvent);
+        sender.onNext(clientEdgeEvent);
     }
 
 }
