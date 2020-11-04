@@ -98,6 +98,7 @@ import android.content.pm.PackageInfo;
 import android.util.Log;
 import android.util.Pair;
 
+import com.google.android.gms.common.api.Api;
 import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.EventBus;
@@ -128,7 +129,7 @@ public class MatchingEngine {
     private boolean externalExecutor = false;
 
     // State info for engine
-    private String mSessionCookie; // TODO: Session Map lookup for multiple Edge Apps.
+    String mSessionCookie; // TODO: Session Map lookup for multiple Edge Apps.
     private String mTokenServerURI;
     private String mTokenServerToken;
 
@@ -219,7 +220,7 @@ public class MatchingEngine {
         if (mDmeConnection == null || mDmeConnection.isShutdown()) {
             mDmeConnection = new DMEConnection(this, dmeHost, port, null);
             // Send dummy:
-            mDmeConnection.send(AppClient.ClientEdgeEvent.newBuilder().build());
+            //mDmeConnection.send(AppClient.ClientEdgeEvent.newBuilder().build());
         }
 
         // Client identifies itself with an Init message to DME EdgeEvents Connection.
@@ -246,6 +247,10 @@ public class MatchingEngine {
     @Subscribe
     private void handleDeadEdgeEvent(DeadEvent deadEvent) {
         System.out.println("You have messages, but are not subscribed to events.");
+    }
+
+    public DMEConnection getDmeConnection() {
+        return mDmeConnection;
     }
 
     /**
@@ -551,6 +556,7 @@ public class MatchingEngine {
      * \throws SecurityException if GET_PHONE_STATE missing.
      * \ingroup functions_dmeutils
      */
+    @Deprecated
     public List<Pair<String, Long>> retrieveCellId(Context context) throws SecurityException {
         TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
 
@@ -1047,7 +1053,7 @@ public class MatchingEngine {
         return builder;
     }
 
-    private Loc androidLocToMeLoc(android.location.Location loc) {
+    Loc androidLocToMeLoc(android.location.Location loc) {
         Loc.Builder builder = Loc.newBuilder()
                 .setLatitude((loc == null) ? 0.0d : loc. getLatitude())
                 .setLongitude((loc == null) ? 0.0d : loc.getLongitude())
@@ -1902,4 +1908,6 @@ public class MatchingEngine {
                     .build();
         }
     }
+
+
 }
