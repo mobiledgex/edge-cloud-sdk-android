@@ -264,17 +264,59 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_APPINST_HEALTH) {
             return;
         }
+
+        switch (event.getHealthCheck()) {
+            case HEALTH_CHECK_FAIL_ROOTLB_OFFLINE:
+            case HEALTH_CHECK_FAIL_SERVER_FAIL:
+                doEnhancedLocationVerification();
+                break;
+            case HEALTH_CHECK_OK:
+                // fall through
+            default:
+                System.out.println("AppInst Health event: " + event.getHealthCheck());
+        }
     }
 
     void handleCloudletMaintenance(AppClient.ServerEdgeEvent event) {
         if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_MAINTENANCE) {
             return;
         }
+
+        switch (event.getMaintenanceState()) {
+            case NORMAL_OPERATION:
+                System.out.println("Maintenance state is all good!");
+                break;
+            default:
+                System.out.println("Server maintenance: " + event.getMaintenanceState());
+        }
     }
 
     void handleCloudletState(AppClient.ServerEdgeEvent event) {
         if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_STATE) {
             return;
+        }
+
+        switch (event.getCloudletState()) {
+            case CLOUDLET_STATE_INIT:
+                System.out.println("Cloudlet is not ready yet. Wait or FindCloudlet again.");
+                break;
+            case CLOUDLET_STATE_NOT_PRESENT:
+                System.out.println("Cloudlet is not present.");
+            case CLOUDLET_STATE_UPGRADE:
+                System.out.println("Cloudlet is upgrading");
+            case CLOUDLET_STATE_OFFLINE:
+                System.out.println("Cloudlet is offline");
+            case CLOUDLET_STATE_ERRORS:
+                System.out.println("Cloudlet is offline");
+            case CLOUDLET_STATE_READY:
+                // Timer Retry or just retry.
+                doEnhancedLocationVerification();
+                break;
+            case CLOUDLET_STATE_NEED_SYNC:
+                System.out.println("Cloudlet data needs to sync.");
+                break;
+            default:
+                System.out.println("Not handled");
         }
     }
     // Only the app knows with any certainty which AppPort (and internal port array)
