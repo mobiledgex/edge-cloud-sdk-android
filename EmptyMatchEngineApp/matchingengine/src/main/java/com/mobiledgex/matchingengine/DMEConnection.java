@@ -1,6 +1,7 @@
 package com.mobiledgex.matchingengine;
 
 
+import android.location.Location;
 import android.net.Network;
 import android.util.Log;
 
@@ -134,7 +135,11 @@ public class DMEConnection {
         sender.onNext(clientEdgeEvent);
     }
 
+    // Outbound ClientEdgeEvents:
     public void postLatencyResult(Site site, LocationResult clientLocationResults, AppClient.FindCloudletReply findCloudlet) {
+
+        // TODO: enhanced location permisison.
+
         LocOuterClass.Loc loc = null;
 
         if (site != null && (site.samples == null || site.samples.length == 0)) {
@@ -157,7 +162,11 @@ public class DMEConnection {
 
         for (int i = 0; i < site.samples.length; i++) {
             if (site.samples[i] > 0d) {
-                clientEdgeEventBuilder.addSamples(site.samples[i]);
+                LocOuterClass.Sample.Builder sampleBuilder = LocOuterClass.Sample.newBuilder()
+                        //.setLoc(loc) Location is not synchronous with measurement.
+                        // Samples are not timestamped.
+                        .setValue(site.samples[i]);
+                clientEdgeEventBuilder.addSamples(sampleBuilder.build());
             }
         }
 
@@ -166,4 +175,27 @@ public class DMEConnection {
         sender.onNext(clientEdgeEvent);
     }
 
+    // Location updates, from client device.
+    public void postLocationUpdate(LocationResult locationResult, AppClient.FindCloudletReply findCloudletReply) {
+        // TODO: enhanced location permisison.
+
+        if (locationResult == null || locationResult.getLastLocation() == null) {
+            return;
+        }
+
+        Location location = locationResult.getLastLocation();
+        LocOuterClass.Loc loc = me.androidLocToMeLoc(location);
+        if (loc == null) {
+            return; // invalid loc.
+        }
+        AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
+                .setEdgeEventsCookie(findCloudletReply.getEdgeEventsCookie())
+                .setSessionCookie(me.getSessionCookie())
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LOCATION_UPDATE)
+                .setGpsLocation(loc);
+
+        AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
+
+        sender.onNext(clientEdgeEvent);
+    }
 }

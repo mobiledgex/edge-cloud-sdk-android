@@ -84,6 +84,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private AppClient.FindCloudletReply mLastFindCloudlet;
     private FusedLocationProviderClient mFusedLocationClient;
 
+    private int internalPort = 7777;
+
     private LocationCallback mLocationCallback;
     private LocationRequest mLocationRequest;
     private LocationResult mLastLocationResult;
@@ -137,6 +139,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 }
                 String clientLocText = "";
                 mLastLocationResult = locationResult;
+                // TODO: DME is lazy initialized.
+                if (mMatchingEngine.getDmeConnection() != null) {
+                    mMatchingEngine.getDmeConnection().postLocationUpdate(mLastLocationResult, mLastFindCloudlet);
+                }
                 for (Location location : locationResult.getLocations()) {
                     // Update UI with client location data
                     clientLocText += "[" + location.toString() + "]";
@@ -218,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     /**
-     * Subscribe to ClientEdgeEvents! (Guava Interface)
+     * Subscribe to ServerEdgeEvents! (Guava Interface)
      */
     @Subscribe
     public void onMessageEvent(AppClient.ServerEdgeEvent event) {
@@ -247,6 +253,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 System.out.println("Received: Latency has been requested to be tested (client perspective): " + event);
                 handleLatencyRequest(event);
                 break;
+            case EVENT_CLOUDLET_UPDATE:
+                System.out.println("Received: Server pushed a new FindCloudletReply to switch to: " + event);
+                handleFindCloudletServerPush(event);
             case EVENT_UNKNOWN:
                 System.out.println("Received UnknownEvent.");
                 break;
@@ -260,6 +269,26 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
     }
 
+    void handleFindCloudletServerPush(AppClient.ServerEdgeEvent event) {
+        // In a real app:
+        // Sync any user app data
+        // switch servers
+        // restore state to continue.
+
+        // Just print:
+        AppClient.FindCloudletReply reply = event.getNewCloudlet();
+
+        HashMap<Integer, Appcommon.AppPort> ports = mMatchingEngine.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
+        Appcommon.AppPort aport = ports.get(internalPort);
+        int publicPort = aport.getPublicPort();
+        String url = mMatchingEngine.getAppConnectionManager().createUrl(reply, aport, publicPort, "https", "");
+
+        someText += "New FindCloudlet path is: " + url;
+
+        // And set it for use later.
+        mLastFindCloudlet = reply;
+    }
+
     void handleAppInstHealth(AppClient.ServerEdgeEvent event) {
         if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_APPINST_HEALTH) {
             return;
@@ -271,6 +300,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 doEnhancedLocationVerification();
                 break;
             case HEALTH_CHECK_OK:
+                System.out.println("AppInst Health is OK");
+                break;
+            case UNRECOGNIZED:
                 // fall through
             default:
                 System.out.println("AppInst Health event: " + event.getHealthCheck());
@@ -339,7 +371,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                 // Assuming some knowledge of your own internal un-remapped server port
                 // discover, and test with the PerformanceMetrics API:
-                int internalPort = 7777;
                 int publicPort;
                 HashMap<Integer, Appcommon.AppPort> ports = mMatchingEngine.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
                 Appcommon.AppPort anAppPort = ports.get(internalPort);
@@ -443,8 +474,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             @Override
             public void run() {
                 Location location = aTask.getResult();
-                location.setLatitude(49d);
-                location.setLongitude(-123d);
+                //location.setLatitude(49d);
+                //location.setLongitude(-123d);
                 // Location found. Create a request:
                 try {
                     someText = "";
@@ -528,8 +559,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     if (registerClientReply.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {
                         someText += "Registration Failed. Error: " + registerClientReply.getStatus();
-                        TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                        tv.setText(someText);
                         return;
                     }
 
@@ -543,6 +572,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             dmeHostAddress, port, 10000);
                     Log.i(TAG, "closest Cloudlet is " + closestCloudlet);
                     mLastFindCloudlet = closestCloudlet;
+
+                    if (closestCloudlet.getStatus() != AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
+                        someText += "Cloudlet not found!";
+                        return;
+                    }
 
                     registerClientReplyFuture =
                             mMatchingEngine.registerClientFuture(registerClientRequest,
@@ -703,12 +737,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 } catch (Exception e) {
                     someText += "Exception failure: " + e.getMessage() + ": ";
                     e.printStackTrace();
+                } finally {
                     ctx.runOnUiThread(new Runnable() {
-                      @Override
-                      public void run() {
-                          TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                          tv.setText(someText);
-                      }
+                        @Override
+                        public void run() {
+                            TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+                            if (tv != null) {
+                                tv.setText(someText);
+                            }
+                        }
                     });
                 }
             }

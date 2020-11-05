@@ -234,11 +234,21 @@ public class MatchingEngine {
         return mDmeConnection;
     }
 
-    // Ingress:
+    // Ingress from DMEConnectiono
     @Subscribe
     private void handleClientEdgeEvent(AppClient.ClientEdgeEvent clientEdgeEvent) {
         // Do stuff. Switch on type.
         Map<String, String> tm = clientEdgeEvent.getTagsMap();
+        String count = tm.get("count"); // Should be an internal HashMap with a Map interface.
+        String bort = tm.get("foo");
+        System.out.println("Count from server: " + count);
+    }
+
+    // Outgoing to DMEConnection FIXME: Not complete, we're hitting DMEConnection directly right now.
+    @Subscribe
+    private void handleClientEdgeEvent(AppClient.ServerEdgeEvent serverEdgeEvent) {
+        // Do stuff. Switch on type.
+        Map<String, String> tm = serverEdgeEvent.getTagsMap();
         String count = tm.get("count"); // Should be an internal HashMap with a Map interface.
         String bort = tm.get("foo");
         System.out.println("Count from server: " + count);
