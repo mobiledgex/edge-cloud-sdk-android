@@ -135,7 +135,7 @@ public class MatchingEngine {
 
     private RegisterClientRequest mRegisterClientRequest;
     private RegisterClientReply mRegisterClientReply;
-    private FindCloudletReply mFindCloudletReply;
+    FindCloudletReply mFindCloudletReply;
     private VerifyLocationReply mVerifyLocationReply;
     private GetLocationReply mGetLocationReply;
     private DynamicLocGroupReply mDynamicLocGroupReply;

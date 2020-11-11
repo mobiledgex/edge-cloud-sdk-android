@@ -6,6 +6,7 @@ import android.net.Network;
 import android.util.Log;
 
 import com.google.android.gms.location.LocationResult;
+import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 
 import java.util.concurrent.ExecutionException;
@@ -16,6 +17,9 @@ import distributed_match_engine.LocOuterClass;
 import distributed_match_engine.MatchEngineApiGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
+
+import static distributed_match_engine.AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_UPDATE;
+import static distributed_match_engine.AppClient.ServerEdgeEvent.ServerEventType.EVENT_INIT_CONNECTION;
 
 
 /**
@@ -34,8 +38,21 @@ public class DMEConnection {
     StreamObserver<AppClient.ClientEdgeEvent> sender;
     StreamObserver<AppClient.ServerEdgeEvent> receiver;
     boolean open = false;
+    boolean reOpenDmeConnection = false;
 
+    String hostOverride;
+    int portOverride;
+    Network networkOverride = null;
+
+    /**
+     * Establish an asynchronous DME Connection for streamed EdgeEvents to the current DME edge server.
+     * @param me
+     */
     DMEConnection(MatchingEngine me) {
+        synchronized (this) {
+            hostOverride = null;
+            portOverride = 0;
+        }
         this.me = me;
         try {
             open();
@@ -47,17 +64,35 @@ public class DMEConnection {
     DMEConnection(MatchingEngine me, String host, int port, Network network) {
         this.me = me;
         try {
+            synchronized (this) {
+                hostOverride = host;
+                portOverride = port;
+                networkOverride = network;
+            }
             open(host, port, network);
         } catch (DmeDnsException dmedns) {
             Log.e(TAG, "There is no DME to connect to!");
         }
     }
 
-    void open() throws DmeDnsException {
-        open(me.generateDmeHostAddress(), me.getPort(), null);
+    synchronized public void reconnect() throws DmeDnsException {
+        if (hostOverride != null && portOverride > 0) {
+            open(hostOverride, portOverride, networkOverride);
+        } else {
+            open(); // Default DME
+        }
     }
 
-    void open(String host, int port, Network network) throws DmeDnsException {
+    synchronized void open() throws DmeDnsException {
+        open(me.generateDmeHostAddress(), me.getPort(), null);
+        hostOverride = null;
+        portOverride = 0;
+    }
+
+    synchronized void open(String host, int port, Network network) throws DmeDnsException {
+        hostOverride = host;
+        portOverride = port;
+
         if (network == null) {
             try {
                 if (!me.isUseWifiOnly()) {
@@ -72,7 +107,12 @@ public class DMEConnection {
                 Log.e(TAG, "Unable to establish EdgeEvents DMEConnection!");
                 return; // Unable to establish connect to backend!
             }
+            networkOverride = null;
+        } else {
+            networkOverride = network;
         }
+
+        reOpenDmeConnection = false;
 
         this.channel = me.channelPicker(host, port, network);
         this.asyncStub = MatchEngineApiGrpc.newStub(channel);
@@ -81,6 +121,13 @@ public class DMEConnection {
             @Override
             public void onNext(AppClient.ServerEdgeEvent value) {
                 // Switch on type and/or post to bus.
+                // A new FindCloudlet can arrive:
+                if (value.getEventType() == EVENT_CLOUDLET_UPDATE) {
+                    // New target FindCloudlet to use. Current FindCloudlet is known to the app and ought ot be in use.
+                    me.mFindCloudletReply = value.getNewCloudlet();
+                    reOpenDmeConnection = true;
+                }
+
                 me.getEdgeEventBus().post(value);
             }
 
@@ -91,8 +138,21 @@ public class DMEConnection {
 
             @Override
             public void onCompleted() {
-                receiver.onCompleted();
-                Log.i(TAG, "End of send.");
+                Log.i(TAG, "Stream closed.");
+                close();
+                // Reopen DME connection.
+                try {
+                    if (reOpenDmeConnection) { // Conditionally reconnect to receive EdgeEvents from closer DME.
+                        reconnect();
+                    }
+                } catch (DmeDnsException dde) {
+                    me.getEdgeEventBus().post(
+                            AppClient.ServerEdgeEvent.newBuilder()
+                                    .setEventType(EVENT_INIT_CONNECTION)
+                                    .putTags("Message", "DME Connection failed. A new client initiated FindCloudlet required for edge events stream.")
+                                    .build()
+                    );
+                }
             }
         };
 
@@ -104,10 +164,8 @@ public class DMEConnection {
         open = true;
     }
 
-    void close() {
-        sender.onCompleted();
-        receiver.onCompleted();
-        if (channel != null) {
+    synchronized void close() {
+        if (!isShutdown()) {
             channel.shutdown();
             try {
                 channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
@@ -128,17 +186,43 @@ public class DMEConnection {
     }
 
     void send(AppClient.ClientEdgeEvent clientEdgeEvent) {
-        if (channel == null || channel.isShutdown()) {
+        if (isShutdown()) {
             return;
         }
 
         sender.onNext(clientEdgeEvent);
     }
 
-    // Outbound ClientEdgeEvents:
-    public void postLatencyResult(Site site, LocationResult clientLocationResults, AppClient.FindCloudletReply findCloudlet) {
+    private void tryPost(AppClient.ClientEdgeEvent clientEdgeEvent) {
+        try {
+            if (isShutdown()) {
+                reconnect();
+            }
+            sender.onNext(clientEdgeEvent);
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, dde.getMessage() + ", cause: " + dde.getCause());
+            dde.printStackTrace();
+        }
+    }
 
-        // TODO: enhanced location permisison.
+    /**
+     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudlet. A DME
+     * administrator of your Application may request an client application to collect performance
+     * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
+     *
+     * @param site
+     * @param location
+     * @param findCloudlet
+     */
+    public void postLatencyResult(Site site, Location location, AppClient.FindCloudletReply findCloudlet) {
+
+        if (!me.isMatchingEngineLocationAllowed()) {
+            return;
+        }
+
+        if (isShutdown()) {
+            return;
+        }
 
         LocOuterClass.Loc loc = null;
 
@@ -147,8 +231,8 @@ public class DMEConnection {
             return;
         }
 
-        if (clientLocationResults.getLastLocation() != null) {
-            loc = me.androidLocToMeLoc(clientLocationResults.getLastLocation());
+        if (location != null) {
+            loc = me.androidLocToMeLoc(location);
         }
 
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
@@ -172,22 +256,33 @@ public class DMEConnection {
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        sender.onNext(clientEdgeEvent);
+        tryPost(clientEdgeEvent);
     }
 
-    // Location updates, from client device.
-    public void postLocationUpdate(LocationResult locationResult, AppClient.FindCloudletReply findCloudletReply) {
-        // TODO: enhanced location permisison.
-
-        if (locationResult == null || locationResult.getLastLocation() == null) {
+    /**
+     * Outbound Client to Server location update. If there is a closer cloudlet, this will cause a
+     * Guava ServerEdgeEvent EVENT_CLOUDLET_UPDATE message to be sent to subscribers.
+     * @param location
+     * @param findCloudletReply
+     */
+    public void postLocationUpdate(Location location, AppClient.FindCloudletReply findCloudletReply) {
+        if (!me.isMatchingEngineLocationAllowed()) {
             return;
         }
 
-        Location location = locationResult.getLastLocation();
+        if (location == null || findCloudletReply == null) {
+            return;
+        }
+
+        if (isShutdown()) {
+            return;
+        }
+
         LocOuterClass.Loc loc = me.androidLocToMeLoc(location);
         if (loc == null) {
-            return; // invalid loc.
+            return;
         }
+
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
                 .setEdgeEventsCookie(findCloudletReply.getEdgeEventsCookie())
                 .setSessionCookie(me.getSessionCookie())
@@ -196,6 +291,6 @@ public class DMEConnection {
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        sender.onNext(clientEdgeEvent);
+        tryPost(clientEdgeEvent);
     }
 }
