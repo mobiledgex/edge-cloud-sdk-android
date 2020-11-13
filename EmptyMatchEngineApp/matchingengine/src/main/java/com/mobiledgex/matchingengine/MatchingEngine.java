@@ -183,7 +183,7 @@ public class MatchingEngine {
         }
 
         // Self event Test (client internal):
-        mEdgeEventBus.post(AppClient.ClientEdgeEvent.newBuilder().putTags("foo", "bort").build());
+        //mEdgeEventBus.post(AppClient.ClientEdgeEvent.newBuilder().putTags("foo", "bort").build());
     }
 
     /*!
@@ -200,7 +200,7 @@ public class MatchingEngine {
         mContext = context;
         mNetTest = new NetTest();
         mEdgeEventBus = new AsyncEventBus(executorService); // TODO: Should not be implicit.
-        mEdgeEventBus.register(threadpool);
+        mEdgeEventBus.register(this);
         if (MelMessaging.isMelEnabled()) {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
@@ -231,10 +231,12 @@ public class MatchingEngine {
                 .build();
         mDmeConnection.send(initDmeEvent);
 
+        Log.d(TAG, "EEEE1:" + mFindCloudletReply.getEdgeEventsCookie());
+
         return mDmeConnection;
     }
 
-    // Ingress from DMEConnectiono
+    // Ingress from DMEConnection
     @Subscribe
     private void handleClientEdgeEvent(AppClient.ClientEdgeEvent clientEdgeEvent) {
         // Do stuff. Switch on type.

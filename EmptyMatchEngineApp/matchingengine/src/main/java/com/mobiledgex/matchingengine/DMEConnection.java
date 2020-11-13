@@ -81,6 +81,24 @@ public class DMEConnection {
         } else {
             open(); // Default DME
         }
+
+        // We need to re-init the DME connection:
+        // Client identifies itself with an Init message to DME EdgeEvents Connection.
+
+        if (me.mFindCloudletReply == null || me.getSessionCookie() == null) {
+            Log.e(TAG, "State Error: Mission sessions to reconnect.");
+            return;
+        }
+
+        AppClient.ClientEdgeEvent initDmeEvent = AppClient.ClientEdgeEvent.newBuilder()
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
+                .setSessionCookie(me.getSessionCookie())
+                .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
+                .build();
+
+        Log.d(TAG, "EEEE2:" + me.mFindCloudletReply.getEdgeEventsCookie());
+
+        sender.onNext(initDmeEvent);
     }
 
     synchronized void open() throws DmeDnsException {
@@ -158,6 +176,9 @@ public class DMEConnection {
 
         // No deadline, since it's streaming:
         sender = asyncStub.streamEdgeEvent(receiver);
+
+        // Send initilal init message:
+
 
         // Create something to listen to it:
 
