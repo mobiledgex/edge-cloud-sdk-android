@@ -63,6 +63,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -334,13 +335,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 System.out.println("Cloudlet is not ready yet. Wait or FindCloudlet again.");
                 break;
             case CLOUDLET_STATE_NOT_PRESENT:
-                System.out.println("Cloudlet is not present.");
             case CLOUDLET_STATE_UPGRADE:
-                System.out.println("Cloudlet is upgrading");
             case CLOUDLET_STATE_OFFLINE:
-                System.out.println("Cloudlet is offline");
             case CLOUDLET_STATE_ERRORS:
-                System.out.println("Cloudlet is offline");
+                System.out.println("Cloudlet State is: " + event.getCloudletState());
+                break;
             case CLOUDLET_STATE_READY:
                 // Timer Retry or just retry.
                 doEnhancedLocationVerification();
@@ -358,7 +357,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_LATENCY_REQUEST) {
             return;
         }
-        AsyncTask.execute(new Runnable() {
+        CompletableFuture<Void> future = CompletableFuture.runAsync(new Runnable() {
             @Override
             public void run() {
                 // NetTest

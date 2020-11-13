@@ -144,6 +144,7 @@ public class DMEConnection {
                     // New target FindCloudlet to use. Current FindCloudlet is known to the app and ought ot be in use.
                     me.mFindCloudletReply = value.getNewCloudlet();
                     reOpenDmeConnection = true;
+                    this.onCompleted();
                 }
 
                 me.getEdgeEventBus().post(value);
@@ -194,8 +195,10 @@ public class DMEConnection {
                 e.printStackTrace();
             } finally {
                 open = false;
+                sender = null;
+                receiver = null;
+                channel = null;
             }
-            channel = null;
         }
     }
 
@@ -203,6 +206,7 @@ public class DMEConnection {
         if (channel == null) {
             return true;
         }
+
         return channel.isShutdown();
     }
 
