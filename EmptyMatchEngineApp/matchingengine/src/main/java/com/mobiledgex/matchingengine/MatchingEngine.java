@@ -208,7 +208,7 @@ public class MatchingEngine {
     }
 
     /**
-     * Gets or re-establishes a connection to the DME, and returns a DMEConnection instance.
+     * Gets or re-establishes a connection to the DME, and returns a DMEConnection singleton.
      * @param dmeHost
      * @param port
      * @param network
@@ -219,8 +219,6 @@ public class MatchingEngine {
     DMEConnection getDmeConnection(String dmeHost, int port, Network network, String edgeEventsCookie) {
         if (mDmeConnection == null || mDmeConnection.isShutdown()) {
             mDmeConnection = new DMEConnection(this, dmeHost, port, null);
-            // Send dummy:
-            //mDmeConnection.send(AppClient.ClientEdgeEvent.newBuilder().build());
         }
 
         // Client identifies itself with an Init message to DME EdgeEvents Connection.
@@ -231,34 +229,23 @@ public class MatchingEngine {
                 .build();
         mDmeConnection.send(initDmeEvent);
 
-        Log.d(TAG, "EEEE1:" + mFindCloudletReply.getEdgeEventsCookie());
-
         return mDmeConnection;
     }
 
-    // Ingress from DMEConnection
+    // EventBus is not to be used for outgoing events. No subscription to serverEdgeEvents.
+    // Ingress from DMEConnection.
     @Subscribe
     private void handleClientEdgeEvent(AppClient.ClientEdgeEvent clientEdgeEvent) {
-        // Do stuff. Switch on type.
-        Map<String, String> tm = clientEdgeEvent.getTagsMap();
-        String count = tm.get("count"); // Should be an internal HashMap with a Map interface.
-        String bort = tm.get("foo");
-        System.out.println("Count from server: " + count);
+        Log.d(TAG, "EventBus: Event: " + clientEdgeEvent.getEventType());
     }
 
-    // Outgoing to DMEConnection FIXME: Not complete, we're hitting DMEConnection directly right now.
-    @Subscribe
-    private void handleClientEdgeEvent(AppClient.ServerEdgeEvent serverEdgeEvent) {
-        // Do stuff. Switch on type.
-        Map<String, String> tm = serverEdgeEvent.getTagsMap();
-        String count = tm.get("count"); // Should be an internal HashMap with a Map interface.
-        String bort = tm.get("foo");
-        System.out.println("Count from server: " + count);
-    }
-
+    /**
+     * Listens to dead events, and prints them in debug builds. If they are of interest, subscribe.
+     * @param deadEvent
+     */
     @Subscribe
     private void handleDeadEdgeEvent(DeadEvent deadEvent) {
-        System.out.println("You have messages, but are not subscribed to events.");
+        Log.d(TAG, "EventBus: Unhandled event: " + deadEvent.toString());
     }
 
     public DMEConnection getDmeConnection() {
@@ -269,18 +256,13 @@ public class MatchingEngine {
      * MatchingEngine contains some long lived resources.
      */
     public void close() {
-        // Kill ExecutorService if created by MatchingEngine.
+        mEdgeEventBus.unregister(this);
+        getDmeConnection().sendTerminate();
+
+        // Kill ExecutorService.
         if (!externalExecutor && threadpool != null) {
             threadpool.shutdown();
         }
-        // Kill DME persistent connections.
-
-        // Inform close, and unregister known listener (this). Simple bus.
-        AppClient.ClientEdgeEvent evt = AppClient.ClientEdgeEvent.newBuilder()
-                .putTags("shutdown", "true")
-                .build();
-        mEdgeEventBus.post(evt);
-        mEdgeEventBus.unregister(this);
 
         mSessionCookie = null;
         mTokenServerToken = null;
@@ -293,7 +275,7 @@ public class MatchingEngine {
 
     /**
      * This is an event bus for EdgeEvents.
-     * TODO: It is Async if you specify your own ExecutorService with MatchingEgnine init.
+     * It is Async if you specify your own ExecutorService with MatchingEgnine init.
      * @return
      */
     public EventBus getEdgeEventBus() {

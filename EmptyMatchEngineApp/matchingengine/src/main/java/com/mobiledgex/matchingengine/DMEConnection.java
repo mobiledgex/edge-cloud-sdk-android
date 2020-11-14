@@ -84,7 +84,6 @@ public class DMEConnection {
 
         // We need to re-init the DME connection:
         // Client identifies itself with an Init message to DME EdgeEvents Connection.
-
         if (me.mFindCloudletReply == null || me.getSessionCookie() == null) {
             Log.e(TAG, "State Error: Mission sessions to reconnect.");
             return;
@@ -95,8 +94,6 @@ public class DMEConnection {
                 .setSessionCookie(me.getSessionCookie())
                 .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
                 .build();
-
-        Log.d(TAG, "EEEE2:" + me.mFindCloudletReply.getEdgeEventsCookie());
 
         sender.onNext(initDmeEvent);
     }
@@ -144,7 +141,7 @@ public class DMEConnection {
                     // New target FindCloudlet to use. Current FindCloudlet is known to the app and ought ot be in use.
                     me.mFindCloudletReply = value.getNewCloudlet();
                     reOpenDmeConnection = true;
-                    this.onCompleted();
+                    sendTerminate();
                 }
 
                 me.getEdgeEventBus().post(value);
@@ -177,12 +174,6 @@ public class DMEConnection {
 
         // No deadline, since it's streaming:
         sender = asyncStub.streamEdgeEvent(receiver);
-
-        // Send initilal init message:
-
-
-        // Create something to listen to it:
-
         open = true;
     }
 
@@ -228,6 +219,18 @@ public class DMEConnection {
             Log.e(TAG, dde.getMessage() + ", cause: " + dde.getCause());
             dde.printStackTrace();
         }
+    }
+
+    public void sendTerminate() {
+        if (isShutdown()) {
+            return;
+        }
+
+        AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
+                .setSessionCookie(me.getSessionCookie())
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_TERMINATE_CONNECTION);
+
+        tryPost(clientEdgeEventBuilder.build());
     }
 
     /**

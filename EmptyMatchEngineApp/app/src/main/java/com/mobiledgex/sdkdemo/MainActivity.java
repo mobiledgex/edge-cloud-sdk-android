@@ -476,8 +476,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             @Override
             public void run() {
                 Location location = aTask.getResult();
-                //location.setLatitude(49d);
-                //location.setLongitude(-123d);
+                if (location == null) {
+                    Log.e(TAG, "Mising location. Cannot update.");
+                    return;
+                }
                 // Location found. Create a request:
                 try {
                     someText = "";
