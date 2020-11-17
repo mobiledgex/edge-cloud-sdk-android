@@ -22,11 +22,9 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.Location;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 
-import com.google.android.gms.common.api.Api;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -142,7 +140,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 mLastLocationResult = locationResult;
                 // TODO: DMEConnection for events is lazy initialized.
                 if (mMatchingEngine.getDmeConnection() != null && mLastLocationResult != null) {
-                    mMatchingEngine.getDmeConnection().postLocationUpdate(mLastLocationResult.getLastLocation(), mLastFindCloudlet);
+                    mMatchingEngine.getDmeConnection().postLocationUpdate(mLastLocationResult.getLastLocation());
                 }
                 for (Location location : locationResult.getLocations()) {
                     // Update UI with client location data
@@ -390,8 +388,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
 
                 mMatchingEngine.getDmeConnection().postLatencyResult(netTest.getSite(host),
-                        mLastLocationResult == null ? null : mLastLocationResult.getLastLocation(),
-                        mLastFindCloudlet);
+                        mLastLocationResult == null ? null : mLastLocationResult.getLastLocation());
             }
         });
     }
@@ -472,10 +469,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     private void doEnhancedLocationUpdateInBackground(final Task<Location> aTask, final AppCompatActivity ctx) {
-        AsyncTask.execute(new Runnable() {
+        CompletableFuture<Void> future = CompletableFuture.runAsync(new Runnable() {
             @Override
             public void run() {
-                Location location = aTask.getResult();
+            Location location = aTask.getResult();
                 if (location == null) {
                     Log.e(TAG, "Mising location. Cannot update.");
                     return;
@@ -596,7 +593,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // Skip the bus. Just send it:
                     location.setLatitude(40.7127837); // New York.
                     location.setLongitude(-74.0059413);
-                    mMatchingEngine.getDmeConnection().postLocationUpdate(location, mLastFindCloudlet);
+                    mMatchingEngine.getDmeConnection().postLocationUpdate(location);
 
                     if (false /*verifyRequest != null*/) {
                         // Location Verification (Blocking, or use verifyLocationFuture):

@@ -227,7 +227,6 @@ public class DMEConnection {
         }
 
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
-                .setSessionCookie(me.getSessionCookie())
                 .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_TERMINATE_CONNECTION);
 
         tryPost(clientEdgeEventBuilder.build());
@@ -240,9 +239,8 @@ public class DMEConnection {
      *
      * @param site
      * @param location
-     * @param findCloudlet
      */
-    public void postLatencyResult(Site site, Location location, AppClient.FindCloudletReply findCloudlet) {
+    public void postLatencyResult(Site site, Location location) {
 
         if (!me.isMatchingEngineLocationAllowed()) {
             return;
@@ -264,8 +262,6 @@ public class DMEConnection {
         }
 
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
-                .setEdgeEventsCookie(findCloudlet.getEdgeEventsCookie())
-                .setSessionCookie(me.getSessionCookie())
                 .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LATENCY_SAMPLES);
 
         if (loc != null) {
@@ -291,14 +287,13 @@ public class DMEConnection {
      * Outbound Client to Server location update. If there is a closer cloudlet, this will cause a
      * Guava ServerEdgeEvent EVENT_CLOUDLET_UPDATE message to be sent to subscribers.
      * @param location
-     * @param findCloudletReply
      */
-    public void postLocationUpdate(Location location, AppClient.FindCloudletReply findCloudletReply) {
+    public void postLocationUpdate(Location location) {
         if (!me.isMatchingEngineLocationAllowed()) {
             return;
         }
 
-        if (location == null || findCloudletReply == null) {
+        if (location == null) {
             return;
         }
 
@@ -312,8 +307,6 @@ public class DMEConnection {
         }
 
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
-                .setEdgeEventsCookie(findCloudletReply.getEdgeEventsCookie())
-                .setSessionCookie(me.getSessionCookie())
                 .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LOCATION_UPDATE)
                 .setGpsLocation(loc);
 
