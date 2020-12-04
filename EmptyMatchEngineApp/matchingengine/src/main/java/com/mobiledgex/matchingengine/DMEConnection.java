@@ -252,7 +252,7 @@ public class DMEConnection {
 
         LocOuterClass.Loc loc = null;
 
-        if (site != null && (site.samples == null || site.samples.length == 0)) {
+        if (site == null || (site.samples == null || site.samples.length == 0)) {
             // No results to post.
             return;
         }

@@ -246,6 +246,16 @@ public class MatchingEngine {
     @Subscribe
     private void handleDeadEdgeEvent(DeadEvent deadEvent) {
         Log.d(TAG, "EventBus: Unhandled event: " + deadEvent.toString());
+
+        if (deadEvent.getEvent() instanceof AppClient.ClientEdgeEvent) {
+            AppClient.ClientEdgeEvent unhandledEvent = (AppClient.ClientEdgeEvent) deadEvent.getEvent();
+
+            switch (unhandledEvent.getEventType()) {
+                case EVENT_LATENCY_SAMPLES:
+                    Log.w(TAG, "EventBus: To get pushed FindCloudlet updates, handle the ClientEdgeEvent: EVENT_LATENCY_SAMPLES");
+                    break;
+            }
+        }
     }
 
     public DMEConnection getDmeConnection() {
