@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2021 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -86,6 +86,9 @@ class AddUserToGroup implements Callable {
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .addUserToGroup(mRequest);
+        } catch (Exception e) {
+            Log.e(TAG, "Exception during AddUserToGroup: " + e.getMessage());
+            throw e;
         } finally {
             if (channel != null) {
                 channel.shutdown();
