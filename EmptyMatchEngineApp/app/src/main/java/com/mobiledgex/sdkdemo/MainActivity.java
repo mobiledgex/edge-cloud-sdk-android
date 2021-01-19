@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2021 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -333,16 +333,16 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     }
                     dmeHostAddress = "us-mexdemo." + MatchingEngine.baseDmeHost;
                     //mMatchingEngine.setUseWifiOnly(true);
-                    dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+                    //dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
-                    String orgName = "MobiledgeX"; // Always supplied by application, and in the MobiledgeX web admin console.
+                    String orgName = "MobiledgeX-Samples"; // Always supplied by application, and in the MobiledgeX web admin console.
                     // For illustration, the matching engine can be used to programatically get the name of your application details
                     // so it can go to the correct appInst version. That AppInst on the server side must match the application
                     // version or else it won't be found and cannot be used.
-                    String appName = "MobiledgeX SDK Demo"; // AppName must be added to the MobiledgeX web admin console.
-                    String appVers = "2.0"; // override the version of that known registered app.
+                    String appName = "ComputerVision"; // AppName must be added to the MobiledgeX web admin console.
+                    String appVers = "2.2"; // override the version of that known registered app.
 
                     // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
                     // like AuthToken or Tag key value pairs.
@@ -504,7 +504,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     // Set network back to last default one, if desired:
                     mMatchingEngine.getNetworkManager().resetNetworkToDefault();
-                } catch (/*DmeDnsException |*/ ExecutionException | StatusRuntimeException e) {
+                } catch ( /*DmeDnsException |*/  ExecutionException | StatusRuntimeException e) {
                     Log.e(TAG, e.getMessage());
                     Log.e(TAG, Log.getStackTraceString(e));
                     if (e.getCause() instanceof NetworkRequestTimeoutException) {

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2021 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -241,6 +241,9 @@ public class FindCloudlet implements Callable {
                 .build();
             fcreply = bestFindCloudletReply;
 
+        } catch (Exception e) {
+            Log.e(TAG, "Exception during FindCloudlet: " + e.getMessage());
+            throw e;
         } finally {
             if (channel != null) {
                 channel.shutdown();
@@ -310,6 +313,9 @@ public class FindCloudlet implements Callable {
                 reply.getClientToken(),
                 mMatchingEngine.getLastRegisterClientRequest().getAppName());
 
+        } catch (Exception e) {
+            Log.e(TAG, "Exception during FindCloudlet: " + e.getMessage());
+            throw e;
         } finally {
             if (channel != null) {
                 channel.shutdown();
@@ -317,9 +323,7 @@ public class FindCloudlet implements Callable {
             }
         }
 
-
-
-      return fcReply;
+        return fcReply;
     }
 
     @Override
@@ -336,8 +340,6 @@ public class FindCloudlet implements Callable {
         // Is Wifi Enabled, and has IP?
         Stopwatch stopwatch = Stopwatch.createStarted();
         long ip = mMatchingEngine.getWifiIp(mMatchingEngine.mContext);
-
-
 
         if (MelMessaging.isMelEnabled() && ip == 0) { // MEL is Cellular only. No WiFi.
             // MEL is enabled, alternate findCloudlet behavior:
