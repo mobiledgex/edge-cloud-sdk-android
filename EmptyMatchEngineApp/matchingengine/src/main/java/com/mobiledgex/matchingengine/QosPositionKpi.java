@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2021 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -94,18 +94,29 @@ public class QosPositionKpi implements Callable {
         }
 
         Iterator<QosPositionKpiReply> response;
-        ManagedChannel channel;
+        ManagedChannel channel = null;
         NetworkManager nm;
+        try {
+            nm = mMatchingEngine.getNetworkManager();
+            Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
 
-        nm = mMatchingEngine.getNetworkManager();
-        Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
+            channel = mMatchingEngine.channelPicker(mHost, mPort, network);
+            MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
-        channel = mMatchingEngine.channelPicker(mHost, mPort, network);
-        MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+            response = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
+                    .getQosPositionKpi(mQosPositionKpiRequest);
 
-        response = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
-                .getQosPositionKpi(mQosPositionKpiRequest);
-
-        return new ChannelIterator<>(channel, response);
+            return new ChannelIterator<>(channel, response);
+        } catch (Exception e){
+            Log.e(TAG, "Exception during QosPositionKpi: " + e.getMessage());
+            try {
+                if (channel != null && !channel.isShutdown()) {
+                    channel.shutdown();
+                }
+            } catch (Exception inner) {
+                Log.d(TAG, Log.getStackTraceString(inner));
+            }
+            throw e;
+        }
     }
 }
