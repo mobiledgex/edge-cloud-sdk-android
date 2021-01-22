@@ -50,13 +50,14 @@ public class AppConnectionManager {
         mExecutor = executor;
     }
 
-    /**
+    /*!
      * Utility function to determine if an edge server with the specified protocol exists in the
      * FindCloudletReply parameter.
      *
-     * @param protocol
-     * @param findCloudletReply
-     * @return
+     * \param protocol (LProto)
+     * \param findCloudletReply (FindCloudletReply)
+     * \return boolean
+     * \ingroup functions_getconnectionutils
      */
     boolean isConnectionTypeAvailable(AppClient.FindCloudletReply findCloudletReply, LProto protocol) {
         for (AppPort port : findCloudletReply.getPortsList()) {
@@ -67,11 +68,13 @@ public class AppConnectionManager {
         return false;
     }
 
-    /**
-     * Utility function that returns a hashMap of TCP ports, hashed by the internal port in the \
-     * reply parameter.
-     * @param findCloudletReply the current locations FindCloudletReply
-     * @return
+    /*!
+     * Returns a Dictionary mapping a UDP port that the developer specified when creating their app through MobiledgeX console to an AppPort object.
+     * This AppPort object will contain relevant information necessary to connect to the desired port.
+     * This object will be used in GetConnection functions.
+     * \param findCloudletReply (FindCloudletReply)
+     * \return HashMap<Integer, AppPort>
+     * \ingroup functions_getconnectionutils
      */
     public HashMap<Integer, AppPort> getUdpMap(AppClient.FindCloudletReply findCloudletReply) {
         String fqdn = findCloudletReply.getFqdn();
@@ -89,10 +92,13 @@ public class AppConnectionManager {
         return map;
     }
 
-    /**
-     * Utility function that returns a HashMap of TCP ports listed in the reply parameter.
-     * @param findCloudletReply
-     * @return
+    /*!
+     * Returns a Dictionary mapping a TCP port that the developer specified when creating their app through MobiledgeX console to an AppPort object.
+     * This AppPort object will contain relevant information necessary to connect to the desired port.
+     * This object will be used in GetConnection functions.
+     * \param findCloudletReply (FindCloudletReply)
+     * \return HashMap<Integer, AppPort>
+     * \ingroup functions_getconnectionutils
      */
     public HashMap<Integer, AppPort> getTCPMap(AppClient.FindCloudletReply findCloudletReply) {
         String fqdn = findCloudletReply.getFqdn();
@@ -110,14 +116,15 @@ public class AppConnectionManager {
         return map;
     }
 
-    /**
+    /*!
      * With the given FindCloudletReply, verify the AppPort and sub port in port range is good,
      * and return it.
      *
-     * @param findCloudletReply
-     * @param appPort
-     * @param portNum
-     * @return appPort that matches spec.
+     * \param findCloudletReply (FindCloudletReply)
+     * \param appPort (AppPort)
+     * \param portNum (int)
+     * \return AppPort: appPort that matches spec.
+     * \ingroup functions_getconnectionutils
      */
     public AppPort validatePublicPort(AppClient.FindCloudletReply findCloudletReply, AppPort appPort, int portNum) {
 
@@ -178,23 +185,23 @@ public class AppConnectionManager {
         return false;
     }
 
-    /**
+    /*!
      * Returns a Future with a TCP SSL Socket from a default SSL Socket Factory, created on
      * a cellular data network interface, where available. The created socket is already connected.
      * If the timeout is 0, it will not timeout. Socket should be closed when the socket is no
      * longer needed.
-     *
      * If a network goes down, sockets created using that network also gets killed.
-     *
-     * @param appPort This is the AppPort you want to connect to, based on the unmapped internal
+     * \param findCloudletReply (FindCloudletReply)
+     * \param appPort (AppPort): This is the AppPort you want to connect to, based on the unmapped internal
      *                port number.
-     * @param portNum This is the internal port number of where the AppInst is actually made
+     * \param portNum (int): This is the internal port number of where the AppInst is actually made
      *                available in a particular cloudlet region. It may not match the appPort
      *                mapped public port number.
      *                If <= 0, it defaults to the first public port.
-     * @param timeoutMs timeout in milliseconds. 0 for infinite.
-     * @return May be null if SSL socket factory cannot be created, or if it cannot find a cellular
+     * \param timeoutMs (int): timeout in milliseconds. 0 for infinite.
+     * \return Future<SSLSocket>: May be null if SSL socket factory cannot be created, or if it cannot find a cellular
      *         network.
+     * \ingroup functions_getconnection
      */
     public Future<SSLSocket> getTcpSslSocket(final AppClient.FindCloudletReply findCloudletReply,
                                       final AppPort appPort, final int portNum, final int timeoutMs) {
@@ -239,21 +246,22 @@ public class AppConnectionManager {
         return mExecutor.submit(sslSocketCallable);
     }
 
-    /**
+    /*!
      * For early development only. This creates a connected Socket. Socket should be closed when the
      * socket is no longer needed.
      *
      * If a network goes down, sockets created using that network also gets killed.
      *
-     * @param findCloudletReply A FindCloudletReply for the current location.
-     * @param appPort This is the AppPort you want to connect to, based on the unmapped internal
+     * \param findCloudletReply (FindCloudletReply): A FindCloudletReply for the current location.
+     * \param appPort (AppPort): This is the AppPort you want to connect to, based on the unmapped internal
      *                port number.
-     * @param portNum This is the internal port number of where the AppInst is actually made
+     * \param portNum (int): This is the internal port number of where the AppInst is actually made
      *                available in a particular cloudlet region. It may not match the appPort
      *                mapped public port number.
      *                If <= 0, it defaults to the public port.
-     * @param timeoutMs timeout in milliseconds. 0 for infinite.
-     * @return null can be returned if the network does not exist, or if network switching is disabled.
+     * \param timeoutMs (int): timeout in milliseconds. 0 for infinite.
+     * \return Future<Socket>: null can be returned if the network does not exist, or if network switching is disabled.
+     * \ingroup functions_getconnection
      */
     public Future<Socket> getTcpSocket(final AppClient.FindCloudletReply findCloudletReply,
                                 final AppPort appPort, final int portNum, final int timeoutMs) {
@@ -297,21 +305,22 @@ public class AppConnectionManager {
         return mExecutor.submit(socketCallable);
     }
 
-    /**
+    /*!
      * Returns a UDP socket bound and connected to cellular interface. Socket should be closed
      * when the socket is no longer needed.
      *
      * If a network goes down, sockets created using that network also gets killed.
      *
-     * @param findCloudletReply A FindCloudletReply for the current location.
-     * @param appPort This is the AppPort you want to connect to, based on the unmapped internal
+     * \param findCloudletReply (FindCloudletReply): A FindCloudletReply for the current location.
+     * \param appPort (AppPort): This is the AppPort you want to connect to, based on the unmapped internal
      *                port number.
-     * @param portNum This is the internal port number of where the AppInst is actually made
+     * \param portNum (int): This is the internal port number of where the AppInst is actually made
      *                available in a particular cloudlet region. It may not match the appPort
      *                mapped public port number.
      *                If <= 0, it defaults to the first public port.
-     * @param timeoutMs timeout in milliseconds. 0 for infinite.
-     * @return null can be returned if the network does not exist, or if network switching is disabled.
+     * \param timeoutMs (int): timeout in milliseconds. 0 for infinite.
+     * \return Future<DatagramSocket>: null can be returned if the network does not exist, or if network switching is disabled.
+     * \ingroup functions_getconnection
      */
     public Future<DatagramSocket> getUdpSocket(final AppClient.FindCloudletReply findCloudletReply,
                                         final AppPort appPort, final int portNum, final int timeoutMs) {
@@ -349,16 +358,17 @@ public class AppConnectionManager {
         return mExecutor.submit(socketCallable);
     }
 
-    /**
+    /*!
      * Returns an HttpClient via OkHttpClient object, over a cellular network interface. Null is returned
      * if a requested cellular network is not available or not allowed.
      *
      * Convenience method. Get the network from NetworkManager, and set the SSLSocket factory
      * for different communication protocols.
      *
-     * @param timeoutMs connect timeout in milliseconds.
-     * @return null can be returned if the network does not exist, if network switching is disabled,
+     * \param timeoutMs (long): connect timeout in milliseconds.
+     * \return Future<OkHttpClient>: null can be returned if the network does not exist, if network switching is disabled,
      *         of if a SSL Socket Factory cannot be created.
+     * \ingroup functions_getconnection
      */
     public Future<OkHttpClient> getHttpClient(final long timeoutMs) {
         Callable<OkHttpClient> socketCallable = new Callable<OkHttpClient>() {
@@ -395,22 +405,21 @@ public class AppConnectionManager {
         return mExecutor.submit(socketCallable);
     }
 
-    /**
+    /*!
      * Convenience method to create, from an AppPort, the http prefix URL of an particular
      * location's AppInst.
      *
-     * FIXME: Using L_PROTO_TCP for HTTP.
-     *
-     * @param findCloudletReply A FindCloudletReply for the current location.
-     * @param appPort This is the AppPort you want to connect to, based on the unmapped internal
+     * \param findCloudletReply (FindCloudletReply): A FindCloudletReply for the current location.
+     * \param appPort (AppPort): This is the AppPort you want to connect to, based on the unmapped internal
      *                port number.
-     * @param desiredPortNum This is the desired internal port number of where the AppInst is actually made
+     * \param desiredPortNum (int): This is the desired internal port number of where the AppInst is actually made
      *                available in a particular cloudlet region. It may not match the appPort
      *                mapped public port number.
      *                If <= 0, it defaults to the first public port.
-     * @param protocol The L7 protocol (eg. http, https, ws)
-     * @param path Path to be appended at the end of the url. Defaults to "" if null is provided.
-     * @return completed URL, or null if invalid.
+     * \param protocol (String): The L7 protocol (eg. http, https, ws)
+     * \param path (String): Path to be appended at the end of the url. Defaults to "" if null is provided.
+     * \return String: completed URL, or null if invalid.
+     * \ingroup functions_getconnectionutils
      */
     public String createUrl(FindCloudletReply findCloudletReply, AppPort appPort, int desiredPortNum, String protocol, String path) {
         int publicPortNum = 0;
@@ -437,10 +446,21 @@ public class AppConnectionManager {
         return url;
     };
 
+    /*!
+     * Returns the host of the developers app backend based on the findCloudletReply and appPort provided.
+     * This function is called by L4 GetConnection functions, but can be called by developers if they are using their own communication client (use GetPort as well)
+     * \ingroup functions_getconnectionutils
+     */
     public String getHost(FindCloudletReply findCloudletReply, AppPort appPort) {
         return appPort.getFqdnPrefix() + findCloudletReply.getFqdn();
     }
 
+    /*!
+     * Returns the port of the developers app backend service based on the appPort provided.
+     * An optional desiredPort parameter is provided if the developer wants a specific port within their appPort port range (if none provided, the function will default to the public_port field in the AppPort).
+     * This function is called by L4 GetConnection functions, but can be called by developers if they are using their own communication client (use GetHost as well).
+     * \ingroup functions_getconnectionutils
+     */
     public int getPort(AppPort appPort, int portNum) throws InvalidPortException {
         int aPortNum = portNum <= 0 ? appPort.getPublicPort() : portNum;
 

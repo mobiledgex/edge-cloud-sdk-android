@@ -1334,11 +1334,14 @@ public class MatchingEngine {
         return submit(addUserToGroup);
     }
 
-    /**
+    /*!
      * Retrieve nearby AppInsts for registered application. This is a blocking call.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
+     * Returns a list of the developer's backend instances deployed on the specified carrier's network.
+     * If carrier was "", returns all backend instances regardless of carrier network.
+     * This is used internally in FindCloudlet Performance mode to grab the list of cloudlets to test.
+     * \param request (AppInstListRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return AppInstListReply
      * \exception InterruptedException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
@@ -1349,11 +1352,14 @@ public class MatchingEngine {
         return getAppInstList(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
 
-    /**
+    /*!
      * Retrieve nearby AppInsts for registered application. This is a blocking call.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
+     * GetAppInstList overload with hardcoded DME host and port. Only use for testing.
+     * \param request (AppInstListRequest)
+     * \param host (String)
+     * \param port (int)
+     * \param timeoutInMilliseconds (long)
+     * \return AppInstListReply
      * \ingroup functions_dmeapis
      */
     public AppInstListReply getAppInstList(AppInstListRequest request,
@@ -1367,12 +1373,11 @@ public class MatchingEngine {
         return getAppInstList.call();
     }
 
-
-    /**
+    /*!
      * Retrieve nearby AppInsts for registered application. Returns a Future.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
+     * \param request (AppInstListRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<AppInstListReply>
      * \ingroup functions_dmeapis
      */
     public Future<AppInstListReply> getAppInstListFuture(AppInstListRequest request,
@@ -1380,13 +1385,14 @@ public class MatchingEngine {
             throws DmeDnsException {
         return getAppInstListFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
-    /**
+
+    /*!
      * Retrieve nearby AppInsts for registered application. Returns a Future.
-     * @param request
-     * @param host
-     * @param port
-     * @param timeoutInMilliseconds
-     * @return
+     * \param request (AppInstListRequest)
+     * \param host (String)
+     * \param port (int)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<AppInstListReply>
      * \ingroup functions_dmeapis
      */
     public Future<AppInstListReply> getAppInstListFuture(AppInstListRequest request,
@@ -1397,13 +1403,12 @@ public class MatchingEngine {
         return submit(getAppInstList);
     }
 
-
-    /**
+    /*!
      * Request QOS values from a list of PositionKPIRequests, and returns a stream Iterator of
-     * predicted QOS values.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
+     * predicted QOS values. Provides quality of service metrics for each location provided in qos position request
+     * \param request (QosPositionRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return ChannelIterator<QosPositionKpiReply>
      * \exception InterruptedException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
@@ -1418,12 +1423,12 @@ public class MatchingEngine {
         return qosPositionKpi.call();
     }
 
-    /**
+    /*!
      * Request QOS values from a list of PositionKPIRequests, and returns an asynchronous Future
      * for a stream Iterator of predicted QOS values.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
+     * \param request (QosPositionRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<ChannelIterator<QosPositionKpiReply>>
      * \exception InterruptedException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
@@ -1435,14 +1440,16 @@ public class MatchingEngine {
         qosPositionKpi.setRequest(request,generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
         return submit(qosPositionKpi);
     }
-    /**
+
+    /*!
      * Request QOS values from a list of PositionKPIRequests, and returns a stream Iterator of
      * predicted QOS values.
-     * @param request
-     * @param host
-     * @param port
-     * @param timeoutInMilliseconds
-     * @return
+     * GetQosPositionKpi overload with hardcoded DME host and port. Only use for testing.
+     * \param request (QosPositionRequest)
+     * \param host (String)
+     * \param port (int)
+     * \param timeoutInMilliseconds (long)
+     * \return ChannelIterator<QosPositionKpiReply>
      * \exception InterruptedException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
@@ -1458,15 +1465,14 @@ public class MatchingEngine {
         return qosPositionKpi.call();
     }
 
-    /**
+    /*!
      * Request QOS values from a list of PositionKPIRequests, and returns an asynchronous Future
      * for a stream Iterator of predicted QOS values.
-     *
-     * @param request
-     * @param host
-     * @param port
-     * @param timeoutInMilliseconds
-     * @return
+     * \param request (QosPositionRequest)
+     * \param host (String)
+     * \param port (int)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<ChannelIterator<QosPositionKpiReply>>
      * \exception InterruptedException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
@@ -1481,18 +1487,19 @@ public class MatchingEngine {
 
     // Combination Convenience methods:
 
-    /**
+    /*!
      * registerAndFindCloudlet with most defaults filled in.
-     * @param context
-     * @param organizationName
-     * @param applicationName
-     * @param appVersion
-     * @param location
-     * @param authToken
-     * @param cellId
-     * @param tags
-     * @param mode FindCloudletMode performance rated mode, or proximity mode.
-     * @return
+     * Wrapper function for RegisterClient and FindCloudlet. Same functionality as calling them separately. This API cannot be used for Non-Platform APPs.
+     * \param context (android.content.Context)
+     * \param organizationName (String)
+     * \param applicationName (String)
+     * \param appVersion (String)
+     * \param location (android.location.Location)
+     * \param authToken (String)
+     * \param cellId (int)
+     * \param tags (Map<String, String>)
+     * \param mode (FindCloudletMode): FindCloudletMode performance rated mode, or proximity mode.
+     * \return Future<FindCloudletReply>
      * \ingroup functions_dmeapis
      */
     public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
@@ -1544,7 +1551,7 @@ public class MatchingEngine {
         return threadpool.submit(future);
     }
 
-    /**
+    /*!
      * Register and FindCloudlet to get FindCloudletReply for cloudlet AppInsts info all at once:
      * \ingroup functions_dmeapis
      */
@@ -1593,7 +1600,7 @@ public class MatchingEngine {
         return threadpool.submit(future);
     }
 
-    /**
+    /*!
      * Register and FindCloudlet with DME host and port parameters, to get FindCloudletReply for cloudlet AppInsts info all at once:
      * \ingroup functions_dmeapis
      */
@@ -1646,9 +1653,9 @@ public class MatchingEngine {
         return threadpool.submit(future);
     }
 
-    /**
+    /*!
      * Retrieve the app connection manager associated with this MatchingEngine instance.
-     * @return
+     * \return AppConnectionManager
      */
     public AppConnectionManager getAppConnectionManager() {
         return mAppConnectionManager;
@@ -1673,19 +1680,19 @@ public class MatchingEngine {
     // Network Wrappers:
     //
 
-    /**
+    /*!
      * Returns if the bound Data Network for application is currently roaming or not.
-     * @return
+     * \return boolean
      */
     @RequiresApi(api = android.os.Build.VERSION_CODES.P)
     public boolean isRoamingData() {
         return mNetworkManager.isRoamingData();
     }
 
-    /**
+    /*!
      * Returns whether Wifi is enabled on the system or not, independent of Application's network state.
-     * @param context
-     * @return
+     * \param context (android.content.Context)
+     * \return boolean
      */
     public boolean isWiFiEnabled(Context context) {
         WifiManager wifiManager = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
@@ -1704,12 +1711,12 @@ public class MatchingEngine {
       return ip;
     }
 
-    /**
+    /*!
      * Checks if the Carrier + Phone combination supports WiFiCalling. This does not return whether it is enabled.
      * If under roaming conditions, WiFi Calling may disable cellular network data interfaces needed by
      * cellular data only Distributed Matching Engine and Cloudlet network operations.
      *
-     * @return
+     * \return boolean
      */
     public boolean isWiFiCallingSupported(CarrierConfigManager carrierConfigManager) {
         return mNetworkManager.isWiFiCallingSupported(carrierConfigManager);
@@ -1748,12 +1755,12 @@ public class MatchingEngine {
         isSSLEnabled = SSLEnabled;
     }
 
-    /**
+    /*!
      * Helper function to return a channel that handles SSL,
      * or returns a more basic ManagedChannelBuilder.
-     * @param host
-     * @param port
-     * @return
+     * \param host (String)
+     * \param port (int)
+     * \return ManagedChannel
      */
     ManagedChannel channelPicker(String host, int port, Network network) {
 
