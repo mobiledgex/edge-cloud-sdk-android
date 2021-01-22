@@ -36,8 +36,9 @@ import com.mobiledgex.matchingengine.R;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
+/*!
  * Android UI Permissions helper. Activity contexts are needed.
+ * \ingroup classes_util
  */
 public class RequestPermissions {
     public static final int REQUEST_MULTIPLE_PERMISSION = 1001;
@@ -75,12 +76,12 @@ public class RequestPermissions {
         ActivityCompat.requestPermissions(activity, permissionArray, REQUEST_MULTIPLE_PERMISSION);
     }
 
-    /**
+    /*!
      * Keeps asking for permissions until granted or user checks box to not asked again.
-     * @param activity
-     * @param requestCode
-     * @param permissions
-     * @param grantResults
+     * \param activity (AppCompatActivity)
+     * \param requestCode (int)
+     * \param permissions (String[])
+     * \param grantResults (int[])
      */
     public void onRequestPermissionsResult(AppCompatActivity activity, int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
@@ -110,7 +111,7 @@ public class RequestPermissions {
     }
 
 
-    /**
+    /*!
      * Shows OK/Cancel confirmation dialog about needed permissions.
      */
     public static class ConfirmationDialog extends DialogFragment {
@@ -139,7 +140,7 @@ public class RequestPermissions {
         }
     }
 
-    /**
+    /*!
      * Shows an error message dialog.
      */
     public static class ErrorDialog extends DialogFragment {

@@ -42,6 +42,10 @@ import java.util.concurrent.Future;
 
 import static android.telephony.CarrierConfigManager.KEY_CARRIER_WFC_IMS_AVAILABLE_BOOL;
 
+/*!
+ * NetworkManager handles Network Interface and Network connectivity utilities
+ * \ingroup classes_util
+ */
 public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedListener {
 
     public static final String TAG = "NetworkManager";
@@ -114,12 +118,12 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         this.mNetworkSwitchingEnabled = networkSwitchingEnabled;
     }
 
-    /**
+    /*!
      * Some network operations can only work on a single network type, and must wait for a suitable
      * network. This serializes those calls. The app should create separate queues to manage
      * usage otherwise if a particular parallel use pattern is needed.
-     * @param callable
-     * @param networkRequest
+     * \param callable (Callable)
+     * \param networkRequest (NetworkRequest)
      */
     synchronized void runOnNetwork(Callable callable, NetworkRequest networkRequest)
             throws InterruptedException, ExecutionException {
@@ -163,13 +167,13 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         mThreadPool = executorService;
     }
 
-    /**
+    /*!
      * Listener that gets the current SubscriptionInfo list.
      *
      * throws security exception if the revocable READ_PHONE_STATE (or hasCarrierPrivilages)
      * is missing.
      *
-     * @throws SecurityException
+     * \exception SecurityException
      */
     @Override
     synchronized public void onSubscriptionsChanged() throws SecurityException {
@@ -241,9 +245,8 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return networkRequest;
     }
 
-    /**
+    /*!
      * Returns the current active network, independent of what the NetworkManager is doing.
-     * @return
      */
     public Network getActiveNetwork() {
         return mConnectivityManager.getActiveNetwork();
@@ -264,10 +267,9 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING);
     }
 
-    /**
+    /*!
      * Checks if the Carrier + Phone combination supports WiFiCalling. This is a supports value, it
      * does not return whether or not it is enabled.
-     * @return
      */
     boolean isWiFiCallingSupported(CarrierConfigManager carrierConfigManager) {
         PersistableBundle configBundle = carrierConfigManager.getConfig();
@@ -276,15 +278,16 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return isWifiCalling;
     }
 
-    /**
+    /*!
      * Sets the request for the default network to reset to. It does not modify the network.
-     * @param defaultNetworkRequest
      */
     public void setDefaulNetwork(NetworkRequest defaultNetworkRequest) {
         mDefaultRequest = defaultNetworkRequest;
     }
 
-    // Reset process level default network.
+    /*!
+     * Reset process level default network.
+     */
     public void resetNetworkToDefault() throws InterruptedException, ExecutionException {
         if (mNetworkSwitchingEnabled == false) {
             Log.e(TAG, "NetworkManager is disabled.");
@@ -545,7 +548,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return hasDataCellCapabilities;
     }
 
-    /**
+    /*!
      * Wrapper function to get, if possible, to a Cellular Data Network connection. This isn't instant. Callback interface.
      */
     public void requestCellularNetwork(ConnectivityManager.NetworkCallback networkCallback) {
@@ -595,9 +598,8 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return mNetwork;
     }
 
-    /**
+    /*!
      * Switch entire process to a Cellular network type. This is a synchronous call.
-     * @return
      */
     public Network switchToCellularInternetNetworkBlocking() throws InterruptedException, ExecutionException {
         if (mNetwork == null) {
@@ -614,9 +616,8 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return mNetwork;
     }
 
-    /**
+    /*!
      * Switch to a particular network type. Returns a Future.
-     * @return
      */
     public Future<Network> switchToCellularInternetNetworkFuture() {
         NetworkRequest networkRequest = getCellularNetworkRequest();
@@ -626,9 +627,8 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return cellNetworkFuture;
     }
 
-    /**
+    /*!
      * Switch to a particular network type in a blocking fashion for synchronous execution blocks.
-     * @return
      */
     public Network switchToNetworkBlocking(NetworkRequest networkRequest, boolean bindProcess) throws InterruptedException, ExecutionException {
         Future<Network> networkFuture;
@@ -637,11 +637,10 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return networkFuture.get();
     }
 
-    /**
+    /*!
      * Switch entire process to a network using Callbacks. The callback onAvailable(Network) will notify availability.
-     * @param networkRequest
-     * @param networkCallback
-     * @return
+     * \param networkRequest (NetworkRequest)
+     * \param networkCallback (ConnectivityManager.NetworkCallback)
      */
     public void switchToNetwork(NetworkRequest networkRequest, final ConnectivityManager.NetworkCallback networkCallback) {
         mConnectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback() {

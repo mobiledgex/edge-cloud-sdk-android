@@ -112,6 +112,7 @@ import static android.content.Context.WIFI_SERVICE;
 /*!
  * Main MobiledgeX SDK class. This class provides functions to find nearest cloudlet with the
  * developer's application instance deployed and to connect to that application instance.
+ * \ingroup classes
  */
 public class MatchingEngine {
     public static final String TAG = "MatchingEngine";

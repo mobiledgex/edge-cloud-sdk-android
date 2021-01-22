@@ -39,6 +39,10 @@ import distributed_match_engine.AppClient.FindCloudletReply;
 import distributed_match_engine.Appcommon.LProto;
 import distributed_match_engine.Appcommon.AppPort;
 
+/*!
+ * Manages GetConnection functions and connections
+ * \ingroup classes
+ */
 public class AppConnectionManager {
     private final static String TAG = "AppConnectionManager";
     private NetworkManager mNetworkManager;

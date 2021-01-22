@@ -9,13 +9,7 @@
 /*!
  * \defgroup classes Classes
 
-   * \defgroup classes_integration Platform Integration Classes
-   * \ingroup classes
-
    * \defgroup classes_util Utility Classes
-   * \ingroup classes
-
-   * \defgroup classes_datastructs MatchingEngine Data Structures
    * \ingroup classes
  */
 
@@ -46,6 +40,9 @@
 
    * \defgroup exceptions_getconnection GetConnection Exceptions
    * \ingroup exceptions
+
+   * \defgroup exceptions_util Utility Exceptions
+   * \ingroup exceptions
  */
 
 // Add Information to index.html (main landing page)
@@ -53,19 +50,21 @@
  * \mainpage
  *
  * \section intro_section Introduction
- * These pages provide documentation for Namespaces, Classes, Functions, and Variables within the MobiledgeX C# SDK.
+ * These pages provide documentation for Namespaces, Classes, Functions, and
+   Variables within the MobiledgeX Android SDK.
  *
  * \section navigating_section Navigating the SDK Documentation
  * Use either the tabs or the treeview to find the desired page.
  * There are two main sections: Classes and Modules.
- * Classes will bring you to a list of all classes in the C# MobiledgeX SDK.
- * Modules will bring you to a more organized breakdown of the C# SDK.
+ * Classes will bring you to a list of all classes in the Android MobiledgeX SDK.
+ * Modules will bring you to a more organized breakdown of the Android SDK.
  * The Modules are split up into \link namespaces Namespaces \endlink, \link classes Classes \endlink, \link functiongroups Function Groups \endlink, and \link exceptions Exceptions \endlink.
  * Each of these modules group similar classes, functions, or exceptions together.
  * For example, all of the \link functions_dmeapis MatchingEngine API functions \endlink will be found under Modules -> Functions Groups -> MatchingEngine APIs.
  *
  * \section starting_section Where to Start?
- * The main class that developers will be using is the DistributedMatchEngine.MatchingEngine (MatchingEngine) class inside the DistributedMatchEngine namespace.
+ * The main class that developers will be using is the
+   com.mobiledgex.matchingengine.MatchingEngine class.
  * This class provides functions to register the user to the Distributed Matching Engine, find the nearest application instance, and then get a connection to that application instance that is ready to be used (See diagram below for workflow).
  * Go to the sections: \link functions_dmeapis MatchingEngine APIs \endlink and \link functions_getconnection GetConnection Functions \endlink to get started.
  * \image html dmeflow.png width=800cm height=500cm
