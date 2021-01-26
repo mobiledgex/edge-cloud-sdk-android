@@ -162,7 +162,7 @@ public class MatchingEngine {
      * Constructor for MatchingEngine class.
      * \param context (android.content.Context)
      * \section meconstructorexample Example
-     * \snippet RestSample.cs meconstructorexample
+     * \snippet EngineCallTest.java meconstructorexample
      */
     public MatchingEngine(Context context) {
         threadpool = Executors.newCachedThreadPool();
@@ -181,8 +181,6 @@ public class MatchingEngine {
      * Constructor for MatchingEngine class.
      * \param context (android.content.Context)
      * \param executorService (java.util.concurrent.ExecutorService)
-     * \section meconstructorexample Example
-     * \snippet RestSample.cs meconstructorexample
      */
     public MatchingEngine(Context context, ExecutorService executorService) {
         threadpool = executorService;
@@ -669,6 +667,8 @@ public class MatchingEngine {
      * \return RegisterClientRequest.Builder
      * \exception PackageManager.NameNotFoundException
      * \ingroup functions_dmeapis
+     * \section createdefregisterexample Example
+     * \snippet EngineCallTest.java createdefregisterexample
      */
     public RegisterClientRequest.Builder createDefaultRegisterClientRequest(Context context,
                                                                             String organizationName)
@@ -786,6 +786,8 @@ public class MatchingEngine {
      * \param location (android.location.Location)
      * \return VerifyLocationRequest.Builder
      * \ingroup functions_dmeapis
+     * \section createdefverifylocationexample Example
+     * \snippet EngineCallTest.java createdefverifylocationexample
      */
     public VerifyLocationRequest.Builder createDefaultVerifyLocationRequest(Context context,
                                                              android.location.Location location) {
@@ -832,6 +834,8 @@ public class MatchingEngine {
      * \return FindCloudletRequest.Builder
      * \exception PackageManager.NameNotFoundException
      * \ingroup functions_dmeapis
+     * \section createdeffindcloudletexample Example
+     * \snippet EngineCallTest.java createdeffindcloudletexample
      */
     public AppClient.FindCloudletRequest.Builder createDefaultFindCloudletRequest(Context context, Location location) {
         if (!mMatchingEngineLocationAllowed) {
@@ -879,6 +883,8 @@ public class MatchingEngine {
      * \param location (android.location.Location)
      * \return AppInstListRequest.Builder
      * \ingroup functions_dmeapis
+     * \section createdefappinstexample Example
+     * \snippet EngineCallTest.java createdefappinstexample
      */
     public AppClient.AppInstListRequest.Builder createDefaultAppInstListRequest(Context context, android.location.Location location) {
         if (!mMatchingEngineLocationAllowed) {
@@ -929,6 +935,8 @@ public class MatchingEngine {
      * \param band_selection (BandSelection): Optional
      * \return QosPositionRequest.Builder
      * \ingroup functions_dmeapis
+     * \section createdefqosexample Example
+     * \snippet EngineCallTest.java createdefqosexample
      */
     public AppClient.QosPositionRequest.Builder createDefaultQosPositionRequest(List<QosPosition> requests, int lte_category, BandSelection band_selection) {
 
@@ -981,6 +989,8 @@ public class MatchingEngine {
      * \exception InterruptedException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
+     * \section registerexample Example
+     * \snippet EngineCallTest.java registerexample
      */
     public RegisterClientReply registerClient(RegisterClientRequest request,
                                               long timeoutInMilliseconds)
@@ -1000,6 +1010,8 @@ public class MatchingEngine {
      * \exception InterruptedException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
+     * \section registeroverrideexample Example
+     * \snippet EngineCallTest.java registeroverrideexample
      */
     public RegisterClientReply registerClient(RegisterClientRequest request,
                                               String host, int port,
@@ -1047,6 +1059,8 @@ public class MatchingEngine {
      * \exception InterruptedException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
+     * \section findcloudletexample Example
+     * \snippet EngineCallTest.java findcloudletexample
      */
     public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                           long timeoutInMilliseconds)
@@ -1083,6 +1097,8 @@ public class MatchingEngine {
      * \return FindCloudletReply: cloudlet URIs
      * \exception StatusRuntimeException
      * \ingroup functions_dmeapis
+     * \section findcloudletoverrideexample Example
+     * \snippet EngineCallTest.java findcloudletoverrideexample
      */
     public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                         String host, int port,
@@ -1201,6 +1217,8 @@ public class MatchingEngine {
      * \exception IOException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
+     * \section verifylocationexample Example
+     * \snippet EngineCallTest.java verifylocationexample
      */
     public VerifyLocationReply verifyLocation(VerifyLocationRequest request,
                                              long timeoutInMilliseconds)
@@ -1222,6 +1240,8 @@ public class MatchingEngine {
      * \exception InterruptedException
      * \exception IOException
      * \ingroup functions_dmeapis
+     * \section verifylocationoverrideexample Example
+     * \snippet EngineCallTest.java verifylocationoverrideexample
      */
     public VerifyLocationReply verifyLocation(VerifyLocationRequest request,
                                               String host, int port,
@@ -1346,6 +1366,8 @@ public class MatchingEngine {
      * \exception InterruptedException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
+     * \section appinstlistexample Example
+     * \snippet EngineCallTest.java appinstlistexample
      */
     public AppInstListReply getAppInstList(AppInstListRequest request,
                                            long timeoutInMilliseconds)
@@ -1362,6 +1384,8 @@ public class MatchingEngine {
      * \param timeoutInMilliseconds (long)
      * \return AppInstListReply
      * \ingroup functions_dmeapis
+     * \section appinstlistoverrideexample Example
+     * \snippet EngineCallTest.java appinstlistoverrideexample
      */
     public AppInstListReply getAppInstList(AppInstListRequest request,
                                            String host, int port,
@@ -1413,6 +1437,8 @@ public class MatchingEngine {
      * \exception InterruptedException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
+     * \section qospositionexample Example
+     * \snippet EngineCallTest.java qospositionexample
      */
     public ChannelIterator<QosPositionKpiReply> getQosPositionKpi(QosPositionRequest request,
                                                                   long timeoutInMilliseconds)
@@ -1454,6 +1480,8 @@ public class MatchingEngine {
      * \exception InterruptedException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
+     * \section qospositionoverrideexample Example
+     * \snippet EngineCallTest.java qospositionoverrideexample
      */
     public ChannelIterator<QosPositionKpiReply> getQosPositionKpi(QosPositionRequest request,
                                                                   String host, int port,
@@ -1604,6 +1632,8 @@ public class MatchingEngine {
     /*!
      * Register and FindCloudlet with DME host and port parameters, to get FindCloudletReply for cloudlet AppInsts info all at once:
      * \ingroup functions_dmeapis
+     * \section registerandfindoverrideexample Example
+     * \snippet EngineCallTest.java registerandfindoverrideexample
      */
     public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
                                                              final String host,

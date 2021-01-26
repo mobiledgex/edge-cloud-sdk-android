@@ -117,7 +117,6 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 INPUT                  = src/main/java/com/mobiledgex/matchingengine/ \
                          ../doxygen/src/DoxygenModules.txt \
-                         MatchingEngineSDKRestLibrary/PerformanceMetrics
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.c \
                          *.cc \
@@ -171,7 +170,7 @@ EXCLUDE                =
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       =
 EXCLUDE_SYMBOLS        =
-EXAMPLE_PATH           = 
+EXAMPLE_PATH           = src/AndroidTest/java/com/mobiledgex/matchingengine/
 EXAMPLE_PATTERNS       = *
 EXAMPLE_RECURSIVE      = NO
 IMAGE_PATH             = ../doxygen/src/dmeflow.png

@@ -266,6 +266,8 @@ public class AppConnectionManager {
      * \param timeoutMs (int): timeout in milliseconds. 0 for infinite.
      * \return Future<Socket>: null can be returned if the network does not exist, or if network switching is disabled.
      * \ingroup functions_getconnection
+     * \section gettcpsocketeexample Example
+     * \snippet EngineCallTest.java gettcpsocketexample
      */
     public Future<Socket> getTcpSocket(final AppClient.FindCloudletReply findCloudletReply,
                                 final AppPort appPort, final int portNum, final int timeoutMs) {
@@ -325,6 +327,8 @@ public class AppConnectionManager {
      * \param timeoutMs (int): timeout in milliseconds. 0 for infinite.
      * \return Future<DatagramSocket>: null can be returned if the network does not exist, or if network switching is disabled.
      * \ingroup functions_getconnection
+     * \section getupdsocketexample Example
+     * \snippet EngineCallTest.java getudpsocketexample
      */
     public Future<DatagramSocket> getUdpSocket(final AppClient.FindCloudletReply findCloudletReply,
                                         final AppPort appPort, final int portNum, final int timeoutMs) {
@@ -373,6 +377,8 @@ public class AppConnectionManager {
      * \return Future<OkHttpClient>: null can be returned if the network does not exist, if network switching is disabled,
      *         of if a SSL Socket Factory cannot be created.
      * \ingroup functions_getconnection
+     * \section gethttpclientexample Example
+     * \snippet EngineCallTest.java gethttpclientexample
      */
     public Future<OkHttpClient> getHttpClient(final long timeoutMs) {
         Callable<OkHttpClient> socketCallable = new Callable<OkHttpClient>() {
@@ -424,6 +430,8 @@ public class AppConnectionManager {
      * \param path (String): Path to be appended at the end of the url. Defaults to "" if null is provided.
      * \return String: completed URL, or null if invalid.
      * \ingroup functions_getconnectionutils
+     * \section createurlexample Example
+     * \snippet EngineCallTest.java createurlexample
      */
     public String createUrl(FindCloudletReply findCloudletReply, AppPort appPort, int desiredPortNum, String protocol, String path) {
         int publicPortNum = 0;
