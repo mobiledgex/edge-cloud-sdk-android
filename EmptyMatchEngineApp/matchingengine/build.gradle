@@ -133,5 +133,3 @@ doxygen {
     file_paterns        '*.java', '*.class','*.md'
     recursive           true
 }
-
-// exclude_paterns     '**/R.java', 'androidTest', '**/Test*.java'
