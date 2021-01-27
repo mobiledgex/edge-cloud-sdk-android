@@ -19,6 +19,10 @@ package com.mobiledgex.matchingengine;
 
 import java.lang.IllegalArgumentException;
 
+/*!
+ * Occurs when there is no Request object when making DME API call
+ * \ingroup exceptions_dme
+ */
 public class MissingRequestException extends IllegalArgumentException {
     public MissingRequestException(String msg) {
         super(msg);

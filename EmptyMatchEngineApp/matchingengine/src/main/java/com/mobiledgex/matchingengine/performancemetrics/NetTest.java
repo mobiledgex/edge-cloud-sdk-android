@@ -46,12 +46,22 @@ import com.squareup.okhttp.Response;
 
 import javax.net.SocketFactory;
 
-
+/*!
+ * Utility class used for testing network latency
+ * \ingroup classes_util
+ * \section nettest Example
+ * \snippet EngineCallTest.java nettest
+ */
 public class NetTest
 {
     public static final String TAG = "NetTest";
     public int testRounds = 3;
 
+    /*!
+     * Type of test to run
+     * Connect: Times a socket connect+disconnect
+     * Ping: ICMP Ping
+     */
     public enum TestType
     {
         PING,
@@ -64,7 +74,7 @@ public class NetTest
     public int TestIntervalMS = 100;
     public int TestTimeoutMS = 2000;
 
-    /**
+    /*!
      * Synchronized List of Sites.
      */
     private List<Site> sites;
@@ -100,6 +110,9 @@ public class NetTest
 
     private ExecutorService mExecutorService;
 
+    /*!
+     * Constructor for NetTest
+     */
     public NetTest()
     {
         siteComparator = new DefaultSiteComparator();
@@ -115,10 +128,10 @@ public class NetTest
         this.siteComparator = siteComparator;
     }
 
-    /**
+    /*!
      * Set the executorService to use if using the async Future versions.
-     * @param executorService
-     * @return
+     * \param executorService (ExecutorService)
+     * \return ExecutorService
      */
     public ExecutorService setExecutorService(ExecutorService executorService) {
         return this.mExecutorService = executorService;
@@ -138,10 +151,10 @@ public class NetTest
         return httpClient;
     }
 
-    /**
+    /*!
      * Create a client and connect/disconnect on a raw TCP server port from a device network Interface.
-     * @param site
-     * @return
+     * \param site (Site)
+     * \return long
      */
     public long ConnectAndDisconnectHostAndPort(Site site)
     {
@@ -180,10 +193,10 @@ public class NetTest
         return elapsed;
     }
 
-    /**
+    /*!
      * Test and gather stats on site using TCP connection to host.
-     * @param site
-     * @return
+     * \param site Site
+     * \return long
      */
     public long ConnectAndDisconnect(Site site)
     {
@@ -222,10 +235,10 @@ public class NetTest
         return -1;
     }
 
-    /**
+    /*!
      * Basic ICMP ping. Does not set source network interface, it just pings to see if it is reachable along current default route.
-     * @param site
-     * @return
+     * \param site (Site)
+     * \return long
      */
     public long Ping(Site site)
     {
@@ -325,9 +338,9 @@ public class NetTest
         return true;
     }
 
-    /**
+    /*!
      * Copy of sites for gathered performance stats based on default Comparator.
-     * @return
+     * \return List<Site>
      */
     public List<Site> sortedSiteList() {
         List<Site> listSites = new ArrayList<>();
@@ -337,9 +350,9 @@ public class NetTest
         return listSites;
     }
 
-    /**
+    /*!
      * Best site, from collection.
-     * @return
+     * return Site
      */
     public Site bestSite() {
         synchronized (sites) {
@@ -382,7 +395,7 @@ public class NetTest
         return elapsed;
     }
 
-    /**
+    /*!
      * Gather metrics for sites
      */
     public void testSites(long TimeoutMS) {
@@ -401,9 +414,8 @@ public class NetTest
         }
     }
 
-    /**
+    /*!
      * Parallel gather of sites added to NetTest over on executorService configured in NetTest.
-     * @return
      */
     public void testSitesOnExecutor(long TimeoutMS) {
         Stopwatch testStopwatch = Stopwatch.createStarted();
@@ -443,7 +455,9 @@ public class NetTest
         }
     }
 
-    // Basic utility function to connect and disconnect from any TCP port.
+    /*!
+     * Basic utility function to connect and disconnect from any TCP port.
+     */
     public void RunNetTest()
     {
         while (runTest) {

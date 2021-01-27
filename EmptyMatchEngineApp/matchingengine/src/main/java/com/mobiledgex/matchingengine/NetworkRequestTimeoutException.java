@@ -19,6 +19,10 @@ package com.mobiledgex.matchingengine;
 
 import java.lang.Exception;
 
+/*!
+ * NetworkRequestTimeoutException
+ * \ingroup exceptions_util
+ */
 public class NetworkRequestTimeoutException extends Exception {
     public NetworkRequestTimeoutException(String msg) {
         super(msg);

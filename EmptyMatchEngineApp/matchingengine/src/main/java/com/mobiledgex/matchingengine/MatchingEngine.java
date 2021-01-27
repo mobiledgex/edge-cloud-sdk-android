@@ -109,6 +109,11 @@ import com.mobiledgex.mel.MelMessaging;
 import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
 
+/*!
+ * Main MobiledgeX SDK class. This class provides functions to find nearest cloudlet with the
+ * developer's application instance deployed and to connect to that application instance.
+ * \ingroup classes
+ */
 public class MatchingEngine {
     public static final String TAG = "MatchingEngine";
     public static final String baseDmeHost = "dme.mobiledgex.net";
@@ -140,6 +145,10 @@ public class MatchingEngine {
     private boolean isSSLEnabled = true;
     private boolean useOnlyWifi = false;
 
+    /*!
+     * Two modes to call FindCloudlet. First is Proximity (default) which finds the nearest cloudlet based on gps location with application instance
+     * Second is Performance. This mode will test all cloudlets with application instance deployed to find cloudlet with lowest latency. This mode takes longer to finish because of latency test.
+     */
     public enum FindCloudletMode {
         PROXIMITY,
         PERFORMANCE
@@ -149,6 +158,12 @@ public class MatchingEngine {
     private NetTest mNetTest;
     private boolean threadedPerformanceTest = false;
 
+    /*!
+     * Constructor for MatchingEngine class.
+     * \param context (android.content.Context)
+     * \section meconstructorexample Example
+     * \snippet EngineCallTest.java meconstructorexample
+     */
     public MatchingEngine(Context context) {
         threadpool = Executors.newCachedThreadPool();
         ConnectivityManager connectivityManager = context.getSystemService(ConnectivityManager.class);
@@ -162,6 +177,11 @@ public class MatchingEngine {
         }
     }
 
+    /*!
+     * Constructor for MatchingEngine class.
+     * \param context (android.content.Context)
+     * \param executorService (java.util.concurrent.ExecutorService)
+     */
     public MatchingEngine(Context context, ExecutorService executorService) {
         threadpool = executorService;
         ConnectivityManager connectivityManager = context.getSystemService(ConnectivityManager.class);
@@ -179,18 +199,42 @@ public class MatchingEngine {
     public static final String MATCHING_ENGINE_LOCATION_PERMISSION = "MATCHING_ENGINE_LOCATION_PERMISSION";
     private static boolean mMatchingEngineLocationAllowed = false;
 
+    /*!
+     * Checks if MatchingEngineLocation is allowed
+     * \return boolean
+     * \ingroup functions_dmeutils
+     */
     public static boolean isMatchingEngineLocationAllowed() {
         return mMatchingEngineLocationAllowed;
     }
 
+    /*!
+     * Location permissions are required to find nearest cloudlet. Developer must set MatchignEngineLocationAllowed to true in order to use MatchingEngine APIs
+     * \param allowMatchingEngineLocation (boolean)
+     * \ingroup functions_dmeutils
+     */
     public static void setMatchingEngineLocationAllowed(boolean allowMatchingEngineLocation) {
         mMatchingEngineLocationAllowed = allowMatchingEngineLocation;
     }
 
+    /*!
+     * Checks if WifiOnly is set
+     * \return boolean
+     * \ingroup functions_dmeutils
+     */
     public boolean isUseWifiOnly() {
         return useOnlyWifi;
     }
 
+    /*!
+     * Sets WifiOnly.
+     * If true, MatchingEngine APIs will communicate with the nearest DME based on NS1 ip lookup.
+     * If false, MatchingEngine APIs will communicate with the DME based on the device's carrier information.
+     * Default is false.
+     * Only set to true for testing purposes. Production code should use false.
+     * \param enabled (boolean)
+     * \ingroup functions_dmeutils
+     */
     public void setUseWifiOnly(boolean enabled) {
         useOnlyWifi = enabled;
         setNetworkSwitchingEnabled(!useOnlyWifi);
@@ -200,39 +244,53 @@ public class MatchingEngine {
         return (SubscriptionManager) context.getSystemService(TELEPHONY_SUBSCRIPTION_SERVICE);
     }
 
+    /*!
+     * \ingroup functions_dmeutils
+     */
     public boolean isNetworkSwitchingEnabled() {
         return getNetworkManager().isNetworkSwitchingEnabled();
     }
 
+    /*!
+     * \ingroup functions_dmeutils
+     */
     public void setNetworkSwitchingEnabled(boolean networkSwitchingEnabled) {
         getNetworkManager().setNetworkSwitchingEnabled(networkSwitchingEnabled);
     }
 
+    /*!
+     * \ingroup functions_dmeutils
+     */
     public boolean isAllowSwitchIfNoSubscriberInfo() {
         return getNetworkManager().isAllowSwitchIfNoSubscriberInfo();
     }
 
+    /*!
+     * \ingroup functions_dmeutils
+     */
     public void setAllowSwitchIfNoSubscriberInfo(boolean allowSwitchIfNoSubscriberInfo) {
         getNetworkManager().setAllowSwitchIfNoSubscriberInfo(allowSwitchIfNoSubscriberInfo);
     }
 
-    /**
+    /*!
      * Utility function to get the active subscription network provider list for this device as
      * known to the MatchingEngine. If it is empty, the application should use the public cloud
      * instead, as the Distributed Matching Engine may be unavailable (firewalled) from the current
      * network. Calling MatchingEngine APIs in that state will result in a
      * NetworkRequestNoSubscriptionInfoException.
-     *
-     * @return
+     * \return List<SubscriptionInfo>
+     * \ingroup functions_dmeutils
      */
     public List<SubscriptionInfo> getActiveSubscriptionInfoList() {
         List<SubscriptionInfo> subs = getNetworkManager().getActiveSubscriptionInfoList(true);
         return subs;
     }
 
-    /**
+    /*!
      * Check if Roaming Data is enabled on the System.
-     * @return
+     * \param context (android.content.Context)
+     * \return boolean
+     * \ingroup functions_dmeutils
      */
     public boolean isRoamingDataEanbled(Context context) {
         boolean enabled;
@@ -291,10 +349,11 @@ public class MatchingEngine {
         mAppOfficialFqdnReply = reply;
     }
 
-    /**
+    /*!
      * Utility method retrieves current MCC + MNC from system service.
-     * @param context
-     * @return
+     * \param context (android.content.Context)
+     * \return String
+     * \ingroup functions_dmeutils
      */
     String getMccMnc(Context context) {
         TelephonyManager telManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
@@ -307,9 +366,10 @@ public class MatchingEngine {
         return telManager.createForSubscriptionId(subId).getNetworkOperator();
     }
 
-    /**
-     * General DeviceInfo Details
-     * @return key value string pairs.
+    /*!
+     * General Device Details
+     * \return HashMap<String, String>
+     * \ingroup functions_dmeutils
      */
     public HashMap<String, String> getDeviceInfo() {
 
@@ -372,10 +432,14 @@ public class MatchingEngine {
         return map;
     }
 
-    /**
-     * Utility method retrieves current network CarrierName from system service. Returns "" if carrier name is not found.
-     * @param context
-     * @return
+    /*!
+     * Returns the carrier's mcc+mnc which is mapped to a carrier in the backend (ie. 26201 -> TDG).
+     * MCC stands for Mobile Country Code and MNC stands for Mobile Network Code.
+     * If UseWifiOnly or cellular is off + wifi is up, this will return """".
+     * Empty string carrierName is the alias for any, which will search all carriers for application instances.
+     * \param context (android.content.Context)
+     * \return String
+     * \ingroup functions_dmeutils
      */
     public String getCarrierName(Context context) {
         String mccMnc = getMccMnc(context);
@@ -391,12 +455,13 @@ public class MatchingEngine {
         return mccMnc;
     }
 
-    /**
+    /*!
      * Optional Parameter cellular ID. This may be different between Cellular type (LTE, 5G, etc.)
-     * @param context
-     * @return Hashmap of CellInfo simpleNames with the corresponding normalized long CellId. Could
+     * \param context (android.content.Context)
+     * \return List<Pair<String, Long>>: List of CellInfo simpleNames with the corresponding normalized long CellId. Could
      *         be empty.
-     * @throws SecurityException if GET_PHONE_STATE missing.
+     * \throws SecurityException if GET_PHONE_STATE missing.
+     * \ingroup functions_dmeutils
      */
     public List<Pair<String, Long>> retrieveCellId(Context context) throws SecurityException {
         TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
@@ -482,10 +547,12 @@ public class MatchingEngine {
         return uuid;
     }
 
-    /**
-     * Returns the MobiledgeX Distributed Match Engine server hostname the SDK client should first
-     * contact.
-     * @return
+    /*!
+     * GenerateDmeHostAddress
+     * This will generate the dme host name based on GetMccMnc() -> "mcc-mnc.dme.mobiledgex.net".
+     * If GetMccMnc fails or returns null, this will return a fallback dme host: "wifi.dme.mobiledgex.net"(this is the EU + TDG DME).
+     * This function is used by any DME APIs calls where no host and port overloads are provided.
+     * \ingroup functions_dmeutils
      */
     public String generateDmeHostAddress() throws DmeDnsException {
 
@@ -529,6 +596,9 @@ public class MatchingEngine {
         return potentialDmeHost;
     }
 
+    /*!
+     * \ingroup functions_dmeutils
+     */
     public NetworkManager getNetworkManager() {
         return mNetworkManager;
     }
@@ -537,18 +607,20 @@ public class MatchingEngine {
         mNetworkManager = networkManager;
     }
 
-
+    /*!
+     * \ingroup functions_dmeutils
+     */
     public String getPackageName(Context context) {
         String appName;
         ApplicationInfo appInfo = context.getApplicationInfo();
         return appInfo.packageName;
     }
 
-    /**
+    /*!
      * Returns the nonLocalizedLabel Application Name.
-     *
-     * @param context
-     * @return May return null.
+     * \param context (android.content.Context)
+     * \return String
+     * \ingroup functions_dmeutils
      */
     String getAppName(Context context) {
         String appName;
@@ -559,11 +631,11 @@ public class MatchingEngine {
         return stringId == 0 ? appName : context.getString(stringId);
     }
 
-    /**
+    /*!
      * Returns the Application Version.
-     *
-     * @param context
-     * @return May return null.
+     * \param context (android.content.Context)
+     * \return String
+     * \ingroup functions_dmeutils
      */
     String getAppVersion(Context context)
             throws PackageManager.NameNotFoundException {
@@ -578,20 +650,25 @@ public class MatchingEngine {
         }
     }
 
+    /*!
+     * \ingroup functions_dmeutils
+     */
     public void ensureSessionCookie(String sessionCookie) {
         if (sessionCookie == null || sessionCookie.equals((""))) {
             throw new IllegalArgumentException("An unexpired RegisterClient sessionCookie is required.");
         }
     }
 
-    /**
+    /*!
      * Returns a builder for RegisterClientRequest. Call build() after setting
      * additional optional fields like AuthToken or Tags.
-     *
-     * @param context
-     * @param organizationName
-     * @return
-     * @throws PackageManager.NameNotFoundException
+     * \param context (android.content.Context)
+     * \param organizationName (String)
+     * \return RegisterClientRequest.Builder
+     * \exception PackageManager.NameNotFoundException
+     * \ingroup functions_dmeapis
+     * \section createdefregisterexample Example
+     * \snippet EngineCallTest.java createdefregisterexample
      */
     public RegisterClientRequest.Builder createDefaultRegisterClientRequest(Context context,
                                                                             String organizationName)
@@ -641,6 +718,9 @@ public class MatchingEngine {
                 return builder;
     }
 
+    /*!
+     * \ingroup functions_dmeapis
+     */
     public RegisterClientRequest createRegisterClientRequest(Context context, String organizationName,
                                                              String applicationName, String appVersion,
                                                              String authToken,
@@ -699,6 +779,16 @@ public class MatchingEngine {
         return builder.build();
     }
 
+    /*!
+     * Returns a builder for VerifyLocationRequest. Call build() after setting
+     * additional optional fields like Tags.
+     * \param context (android.content.Context)
+     * \param location (android.location.Location)
+     * \return VerifyLocationRequest.Builder
+     * \ingroup functions_dmeapis
+     * \section createdefverifylocationexample Example
+     * \snippet EngineCallTest.java createdefverifylocationexample
+     */
     public VerifyLocationRequest.Builder createDefaultVerifyLocationRequest(Context context,
                                                              android.location.Location location) {
         if (context == null) {
@@ -736,13 +826,16 @@ public class MatchingEngine {
         return builder;
     }
 
-    /**
+    /*!
      * Creates a Default FindCloudletRequest. If VersionName or AppName is missing (test code),
      * the app will need to fill this in before sending to the server.
-     * @param context Activity Context
-     * @param location GPS location
-     * @return
-     * @throws PackageManager.NameNotFoundException
+     * \param context (android.content.Context)
+     * \param location (android.location.Location)
+     * \return FindCloudletRequest.Builder
+     * \exception PackageManager.NameNotFoundException
+     * \ingroup functions_dmeapis
+     * \section createdeffindcloudletexample Example
+     * \snippet EngineCallTest.java createdeffindcloudletexample
      */
     public AppClient.FindCloudletRequest.Builder createDefaultFindCloudletRequest(Context context, Location location) {
         if (!mMatchingEngineLocationAllowed) {
@@ -763,6 +856,10 @@ public class MatchingEngine {
                 .setCellId(0);
     }
 
+    /*!
+     * @private
+     * \ingroup functions_dmeapis
+     */
     public AppClient.GetLocationRequest.Builder createDefaultGetLocationRequest(Context context) {
         if (!mMatchingEngineLocationAllowed) {
             Log.e(TAG, "Location Permission required to Create DefaultGetLocationRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
@@ -779,6 +876,16 @@ public class MatchingEngine {
                 .setCellId(0);
     }
 
+    /*!
+     * Returns a builder for AppInstListRequest. Call build() after setting
+     * additional optional fields like Tags.
+     * \param context (android.content.Context)
+     * \param location (android.location.Location)
+     * \return AppInstListRequest.Builder
+     * \ingroup functions_dmeapis
+     * \section createdefappinstexample Example
+     * \snippet EngineCallTest.java createdefappinstexample
+     */
     public AppClient.AppInstListRequest.Builder createDefaultAppInstListRequest(Context context, android.location.Location location) {
         if (!mMatchingEngineLocationAllowed) {
             Log.e(TAG, "Location Permission required to Create DefaultAppInstListRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
@@ -799,6 +906,10 @@ public class MatchingEngine {
                 .setCellId(0);
     }
 
+    /*!
+     * @private
+     * \ingroup functions_dmeapis
+     */
     public AppClient.DynamicLocGroupRequest.Builder createDefaultDynamicLocGroupRequest(Context context, DynamicLocGroupRequest.DlgCommType commType) {
         if (!mMatchingEngineLocationAllowed) {
             Log.e(TAG, "Location Permission required to Create DefaultDynamicLocGroupRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
@@ -816,6 +927,17 @@ public class MatchingEngine {
                 .setCellId(0);
     }
 
+    /*!
+     * Returns a builder for QosPositionRequest. Call build() after setting
+     * additional optional fields like Tags.
+     * \param requests (List<QosPosition>): List of locations to get Qos
+     * \param lte_category (int): Optional
+     * \param band_selection (BandSelection): Optional
+     * \return QosPositionRequest.Builder
+     * \ingroup functions_dmeapis
+     * \section createdefqosexample Example
+     * \snippet EngineCallTest.java createdefqosexample
+     */
     public AppClient.QosPositionRequest.Builder createDefaultQosPositionRequest(List<QosPosition> requests, int lte_category, BandSelection band_selection) {
 
         if (!mMatchingEngineLocationAllowed) {
@@ -853,30 +975,43 @@ public class MatchingEngine {
         return builder.build();
     }
 
-    /**
+    /*!
      * Registers Client using blocking API call.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
-     * @throws StatusRuntimeException
-     * @throws InterruptedException
-     * @throws ExecutionException
+     * First DME API called. This will register the client with the MobiledgeX backend and
+     * check to make sure that the app that the user is running exists. (ie. This confirms
+     * that CreateApp in Console/Mcctl has been run successfully). RegisterClientReply
+     * contains a session cookie that will be used (automatically) in later API calls.
+     * It also contains a uri that will be used to get the verifyLocToken used in VerifyLocation.
+     * \param request (RegisterClientRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return RegisterClientReply
+     * \exception StatusRuntimeException
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
+     * \section registerexample Example
+     * \snippet EngineCallTest.java registerexample
      */
     public RegisterClientReply registerClient(RegisterClientRequest request,
                                               long timeoutInMilliseconds)
             throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
         return registerClient(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
-    /**
+
+    /*!
      * Registers Client using blocking API call. Allows specifying a DME host and port.
-     * @param request
-     * @param host Distributed Matching Engine hostname
-     * @param port Distributed Matching Engine port
-     * @param timeoutInMilliseconds
-     * @return
-     * @throws StatusRuntimeException
-     * @throws InterruptedException
-     * @throws ExecutionException
+     * Only use for testing.
+     * \param request (RegisterClientRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \return RegisterClientReply
+     * \exception StatusRuntimeException
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
+     * \section registeroverrideexample Example
+     * \snippet EngineCallTest.java registeroverrideexample
      */
     public RegisterClientReply registerClient(RegisterClientRequest request,
                                               String host, int port,
@@ -889,18 +1024,23 @@ public class MatchingEngine {
         return registerClient.call();
     }
 
+    /*!
+     * \ingroup functions_dmeapis
+     */
     public Future<RegisterClientReply> registerClientFuture(RegisterClientRequest request,
                                                             long timeoutInMilliseconds)
             throws DmeDnsException {
         return registerClientFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
-    /**
+
+    /*!
      * Registers device on the MatchingEngine server. Returns a Future.
-     * @param request
-     * @param host Distributed Matching Engine hostname
-     * @param port Distributed Matching Engine port
-     * @param timeoutInMilliseconds
-     * @return
+     * \param request (RegisterClientRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \return Future<RegisterClientReply>
+     * \ingroup functions_dmeapis
      */
     public Future<RegisterClientReply> registerClientFuture(RegisterClientRequest request,
                                                             String host, int port,
@@ -910,65 +1050,80 @@ public class MatchingEngine {
         return submit(registerClient);
     }
 
-    /**
+    /*!
      * findCloudlet finds the closest cloudlet instance as per request.
      * @param request
      * @param timeoutInMilliseconds
      * @return cloudlet URIs
-     * @throws StatusRuntimeException
-     * @throws InterruptedException
-     * @throws ExecutionException
+     * \exception StatusRuntimeException
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
+     * \section findcloudletexample Example
+     * \snippet EngineCallTest.java findcloudletexample
      */
     public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                           long timeoutInMilliseconds)
             throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
         return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
     }
-  /**
-   * findCloudlet finds the closest cloudlet instance as per request.
-   * @param request
-   * @param timeoutInMilliseconds
-   * @return cloudlet URIs
-   * @throws StatusRuntimeException
-   * @throws InterruptedException
-   * @throws ExecutionException
-   */
-  public FindCloudletReply findCloudlet(FindCloudletRequest request,
-                                        long timeoutInMilliseconds, FindCloudletMode mode)
-          throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
-      return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, mode);
-  }
 
-  /**
-   * findCloudlet finds the closest cloudlet instance as per request.
-   * @param request
-   * @param host Distributed Matching Engine hostname
-   * @param port Distributed Matching Engine port
-   * @param timeoutInMilliseconds
-   * @return cloudlet URIs
-   * @throws StatusRuntimeException
-   */
-  public FindCloudletReply findCloudlet(FindCloudletRequest request,
+    /*!
+     * findCloudlet finds the closest cloudlet instance as per request.
+     * FindCloudlet returns information needed for the client app to connect to an application backend deployed through MobiledgeX.
+     * If there is an application backend instance found, FindCloudetReply will contain the fqdn of the application backend and an array of AppPorts (with information specific to each application backend endpoint)
+     * \param request (FindCloudletRequest)
+     * \param timeoutInMilliseconds (long)
+     * \param mode (FindCloudletMode)
+     * \return FindCloudletReply: cloudlet URIs
+     * \exception StatusRuntimeException
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
+     */
+    public FindCloudletReply findCloudlet(FindCloudletRequest request,
+                                        long timeoutInMilliseconds, FindCloudletMode mode)
+            throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
+        return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, mode);
+    }
+
+    /*!
+     * findCloudlet finds the closest cloudlet instance as per request.
+     * FindCloudlet overload with hardcoded DME host and port. Only use for testing.
+     * \param request (FindCloudletRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \return FindCloudletReply: cloudlet URIs
+     * \exception StatusRuntimeException
+     * \ingroup functions_dmeapis
+     * \section findcloudletoverrideexample Example
+     * \snippet EngineCallTest.java findcloudletoverrideexample
+     */
+    public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                         String host, int port,
                                         long timeoutInMilliseconds)
-    throws StatusRuntimeException, InterruptedException, ExecutionException {
-      FindCloudlet findCloudlet = new FindCloudlet(this);
+      throws StatusRuntimeException, InterruptedException, ExecutionException {
+        FindCloudlet findCloudlet = new FindCloudlet(this);
 
-      // This also needs some info for MEL.
-      findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
+        // This also needs some info for MEL.
+        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
 
-      Log.i(TAG, "DME host is: " + host);
-      return findCloudlet.call();
-  }
-    /**
+        Log.i(TAG, "DME host is: " + host);
+        return findCloudlet.call();
+    }
+
+    /*!
      * findCloudlet finds the closest cloudlet instance as per request.
-     * @param request
-     * @param host Distributed Matching Engine hostname
-     * @param port Distributed Matching Engine port
-     * @param timeoutInMilliseconds
-     * @param mode FindCloudletMode to use to find edge cloudlets.
-     * @return cloudlet URIs
-     * @throws StatusRuntimeException
+     * FindCloudlet overload with hardcoded DME host and port. Only use for testing.
+     * \param request (FindCloudletRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \param mode (FindCloudletMode): to use to find edge cloudlets.
+     * \return cloudlet URIs
+     * \exception StatusRuntimeException
+     * \ingroup functions_dmeapis
      */
     public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                           String host, int port,
@@ -984,11 +1139,12 @@ public class MatchingEngine {
         return findCloudlet.call();
     }
 
-    /**
+    /*!
      * findCloudlet finds the closest cloudlet instance as per request. Returns a Future.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return cloudlet URIs Future.
+     * \param request (FindCloudletReply)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<FindCloudletReply>: cloudlet URIs Future.
+     * \ingroup functions_dmeapis
      */
     public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
                                           long timeoutInMilliseconds)
@@ -996,13 +1152,14 @@ public class MatchingEngine {
         return findCloudletFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
     }
 
-  /**
-   * findCloudlet finds the closest cloudlet instance as per request. Returns a Future.
-   * @param request
-   * @param timeoutInMilliseconds
-   * @param mode algorithm to use to find edge cloudlets.
-   * @return cloudlet URI Future.
-   */
+    /*!
+     * findCloudlet finds the closest cloudlet instance as per request. Returns a Future.
+     * \param request (FindCloudletRequest)
+     * \param timeoutInMilliseconds (long)
+     * \param mode (FindCloudletMode): algorithm to use to find edge cloudlets.
+     * \return Future<FindCloudletReply>: cloudlet URI Future.
+     * \ingroup functions_dmeapis
+     */
     public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
                                                         long timeoutInMilliseconds,
                                                         FindCloudletMode mode)
@@ -1010,13 +1167,14 @@ public class MatchingEngine {
             return findCloudletFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, mode);
     }
 
-    /**
+    /*!
      * findCloudletFuture finds the closest cloudlet instance as per request. Returns a Future.
-     * @param request
-     * @param host Distributed Matching Engine hostname
-     * @param port Distributed Matching Engine port
-     * @param timeoutInMilliseconds
-     * @return cloudlet URI Future.
+     * \param request (FindCloudletRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \return Future<FindCloudletReply>: cloudlet URI Future.
+     * \ingroup functions_dmeapis
      */
     public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
                                                         String host, int port,
@@ -1026,15 +1184,16 @@ public class MatchingEngine {
       return submit(findCloudlet);
     }
 
-  /**
-   * findCloudletFuture finds the closest cloudlet instance as per request. Returns a Future.
-   * @param request
-   * @param host Distributed Matching Engine hostname
-   * @param port Distributed Matching Engine port
-   * @param timeoutInMilliseconds
-   * @param mode algorithm to use to find edge cloudlets.
-   * @return cloudlet URI Future.
-   */
+    /*!
+     * findCloudletFuture finds the closest cloudlet instance as per request. Returns a Future.
+     * \param request (FindCloudletRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \param mode (FindCloudletMode): algorithm to use to find edge cloudlets.
+     * \return Future<FindCloudletReply>: cloudlet URI Future.
+     * \ingroup functions_dmeapis
+     */
     public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
                                                         String host, int port,
                                                         long timeoutInMilliseconds,
@@ -1044,16 +1203,22 @@ public class MatchingEngine {
         return submit(findCloudlet);
     }
 
-    /**
-     * verifyLocationFuture validates the client submitted information against known network
+    /*!
+     * verifyLocation validates the client submitted information against known network
+     * Makes sure that the user's location is not spoofed based on cellID and gps location.
+     * Returns the Cell Tower status (CONNECTED_TO_SPECIFIED_TOWER if successful) and Gps Location status (LOC_VERIFIED if successful).
+     * Also provides the distance between where the user claims to be and where carrier believes user to be (via gps and cell id) in km.
      * parameters on the subscriber network side.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
-     * @throws StatusRuntimeException
-     * @throws InterruptedException
-     * @throws IOException
-     * @throws ExecutionException
+     * \param request (VerifyLocationRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return VerifyLocationReply
+     * \exception StatusRuntimeException
+     * \exception InterruptedException
+     * \exception IOException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
+     * \section verifylocationexample Example
+     * \snippet EngineCallTest.java verifylocationexample
      */
     public VerifyLocationReply verifyLocation(VerifyLocationRequest request,
                                              long timeoutInMilliseconds)
@@ -1061,17 +1226,22 @@ public class MatchingEngine {
                    ExecutionException {
         return verifyLocation(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
-    /**
-     * verifyLocationFuture validates the client submitted information against known network
+
+    /*!
+     * verifyLocation validates the client submitted information against known network
+     * VerifyLocation overload with hardcoded DME host and port. Only use for testing.
      * parameters on the subscriber network side.
-     * @param request
-     * @param host Distributed Matching Engine hostname
-     * @param port Distributed Matching Engine port
-     * @param timeoutInMilliseconds
-     * @return boolean validated or not.
-     * @throws StatusRuntimeException
-     * @throws InterruptedException
-     * @throws IOException
+     * \param request (VerifyLocationRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \return VerifyLocationReply
+     * \exception StatusRuntimeException
+     * \exception InterruptedException
+     * \exception IOException
+     * \ingroup functions_dmeapis
+     * \section verifylocationoverrideexample Example
+     * \snippet EngineCallTest.java verifylocationoverrideexample
      */
     public VerifyLocationReply verifyLocation(VerifyLocationRequest request,
                                               String host, int port,
@@ -1084,23 +1254,29 @@ public class MatchingEngine {
         return verifyLocation.call();
     }
 
-    /**
+    /*!
      * verifyLocationFuture validates the client submitted information against known network
      * parameters on the subscriber network side. Returns a future.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
+     * \param request (VerifyLocationRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<VerifyLocationReply>
+     * \ingroup functions_dmeapis
      */
     public Future<VerifyLocationReply> verifyLocationFuture(VerifyLocationRequest request,
                                                             long timeoutInMilliseconds)
             throws DmeDnsException {
         return verifyLocationFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
-    /**
+
+    /*!
      * verifyLocationFuture validates the client submitted information against known network
      * parameters on the subscriber network side. Returns a future.
-     * @param request
-     * @return Future<Boolean> validated or not.
+     * \param request (VerifyLocationRequest)
+     * \param host (String)
+     * \param port (int)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<VerifyLocationReply>
+     * \ingroup functions_dmeapis
      */
     public Future<VerifyLocationReply> verifyLocationFuture(VerifyLocationRequest request,
                                                             String host, int port,
@@ -1110,26 +1286,31 @@ public class MatchingEngine {
         return submit(verifyLocation);
     }
 
-    /**
+    /*!
+     * @private
      * addUserToGroup is a blocking call.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
-     * @throws InterruptedException
-     * @throws ExecutionException
+     * \param request (DynamicLocGroupRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return DynamicLocGroupReply
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
      */
     DynamicLocGroupReply addUserToGroup(DynamicLocGroupRequest request,
                                                long timeoutInMilliseconds)
             throws DmeDnsException, InterruptedException, ExecutionException {
         return addUserToGroup(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
-    /**
+
+    /*!
+     * @private
      * addUserToGroup is a blocking call.
-     * @param request
-     * @param host Distributed Matching Engine hostname
-     * @param port Distributed Matching Engine port
-     * @param timeoutInMilliseconds
-     * @return
+     * \param request (DynamicLocGroupRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \return DynamicLocGroupReply
+     * \ingroup functions_dmeapis
      */
     DynamicLocGroupReply addUserToGroup(DynamicLocGroupRequest request,
                                                String host, int port,
@@ -1142,24 +1323,29 @@ public class MatchingEngine {
         return addUserToGroup.call();
     }
 
-    /**
+    /*!
+     * @private
      * addUserToGroupFuture
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
+     * \param request (DynamicLocGroupRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<DynamicLocGroupReply>
+     * \ingroup functions_dmeapis
      */
     Future<DynamicLocGroupReply> addUserToGroupFuture(DynamicLocGroupRequest request,
                                                              long timeoutInMilliseconds)
             throws DmeDnsException {
         return addUserToGroupFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
-    /**
+
+    /*!
+     * @private
      * addUserToGroupFuture
-     * @param request
-     * @param host Distributed Matching Engine hostname
-     * @param port Distributed Matching Engine port
-     * @param timeoutInMilliseconds
-     * @return
+     * \param request
+     * \param host Distributed Matching Engine hostname
+     * \param port Distributed Matching Engine port
+     * \param timeoutInMilliseconds
+     * \return
+     * \ingroup functions_dmeapis
      */
     Future<DynamicLocGroupReply> addUserToGroupFuture(DynamicLocGroupRequest request,
                                                              String host, int port,
@@ -1169,13 +1355,19 @@ public class MatchingEngine {
         return submit(addUserToGroup);
     }
 
-    /**
+    /*!
      * Retrieve nearby AppInsts for registered application. This is a blocking call.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
-     * @throws InterruptedException
-     * @throws ExecutionException
+     * Returns a list of the developer's backend instances deployed on the specified carrier's network.
+     * If carrier was "", returns all backend instances regardless of carrier network.
+     * This is used internally in FindCloudlet Performance mode to grab the list of cloudlets to test.
+     * \param request (AppInstListRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return AppInstListReply
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
+     * \section appinstlistexample Example
+     * \snippet EngineCallTest.java appinstlistexample
      */
     public AppInstListReply getAppInstList(AppInstListRequest request,
                                            long timeoutInMilliseconds)
@@ -1183,11 +1375,17 @@ public class MatchingEngine {
         return getAppInstList(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
 
-    /**
+    /*!
      * Retrieve nearby AppInsts for registered application. This is a blocking call.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
+     * GetAppInstList overload with hardcoded DME host and port. Only use for testing.
+     * \param request (AppInstListRequest)
+     * \param host (String)
+     * \param port (int)
+     * \param timeoutInMilliseconds (long)
+     * \return AppInstListReply
+     * \ingroup functions_dmeapis
+     * \section appinstlistoverrideexample Example
+     * \snippet EngineCallTest.java appinstlistoverrideexample
      */
     public AppInstListReply getAppInstList(AppInstListRequest request,
                                            String host, int port,
@@ -1200,25 +1398,27 @@ public class MatchingEngine {
         return getAppInstList.call();
     }
 
-
-    /**
+    /*!
      * Retrieve nearby AppInsts for registered application. Returns a Future.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
+     * \param request (AppInstListRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<AppInstListReply>
+     * \ingroup functions_dmeapis
      */
     public Future<AppInstListReply> getAppInstListFuture(AppInstListRequest request,
                                                          long timeoutInMilliseconds)
             throws DmeDnsException {
         return getAppInstListFuture(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
     }
-    /**
+
+    /*!
      * Retrieve nearby AppInsts for registered application. Returns a Future.
-     * @param request
-     * @param host
-     * @param port
-     * @param timeoutInMilliseconds
-     * @return
+     * \param request (AppInstListRequest)
+     * \param host (String)
+     * \param port (int)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<AppInstListReply>
+     * \ingroup functions_dmeapis
      */
     public Future<AppInstListReply> getAppInstListFuture(AppInstListRequest request,
                                                          String host, int port,
@@ -1228,15 +1428,17 @@ public class MatchingEngine {
         return submit(getAppInstList);
     }
 
-
-    /**
+    /*!
      * Request QOS values from a list of PositionKPIRequests, and returns a stream Iterator of
-     * predicted QOS values.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
-     * @throws InterruptedException
-     * @throws ExecutionException
+     * predicted QOS values. Provides quality of service metrics for each location provided in qos position request
+     * \param request (QosPositionRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return ChannelIterator<QosPositionKpiReply>
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
+     * \section qospositionexample Example
+     * \snippet EngineCallTest.java qospositionexample
      */
     public ChannelIterator<QosPositionKpiReply> getQosPositionKpi(QosPositionRequest request,
                                                                   long timeoutInMilliseconds)
@@ -1248,14 +1450,15 @@ public class MatchingEngine {
         return qosPositionKpi.call();
     }
 
-    /**
+    /*!
      * Request QOS values from a list of PositionKPIRequests, and returns an asynchronous Future
      * for a stream Iterator of predicted QOS values.
-     * @param request
-     * @param timeoutInMilliseconds
-     * @return
-     * @throws InterruptedException
-     * @throws ExecutionException
+     * \param request (QosPositionRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<ChannelIterator<QosPositionKpiReply>>
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
      */
     public Future<ChannelIterator<QosPositionKpiReply>> getQosPositionKpiFuture(QosPositionRequest request,
                                                                   long timeoutInMilliseconds)
@@ -1264,16 +1467,21 @@ public class MatchingEngine {
         qosPositionKpi.setRequest(request,generateDmeHostAddress(), getPort(), timeoutInMilliseconds);
         return submit(qosPositionKpi);
     }
-    /**
+
+    /*!
      * Request QOS values from a list of PositionKPIRequests, and returns a stream Iterator of
      * predicted QOS values.
-     * @param request
-     * @param host
-     * @param port
-     * @param timeoutInMilliseconds
-     * @return
-     * @throws InterruptedException
-     * @throws ExecutionException
+     * GetQosPositionKpi overload with hardcoded DME host and port. Only use for testing.
+     * \param request (QosPositionRequest)
+     * \param host (String)
+     * \param port (int)
+     * \param timeoutInMilliseconds (long)
+     * \return ChannelIterator<QosPositionKpiReply>
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
+     * \section qospositionoverrideexample Example
+     * \snippet EngineCallTest.java qospositionoverrideexample
      */
     public ChannelIterator<QosPositionKpiReply> getQosPositionKpi(QosPositionRequest request,
                                                                   String host, int port,
@@ -1286,17 +1494,17 @@ public class MatchingEngine {
         return qosPositionKpi.call();
     }
 
-    /**
+    /*!
      * Request QOS values from a list of PositionKPIRequests, and returns an asynchronous Future
      * for a stream Iterator of predicted QOS values.
-     *
-     * @param request
-     * @param host
-     * @param port
-     * @param timeoutInMilliseconds
-     * @return
-     * @throws InterruptedException
-     * @throws ExecutionException
+     * \param request (QosPositionRequest)
+     * \param host (String)
+     * \param port (int)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<ChannelIterator<QosPositionKpiReply>>
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
      */
     public Future<ChannelIterator<QosPositionKpiReply>> getQosPositionKpiFuture(QosPositionRequest request,
                                                                                 String host, int port,
@@ -1308,18 +1516,20 @@ public class MatchingEngine {
 
     // Combination Convenience methods:
 
-    /**
+    /*!
      * registerAndFindCloudlet with most defaults filled in.
-     * @param context
-     * @param organizationName
-     * @param applicationName
-     * @param appVersion
-     * @param location
-     * @param authToken
-     * @param cellId
-     * @param tags
-     * @param mode FindCloudletMode performance rated mode, or proximity mode.
-     * @return
+     * Wrapper function for RegisterClient and FindCloudlet. Same functionality as calling them separately. This API cannot be used for Non-Platform APPs.
+     * \param context (android.content.Context)
+     * \param organizationName (String)
+     * \param applicationName (String)
+     * \param appVersion (String)
+     * \param location (android.location.Location)
+     * \param authToken (String)
+     * \param cellId (int)
+     * \param tags (Map<String, String>)
+     * \param mode (FindCloudletMode): FindCloudletMode performance rated mode, or proximity mode.
+     * \return Future<FindCloudletReply>
+     * \ingroup functions_dmeapis
      */
     public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
                                                              final String organizationName,
@@ -1370,8 +1580,9 @@ public class MatchingEngine {
         return threadpool.submit(future);
     }
 
-    /**
+    /*!
      * Register and FindCloudlet to get FindCloudletReply for cloudlet AppInsts info all at once:
+     * \ingroup functions_dmeapis
      */
     public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
                                                              final String organizationName,
@@ -1418,8 +1629,11 @@ public class MatchingEngine {
         return threadpool.submit(future);
     }
 
-    /**
+    /*!
      * Register and FindCloudlet with DME host and port parameters, to get FindCloudletReply for cloudlet AppInsts info all at once:
+     * \ingroup functions_dmeapis
+     * \section registerandfindoverrideexample Example
+     * \snippet EngineCallTest.java registerandfindoverrideexample
      */
     public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
                                                              final String host,
@@ -1470,9 +1684,9 @@ public class MatchingEngine {
         return threadpool.submit(future);
     }
 
-    /**
+    /*!
      * Retrieve the app connection manager associated with this MatchingEngine instance.
-     * @return
+     * \return AppConnectionManager
      */
     public AppConnectionManager getAppConnectionManager() {
         return mAppConnectionManager;
@@ -1497,19 +1711,19 @@ public class MatchingEngine {
     // Network Wrappers:
     //
 
-    /**
+    /*!
      * Returns if the bound Data Network for application is currently roaming or not.
-     * @return
+     * \return boolean
      */
     @RequiresApi(api = android.os.Build.VERSION_CODES.P)
     public boolean isRoamingData() {
         return mNetworkManager.isRoamingData();
     }
 
-    /**
+    /*!
      * Returns whether Wifi is enabled on the system or not, independent of Application's network state.
-     * @param context
-     * @return
+     * \param context (android.content.Context)
+     * \return boolean
      */
     public boolean isWiFiEnabled(Context context) {
         WifiManager wifiManager = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
@@ -1528,12 +1742,12 @@ public class MatchingEngine {
       return ip;
     }
 
-    /**
+    /*!
      * Checks if the Carrier + Phone combination supports WiFiCalling. This does not return whether it is enabled.
      * If under roaming conditions, WiFi Calling may disable cellular network data interfaces needed by
      * cellular data only Distributed Matching Engine and Cloudlet network operations.
      *
-     * @return
+     * \return boolean
      */
     public boolean isWiFiCallingSupported(CarrierConfigManager carrierConfigManager) {
         return mNetworkManager.isWiFiCallingSupported(carrierConfigManager);
@@ -1572,12 +1786,12 @@ public class MatchingEngine {
         isSSLEnabled = SSLEnabled;
     }
 
-    /**
+    /*!
      * Helper function to return a channel that handles SSL,
      * or returns a more basic ManagedChannelBuilder.
-     * @param host
-     * @param port
-     * @return
+     * \param host (String)
+     * \param port (int)
+     * \return ManagedChannel
      */
     ManagedChannel channelPicker(String host, int port, Network network) {
 
