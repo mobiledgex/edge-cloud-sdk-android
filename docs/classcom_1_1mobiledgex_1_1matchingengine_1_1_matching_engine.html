@@ -1,0 +1,463 @@
+<!-- HTML header for doxygen 1.8.18-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.8.18"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Android SDK: com.mobiledgex.matchingengine.MatchingEngine Class Reference</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+  $(document).ready(function() { init_search(); });
+/* @license-end */
+</script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+<link href="customdoxygen.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+​
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 46px;">
+  <td id="projectalign" style="padding-left: 0.5em; vertical-align: middle;">
+   <div id="projectname"><a href="https://developers.mobiledgex.com"><svg xmlns="http://www.w3.org/2000/svg" width="185" height="35.93" viewBox="-15 -7 210 30.93"><defs><style>.cls-1{fill:#121620;}.cls-2{fill:#93e019;}</style></defs><title>Asset 163logo</title><g id="Layer_2" data-name="Layer 2"><g id="design"><path class="cls-1" d="M51,12.93a7.31,7.31,0,1,1-14.61,0,7.31,7.31,0,1,1,14.61,0Zm-3.39,0c0-2.91-1.85-4.4-3.93-4.4s-3.93,1.49-3.93,4.4,1.88,4.45,3.93,4.45S47.6,15.86,47.6,12.93ZM53,20V.05h3.31V7.69A5.09,5.09,0,0,1,60.7,5.58c4.22,0,6.5,3.21,6.5,7.35s-2.51,7.49-6.62,7.49a4.87,4.87,0,0,1-4.34-2.26l-1.88,1.89ZM60,8.56c-2.14,0-3.79,1.59-3.79,4.39s1.65,4.46,3.79,4.46,3.79-1.68,3.79-4.46S62.26,8.56,60,8.56Zm9.5-2.64V20.05h3.33V5.92Zm6,14.13V.05h3.36v20ZM107.56,0V7.61c-.43-.9-1.68-2-4.14-2-4,0-6.71,3.33-6.71,7.38,0,4.25,2.7,7.46,6.74,7.46a4.7,4.7,0,0,0,4.17-2.2h0L109.44,20h1.39V17.47h0V0Zm-3.7,17.44c-2.29,0-3.79-1.79-3.79-4.48s1.62-4.4,3.82-4.4,3.7,1.68,3.7,4.37S106.06,17.44,103.86,17.44ZM13.5.05h4.39L24,11.12,30,.05h4.39v20H30.89V5.74L24.65,17.28H23.23L17,5.74V20.05H13.5Zm59.33,0H69.54v3.3h3.29Zm52.29,5.87-1.64,1.64c-.43-.9-1.68-2-4.13-2a6.44,6.44,0,0,0-3.26.86,6.76,6.76,0,0,0-3.43,6c0,.18,0,.36,0,.55,0,4.25,2.72,7.46,6.77,7.46a4.78,4.78,0,0,0,3.83-1.75v.16c0,2.84-1.31,4.2-3.94,4.22h0a6,6,0,0,1-3.92-1.36c-.25-.2-.33-.3-.39-.35l-2.09,2.09c.14.15.22.23.37.37a8.61,8.61,0,0,0,6.08,2.17h0c5.29,0,7.23-3.5,7.23-7.26V5.92ZM119.78,17.4c-2.28,0-3.79-1.79-3.79-4.48,0-2.35,1.24-3.95,3-4.32a6.07,6.07,0,0,1,.71,0,4.08,4.08,0,0,1,2.15.61,4.45,4.45,0,0,1,1.52,3.73C123.38,15.58,122,17.4,119.78,17.4Zm-29.29-.33a5.1,5.1,0,0,1-2,.42,3.86,3.86,0,0,1-2.58-.88,4.21,4.21,0,0,1-1.38-2.44H94.72a8.66,8.66,0,0,0,.1-1.06,8.11,8.11,0,0,0-1.67-5.47,6.36,6.36,0,0,0-5.06-2.1,7,7,0,0,0-3.65.94,6.43,6.43,0,0,0-2.51,2.63A8.17,8.17,0,0,0,81,13a8.14,8.14,0,0,0,.88,3.86,6.39,6.39,0,0,0,2.5,2.6,7.39,7.39,0,0,0,3.75.92,8,8,0,0,0,3.3-.65,7.46,7.46,0,0,0,2.59-1.86l-1.93-1.93A5,5,0,0,1,90.49,17.07ZM85.64,9.23a3.47,3.47,0,0,1,2.48-.94,3.28,3.28,0,0,1,2.47,1,3.6,3.6,0,0,1,1,2.54H84.46A3.83,3.83,0,0,1,85.64,9.23Zm52.2,7.84a5.1,5.1,0,0,1-2,.42,3.86,3.86,0,0,1-2.58-.88,4.21,4.21,0,0,1-1.38-2.44h10.23a8.66,8.66,0,0,0,.1-1.06,8.06,8.06,0,0,0-1.68-5.47,6.32,6.32,0,0,0-5.05-2.1,7.07,7.07,0,0,0-3.66.94,6.47,6.47,0,0,0-2.5,2.63,8.17,8.17,0,0,0-.89,3.86,8.14,8.14,0,0,0,.88,3.86,6.39,6.39,0,0,0,2.5,2.6,7.39,7.39,0,0,0,3.75.92,8.07,8.07,0,0,0,3.3-.65,7.56,7.56,0,0,0,2.59-1.86l-1.93-1.93A5,5,0,0,1,137.84,17.07ZM133,9.23a3.44,3.44,0,0,1,2.47-.94,3.27,3.27,0,0,1,2.47,1,3.56,3.56,0,0,1,1,2.54h-7.09A3.79,3.79,0,0,1,133,9.23Z"/><path class="cls-2" d="M164.46,17.69v2.37h-2.37l-6-6,2.37-2.37ZM11.21,2.4V.05H8.81L0,8.87v2.37l8.81,8.81h2.4V17.7L3.56,10.05ZM174.4,10.05l-7.65,7.65v2.35h2.39L178,11.24V8.86L169.15.05h-2.4V2.4ZM146.82.05h-2.4V2.4l6,6,2.37-2.37ZM164.46,2.4V.05h-2.39L144.42,17.7v2.35h2.4Z"/><path class="cls-2" d="M178.12.72h-1.23V0h3.23v.7h-1.23V4h-.77ZM181,0h.81L183,1.92,184.21,0H185V4h-.74V1.18L183,3.08H183l-1.23-1.9V4H181Z"/></g></g></svg></a> Android SDK
+   &#160;<span id="projectnumber">unspecified</span>
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.8.18 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+var searchBox = new SearchBox("searchBox", "search",false,'Search');
+/* @license-end */
+</script>
+  <div id="navrow1" class="tabs">
+    <ul class="tablist">
+      <li><a href="index.html"><span>Main&#160;Page</span></a></li>
+      <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
+      <li><a href="modules.html"><span>Modules</span></a></li>
+      <li>
+        <div id="MSearchBox" class="MSearchBoxInactive">
+        <span class="left">
+          <img id="MSearchSelect" src="search/mag_sel.png"
+               onmouseover="return searchBox.OnSearchSelectShow()"
+               onmouseout="return searchBox.OnSearchSelectHide()"
+               alt=""/>
+          <input type="text" id="MSearchField" value="Search" accesskey="S"
+               onfocus="searchBox.OnSearchFieldFocus(true)" 
+               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onkeyup="searchBox.OnSearchFieldChange(event)"/>
+          </span><span class="right">
+            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><img id="MSearchCloseImg" border="0" src="search/close.png" alt=""/></a>
+          </span>
+        </div>
+      </li>
+    </ul>
+  </div>
+  <div id="navrow2" class="tabs2">
+    <ul class="tablist">
+      <li><a href="classes.html"><span>Class&#160;Index</span></a></li>
+    </ul>
+  </div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(document).ready(function(){initNavTree('classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<iframe src="javascript:void(0)" frameborder="0" 
+        name="MSearchResults" id="MSearchResults">
+</iframe>
+</div>
+
+<div class="header">
+  <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
+<a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pub-static-methods">Static Public Member Functions</a> &#124;
+<a href="#pub-static-attribs">Static Public Attributes</a> &#124;
+<a href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine-members.html">List of all members</a>  </div>
+  <div class="headertitle">
+<div class="title">com.mobiledgex.matchingengine.MatchingEngine Class Reference<div class="ingroups"><a class="el" href="group__classes.html">Classes</a></div></div>  </div>
+</div><!--header-->
+<div class="contents">
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:a169f68551802701593df83c15e1ee7c5"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">MatchingEngine</a> (Context context)</td></tr>
+<tr class="separator:a169f68551802701593df83c15e1ee7c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a07ac6b57ce1573e837f311354bd1ef64"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a07ac6b57ce1573e837f311354bd1ef64">MatchingEngine</a> (Context context, ExecutorService executorService)</td></tr>
+<tr class="separator:a07ac6b57ce1573e837f311354bd1ef64"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga3e7563fefa20539a41b301a7813b9286"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeutils.html#ga3e7563fefa20539a41b301a7813b9286">isUseWifiOnly</a> ()</td></tr>
+<tr class="separator:ga3e7563fefa20539a41b301a7813b9286"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab033a53faf254f5a78858aa10791e48f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeutils.html#gab033a53faf254f5a78858aa10791e48f">setUseWifiOnly</a> (boolean enabled)</td></tr>
+<tr class="separator:gab033a53faf254f5a78858aa10791e48f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga35fa82e92946bbea6b4834631345b9e8"><td class="memItemLeft" align="right" valign="top">
+boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isNetworkSwitchingEnabled</b> ()</td></tr>
+<tr class="separator:ga35fa82e92946bbea6b4834631345b9e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1911bbb629196e69df493afe63f14940"><td class="memItemLeft" align="right" valign="top">
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setNetworkSwitchingEnabled</b> (boolean networkSwitchingEnabled)</td></tr>
+<tr class="separator:ga1911bbb629196e69df493afe63f14940"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga11fdf02d8517cea7b45e5789ab3ea758"><td class="memItemLeft" align="right" valign="top">
+boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isAllowSwitchIfNoSubscriberInfo</b> ()</td></tr>
+<tr class="separator:ga11fdf02d8517cea7b45e5789ab3ea758"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabd06a548f783f49ef7abeaef947f6ed5"><td class="memItemLeft" align="right" valign="top">
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setAllowSwitchIfNoSubscriberInfo</b> (boolean allowSwitchIfNoSubscriberInfo)</td></tr>
+<tr class="separator:gabd06a548f783f49ef7abeaef947f6ed5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae15b3a5c1361ee328b1fffeefeb9afd8"><td class="memItemLeft" align="right" valign="top">List&lt; SubscriptionInfo &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeutils.html#gae15b3a5c1361ee328b1fffeefeb9afd8">getActiveSubscriptionInfoList</a> ()</td></tr>
+<tr class="separator:gae15b3a5c1361ee328b1fffeefeb9afd8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga89348a727303055ccb230519555f4ae3"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeutils.html#ga89348a727303055ccb230519555f4ae3">isRoamingDataEanbled</a> (Context context)</td></tr>
+<tr class="separator:ga89348a727303055ccb230519555f4ae3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afb25fff61d0eba28643b4006c86b6e4c"><td class="memItemLeft" align="right" valign="top"><a id="afb25fff61d0eba28643b4006c86b6e4c"></a>
+Future&#160;</td><td class="memItemRight" valign="bottom"><b>submit</b> (Callable task)</td></tr>
+<tr class="separator:afb25fff61d0eba28643b4006c86b6e4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab0f24bab966bc7ce5664cba797d4033c"><td class="memItemLeft" align="right" valign="top">HashMap&lt; String, String &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeutils.html#gab0f24bab966bc7ce5664cba797d4033c">getDeviceInfo</a> ()</td></tr>
+<tr class="separator:gab0f24bab966bc7ce5664cba797d4033c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga5805b01fbd9c3cc88e70d6ebbab14977"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeutils.html#ga5805b01fbd9c3cc88e70d6ebbab14977">getCarrierName</a> (Context context)</td></tr>
+<tr class="separator:ga5805b01fbd9c3cc88e70d6ebbab14977"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gafb5d397ccb93ffc4b49efbf134650014"><td class="memItemLeft" align="right" valign="top">List&lt; Pair&lt; String, Long &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeutils.html#gafb5d397ccb93ffc4b49efbf134650014">retrieveCellId</a> (Context context)  throws SecurityException </td></tr>
+<tr class="separator:gafb5d397ccb93ffc4b49efbf134650014"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaeb51a298a492f3dce2291e87b111757"><td class="memItemLeft" align="right" valign="top"><a id="aaeb51a298a492f3dce2291e87b111757"></a>
+String&#160;</td><td class="memItemRight" valign="bottom"><b>HashSha512</b> (String aString)  throws NoSuchAlgorithmException </td></tr>
+<tr class="separator:aaeb51a298a492f3dce2291e87b111757"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga22390643b5cecfcacdba8b72c666e01b"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeutils.html#ga22390643b5cecfcacdba8b72c666e01b">generateDmeHostAddress</a> ()  throws DmeDnsException </td></tr>
+<tr class="separator:ga22390643b5cecfcacdba8b72c666e01b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gafae6cfc847290c8bd8305f45e576bb55"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html">NetworkManager</a>&#160;</td><td class="memItemRight" valign="bottom"><b>getNetworkManager</b> ()</td></tr>
+<tr class="separator:gafae6cfc847290c8bd8305f45e576bb55"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga761dc97567b97ca697b4cb9f2f2fcca1"><td class="memItemLeft" align="right" valign="top">
+String&#160;</td><td class="memItemRight" valign="bottom"><b>getPackageName</b> (Context context)</td></tr>
+<tr class="separator:ga761dc97567b97ca697b4cb9f2f2fcca1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga146ef6d5b5f7fce1bda5e5d6132940da"><td class="memItemLeft" align="right" valign="top">
+void&#160;</td><td class="memItemRight" valign="bottom"><b>ensureSessionCookie</b> (String sessionCookie)</td></tr>
+<tr class="separator:ga146ef6d5b5f7fce1bda5e5d6132940da"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae2042ac3377ddc4e3f2a0a01cbe681a7"><td class="memItemLeft" align="right" valign="top">RegisterClientRequest.Builder&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gae2042ac3377ddc4e3f2a0a01cbe681a7">createDefaultRegisterClientRequest</a> (Context context, String organizationName)  throws PackageManager.NameNotFoundException </td></tr>
+<tr class="separator:gae2042ac3377ddc4e3f2a0a01cbe681a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf50898d2fab682fea4f84effdcfdcef2"><td class="memItemLeft" align="right" valign="top">
+RegisterClientRequest&#160;</td><td class="memItemRight" valign="bottom"><b>createRegisterClientRequest</b> (Context context, String organizationName, String applicationName, String appVersion, String authToken, int cellId, String uniqueIdType, String uniqueId, Map&lt; String, String &gt; tags)  throws PackageManager.NameNotFoundException     </td></tr>
+<tr class="separator:gaf50898d2fab682fea4f84effdcfdcef2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaebc5e4e9bbb546895f605e602550a0cd"><td class="memItemLeft" align="right" valign="top">VerifyLocationRequest.Builder&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gaebc5e4e9bbb546895f605e602550a0cd">createDefaultVerifyLocationRequest</a> (Context context, android.location.Location location)</td></tr>
+<tr class="separator:gaebc5e4e9bbb546895f605e602550a0cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8189c03b1bd38967264b00e93173d911"><td class="memItemLeft" align="right" valign="top">AppClient.FindCloudletRequest.Builder&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga8189c03b1bd38967264b00e93173d911">createDefaultFindCloudletRequest</a> (Context context, Location location)</td></tr>
+<tr class="separator:ga8189c03b1bd38967264b00e93173d911"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1885cfdf96d0cdc81acc6a34771cbfaf"><td class="memItemLeft" align="right" valign="top">
+AppClient.GetLocationRequest.Builder&#160;</td><td class="memItemRight" valign="bottom"><b>createDefaultGetLocationRequest</b> (Context context)</td></tr>
+<tr class="separator:ga1885cfdf96d0cdc81acc6a34771cbfaf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga489996a5146c24597370cfc971273c2d"><td class="memItemLeft" align="right" valign="top">AppClient.AppInstListRequest.Builder&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga489996a5146c24597370cfc971273c2d">createDefaultAppInstListRequest</a> (Context context, android.location.Location location)</td></tr>
+<tr class="separator:ga489996a5146c24597370cfc971273c2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga94fbd15eb1b2d20a06d3680a31018cdc"><td class="memItemLeft" align="right" valign="top">
+AppClient.DynamicLocGroupRequest.Builder&#160;</td><td class="memItemRight" valign="bottom"><b>createDefaultDynamicLocGroupRequest</b> (Context context, DynamicLocGroupRequest.DlgCommType commType)</td></tr>
+<tr class="separator:ga94fbd15eb1b2d20a06d3680a31018cdc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae93bb72f34dc349c0d3eeef93addcd8c"><td class="memItemLeft" align="right" valign="top">AppClient.QosPositionRequest.Builder&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gae93bb72f34dc349c0d3eeef93addcd8c">createDefaultQosPositionRequest</a> (List&lt; QosPosition &gt; requests, int lte_category, BandSelection band_selection)</td></tr>
+<tr class="separator:gae93bb72f34dc349c0d3eeef93addcd8c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab402da5821377a08d3c88cc6ceeedea7"><td class="memItemLeft" align="right" valign="top">RegisterClientReply&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gab402da5821377a08d3c88cc6ceeedea7">registerClient</a> (RegisterClientRequest request, long timeoutInMilliseconds)  throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException </td></tr>
+<tr class="separator:gab402da5821377a08d3c88cc6ceeedea7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac99fc70e65011e59651fa9e9371e97c0"><td class="memItemLeft" align="right" valign="top">RegisterClientReply&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gac99fc70e65011e59651fa9e9371e97c0">registerClient</a> (RegisterClientRequest request, String host, int port, long timeoutInMilliseconds)  throws StatusRuntimeException, InterruptedException, ExecutionException </td></tr>
+<tr class="separator:gac99fc70e65011e59651fa9e9371e97c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaaf427c4c5c2393f0c82ae5405e98c2ee"><td class="memItemLeft" align="right" valign="top">
+Future&lt; RegisterClientReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>registerClientFuture</b> (RegisterClientRequest request, long timeoutInMilliseconds)  throws DmeDnsException </td></tr>
+<tr class="separator:gaaf427c4c5c2393f0c82ae5405e98c2ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga52c6ff5db0fabc6c1a3f627c3e45e637"><td class="memItemLeft" align="right" valign="top">Future&lt; RegisterClientReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga52c6ff5db0fabc6c1a3f627c3e45e637">registerClientFuture</a> (RegisterClientRequest request, String host, int port, long timeoutInMilliseconds)</td></tr>
+<tr class="separator:ga52c6ff5db0fabc6c1a3f627c3e45e637"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga877d45362c239856a69f7e77f50a425c"><td class="memItemLeft" align="right" valign="top">FindCloudletReply&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga877d45362c239856a69f7e77f50a425c">findCloudlet</a> (FindCloudletRequest request, long timeoutInMilliseconds)  throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException </td></tr>
+<tr class="separator:ga877d45362c239856a69f7e77f50a425c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga5e48db0c8dfdeef613aeccc45122ec0e"><td class="memItemLeft" align="right" valign="top">FindCloudletReply&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga5e48db0c8dfdeef613aeccc45122ec0e">findCloudlet</a> (FindCloudletRequest request, long timeoutInMilliseconds, <a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a> mode)  throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException </td></tr>
+<tr class="separator:ga5e48db0c8dfdeef613aeccc45122ec0e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad4f300de8d5e11a1902e01344109a550"><td class="memItemLeft" align="right" valign="top">FindCloudletReply&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gad4f300de8d5e11a1902e01344109a550">findCloudlet</a> (FindCloudletRequest request, String host, int port, long timeoutInMilliseconds)  throws StatusRuntimeException, InterruptedException, ExecutionException </td></tr>
+<tr class="separator:gad4f300de8d5e11a1902e01344109a550"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga92abbb0005d0ad492968e73660671544"><td class="memItemLeft" align="right" valign="top">FindCloudletReply&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga92abbb0005d0ad492968e73660671544">findCloudlet</a> (FindCloudletRequest request, String host, int port, long timeoutInMilliseconds, <a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a> mode)  throws StatusRuntimeException, InterruptedException, ExecutionException </td></tr>
+<tr class="separator:ga92abbb0005d0ad492968e73660671544"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga74932b3da900e9b57a9b5d4b20b9151d"><td class="memItemLeft" align="right" valign="top">Future&lt; FindCloudletReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga74932b3da900e9b57a9b5d4b20b9151d">findCloudletFuture</a> (FindCloudletRequest request, long timeoutInMilliseconds)  throws DmeDnsException </td></tr>
+<tr class="separator:ga74932b3da900e9b57a9b5d4b20b9151d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga847d5622dc9164a589234ff30339f602"><td class="memItemLeft" align="right" valign="top">Future&lt; FindCloudletReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga847d5622dc9164a589234ff30339f602">findCloudletFuture</a> (FindCloudletRequest request, long timeoutInMilliseconds, <a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a> mode)  throws DmeDnsException </td></tr>
+<tr class="separator:ga847d5622dc9164a589234ff30339f602"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1a88412c7d2e533e86526fdd8257051a"><td class="memItemLeft" align="right" valign="top">Future&lt; FindCloudletReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga1a88412c7d2e533e86526fdd8257051a">findCloudletFuture</a> (FindCloudletRequest request, String host, int port, long timeoutInMilliseconds)</td></tr>
+<tr class="separator:ga1a88412c7d2e533e86526fdd8257051a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga863f03ee69cf21f554df325906ae9c23"><td class="memItemLeft" align="right" valign="top">Future&lt; FindCloudletReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga863f03ee69cf21f554df325906ae9c23">findCloudletFuture</a> (FindCloudletRequest request, String host, int port, long timeoutInMilliseconds, <a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a> mode)</td></tr>
+<tr class="separator:ga863f03ee69cf21f554df325906ae9c23"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa7de1b379a29d24137562ea61c64066b"><td class="memItemLeft" align="right" valign="top">VerifyLocationReply&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gaa7de1b379a29d24137562ea61c64066b">verifyLocation</a> (VerifyLocationRequest request, long timeoutInMilliseconds)  throws DmeDnsException, StatusRuntimeException, InterruptedException, IOException,                    ExecutionException </td></tr>
+<tr class="separator:gaa7de1b379a29d24137562ea61c64066b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6f645b849548c5b607b12346bc8c199f"><td class="memItemLeft" align="right" valign="top">VerifyLocationReply&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga6f645b849548c5b607b12346bc8c199f">verifyLocation</a> (VerifyLocationRequest request, String host, int port, long timeoutInMilliseconds)  throws StatusRuntimeException, InterruptedException, IOException, ExecutionException </td></tr>
+<tr class="separator:ga6f645b849548c5b607b12346bc8c199f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8d597525a9c7a2c72ec06918c9ec5727"><td class="memItemLeft" align="right" valign="top">Future&lt; VerifyLocationReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga8d597525a9c7a2c72ec06918c9ec5727">verifyLocationFuture</a> (VerifyLocationRequest request, long timeoutInMilliseconds)  throws DmeDnsException </td></tr>
+<tr class="separator:ga8d597525a9c7a2c72ec06918c9ec5727"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa488ffe2e4fb55f616585f0084d34588"><td class="memItemLeft" align="right" valign="top">Future&lt; VerifyLocationReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gaa488ffe2e4fb55f616585f0084d34588">verifyLocationFuture</a> (VerifyLocationRequest request, String host, int port, long timeoutInMilliseconds)</td></tr>
+<tr class="separator:gaa488ffe2e4fb55f616585f0084d34588"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaaeb36ef797884440c05d4e95a665421e"><td class="memItemLeft" align="right" valign="top">AppInstListReply&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gaaeb36ef797884440c05d4e95a665421e">getAppInstList</a> (AppInstListRequest request, long timeoutInMilliseconds)  throws DmeDnsException, InterruptedException, ExecutionException </td></tr>
+<tr class="separator:gaaeb36ef797884440c05d4e95a665421e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga67f308b56e3af652c0953f9760183482"><td class="memItemLeft" align="right" valign="top">AppInstListReply&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga67f308b56e3af652c0953f9760183482">getAppInstList</a> (AppInstListRequest request, String host, int port, long timeoutInMilliseconds)  throws InterruptedException, ExecutionException </td></tr>
+<tr class="separator:ga67f308b56e3af652c0953f9760183482"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2a5ab5f881504a0805eba73926e01709"><td class="memItemLeft" align="right" valign="top">Future&lt; AppInstListReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga2a5ab5f881504a0805eba73926e01709">getAppInstListFuture</a> (AppInstListRequest request, long timeoutInMilliseconds)  throws DmeDnsException </td></tr>
+<tr class="separator:ga2a5ab5f881504a0805eba73926e01709"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabd8f83cc97381f168b2e8572a4c55557"><td class="memItemLeft" align="right" valign="top">Future&lt; AppInstListReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gabd8f83cc97381f168b2e8572a4c55557">getAppInstListFuture</a> (AppInstListRequest request, String host, int port, long timeoutInMilliseconds)</td></tr>
+<tr class="separator:gabd8f83cc97381f168b2e8572a4c55557"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga870d927ea317deebec52dd7f31a4c458"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_channel_iterator.html">ChannelIterator</a>&lt; QosPositionKpiReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga870d927ea317deebec52dd7f31a4c458">getQosPositionKpi</a> (QosPositionRequest request, long timeoutInMilliseconds)  throws DmeDnsException, InterruptedException, ExecutionException </td></tr>
+<tr class="separator:ga870d927ea317deebec52dd7f31a4c458"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga81582cd0f1961885fec1ccc0e4f66be4"><td class="memItemLeft" align="right" valign="top">Future&lt; <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_channel_iterator.html">ChannelIterator</a>&lt; QosPositionKpiReply &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga81582cd0f1961885fec1ccc0e4f66be4">getQosPositionKpiFuture</a> (QosPositionRequest request, long timeoutInMilliseconds)  throws DmeDnsException </td></tr>
+<tr class="separator:ga81582cd0f1961885fec1ccc0e4f66be4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac227b4435fae6b0be6b8ee15c2a5b992"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_channel_iterator.html">ChannelIterator</a>&lt; QosPositionKpiReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gac227b4435fae6b0be6b8ee15c2a5b992">getQosPositionKpi</a> (QosPositionRequest request, String host, int port, long timeoutInMilliseconds)  throws InterruptedException, ExecutionException </td></tr>
+<tr class="separator:gac227b4435fae6b0be6b8ee15c2a5b992"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gabc76d7dbfbbfaa964f072a706bc65de5"><td class="memItemLeft" align="right" valign="top">Future&lt; <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_channel_iterator.html">ChannelIterator</a>&lt; QosPositionKpiReply &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gabc76d7dbfbbfaa964f072a706bc65de5">getQosPositionKpiFuture</a> (QosPositionRequest request, String host, int port, long timeoutInMilliseconds)</td></tr>
+<tr class="separator:gabc76d7dbfbbfaa964f072a706bc65de5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga7d5750635e700b29bf2591feb6a30a86"><td class="memItemLeft" align="right" valign="top">Future&lt; FindCloudletReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga7d5750635e700b29bf2591feb6a30a86">registerAndFindCloudlet</a> (final Context context, final String organizationName, final String applicationName, final String appVersion, final Location location, final String authToken, final int cellId, final Map&lt; String, String &gt; tags, final <a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a> mode)</td></tr>
+<tr class="separator:ga7d5750635e700b29bf2591feb6a30a86"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga263fa2926eb60660489c133786e743ad"><td class="memItemLeft" align="right" valign="top">Future&lt; FindCloudletReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga263fa2926eb60660489c133786e743ad">registerAndFindCloudlet</a> (final Context context, final String organizationName, final String applicationName, final String appVersion, final Location location, final String authToken, final int cellId, final String uniqueIdType, final String uniqueId, final Map&lt; String, String &gt; tags, final <a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a> mode)</td></tr>
+<tr class="separator:ga263fa2926eb60660489c133786e743ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga9e0aa1a2b68bd57180218dd2749f0068"><td class="memItemLeft" align="right" valign="top">Future&lt; FindCloudletReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga9e0aa1a2b68bd57180218dd2749f0068">registerAndFindCloudlet</a> (final Context context, final String host, final int port, final String organizationName, final String applicationName, final String appVersion, final Location location, final String authToken, final int cellId, final String uniqueIdType, final String uniqueId, final Map&lt; String, String &gt; tags, final <a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a> mode)</td></tr>
+<tr class="separator:ga9e0aa1a2b68bd57180218dd2749f0068"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6c00aa97e83b5490e3aa158678bd679a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_app_connection_manager.html">AppConnectionManager</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a6c00aa97e83b5490e3aa158678bd679a">getAppConnectionManager</a> ()</td></tr>
+<tr class="separator:a6c00aa97e83b5490e3aa158678bd679a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4b0b48787ba7c99d650a52355471d918"><td class="memItemLeft" align="right" valign="top"><a id="a4b0b48787ba7c99d650a52355471d918"></a>
+boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isThreadedPerformanceTest</b> ()</td></tr>
+<tr class="separator:a4b0b48787ba7c99d650a52355471d918"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a596648907058b1ae3294cd1ecee6b2a3"><td class="memItemLeft" align="right" valign="top"><a id="a596648907058b1ae3294cd1ecee6b2a3"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setThreadedPerformanceTest</b> (boolean threadedPerformanceTest)</td></tr>
+<tr class="separator:a596648907058b1ae3294cd1ecee6b2a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a600b0feb4121d716c77aef1a4356a51c"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a600b0feb4121d716c77aef1a4356a51c">isRoamingData</a> ()</td></tr>
+<tr class="separator:a600b0feb4121d716c77aef1a4356a51c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af3621e22a21bd1200437eb6ea02d5839"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#af3621e22a21bd1200437eb6ea02d5839">isWiFiEnabled</a> (Context context)</td></tr>
+<tr class="separator:af3621e22a21bd1200437eb6ea02d5839"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2da3b0ce572d9520cae2392b6cc06b50"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a2da3b0ce572d9520cae2392b6cc06b50">isWiFiCallingSupported</a> (CarrierConfigManager carrierConfigManager)</td></tr>
+<tr class="separator:a2da3b0ce572d9520cae2392b6cc06b50"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9f745e4cd15983d14c8058be3aa30caf"><td class="memItemLeft" align="right" valign="top"><a id="a9f745e4cd15983d14c8058be3aa30caf"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>getPort</b> ()</td></tr>
+<tr class="separator:a9f745e4cd15983d14c8058be3aa30caf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a154f49776a8e2caa7a34a73ba09d58b9"><td class="memItemLeft" align="right" valign="top"><a id="a154f49776a8e2caa7a34a73ba09d58b9"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setPort</b> (int port)</td></tr>
+<tr class="separator:a154f49776a8e2caa7a34a73ba09d58b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4a42fb2ff8f97b22ee472bcea8517014"><td class="memItemLeft" align="right" valign="top"><a id="a4a42fb2ff8f97b22ee472bcea8517014"></a>
+boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isSSLEnabled</b> ()</td></tr>
+<tr class="separator:a4a42fb2ff8f97b22ee472bcea8517014"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab1b60fa9428d4c7c6d121f9be3c6f7d9"><td class="memItemLeft" align="right" valign="top"><a id="ab1b60fa9428d4c7c6d121f9be3c6f7d9"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setSSLEnabled</b> (boolean SSLEnabled)</td></tr>
+<tr class="separator:ab1b60fa9428d4c7c6d121f9be3c6f7d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
+Static Public Member Functions</h2></td></tr>
+<tr class="memitem:gadf3d3d1798b2441632e79f78028a566b"><td class="memItemLeft" align="right" valign="top">static boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeutils.html#gadf3d3d1798b2441632e79f78028a566b">isMatchingEngineLocationAllowed</a> ()</td></tr>
+<tr class="separator:gadf3d3d1798b2441632e79f78028a566b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga69d99fc611022254d79618ceb14030e2"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeutils.html#ga69d99fc611022254d79618ceb14030e2">setMatchingEngineLocationAllowed</a> (boolean allowMatchingEngineLocation)</td></tr>
+<tr class="separator:ga69d99fc611022254d79618ceb14030e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-attribs"></a>
+Static Public Attributes</h2></td></tr>
+<tr class="memitem:a88019d1f379ab18ab0da83d3ab7c7d8f"><td class="memItemLeft" align="right" valign="top"><a id="a88019d1f379ab18ab0da83d3ab7c7d8f"></a>
+static final String&#160;</td><td class="memItemRight" valign="bottom"><b>TAG</b> = &quot;MatchingEngine&quot;</td></tr>
+<tr class="separator:a88019d1f379ab18ab0da83d3ab7c7d8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5b96a8b361b9f4d9ecf42cb4c39bd848"><td class="memItemLeft" align="right" valign="top"><a id="a5b96a8b361b9f4d9ecf42cb4c39bd848"></a>
+static final String&#160;</td><td class="memItemRight" valign="bottom"><b>baseDmeHost</b> = &quot;dme.mobiledgex.net&quot;</td></tr>
+<tr class="separator:a5b96a8b361b9f4d9ecf42cb4c39bd848"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa072e6eb042776d7cbdd1d538fd1761a"><td class="memItemLeft" align="right" valign="top"><a id="aa072e6eb042776d7cbdd1d538fd1761a"></a>
+static final String&#160;</td><td class="memItemRight" valign="bottom"><b>WIFIHOST</b> = &quot;wifi&quot;</td></tr>
+<tr class="separator:aa072e6eb042776d7cbdd1d538fd1761a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0e4d364846d54aa4ffd0edd171577214"><td class="memItemLeft" align="right" valign="top"><a id="a0e4d364846d54aa4ffd0edd171577214"></a>
+static final String&#160;</td><td class="memItemRight" valign="bottom"><b>wifiOnlyDmeHost</b> = WIFIHOST + &quot;.&quot; + baseDmeHost</td></tr>
+<tr class="separator:a0e4d364846d54aa4ffd0edd171577214"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab9486159ab8b51276024234cf7343f26"><td class="memItemLeft" align="right" valign="top"><a id="ab9486159ab8b51276024234cf7343f26"></a>
+static final String&#160;</td><td class="memItemRight" valign="bottom"><b>MATCHING_ENGINE_LOCATION_PERMISSION</b> = &quot;MATCHING_ENGINE_LOCATION_PERMISSION&quot;</td></tr>
+<tr class="separator:ab9486159ab8b51276024234cf7343f26"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Main MobiledgeX SDK class. This class provides functions to find nearest cloudlet with the developer's application instance deployed and to connect to that application instance. </p>
+</div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a id="a169f68551802701593df83c15e1ee7c5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a169f68551802701593df83c15e1ee7c5">&#9670;&nbsp;</a></span>MatchingEngine() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">com.mobiledgex.matchingengine.MatchingEngine.MatchingEngine </td>
+          <td>(</td>
+          <td class="paramtype">Context&#160;</td>
+          <td class="paramname"><em>context</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Constructor for <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html">MatchingEngine</a> class. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">context</td><td>(android.content.Context) </td></tr>
+  </table>
+  </dd>
+</dl>
+<h1><a class="anchor" id="meconstructorexample"></a>
+Example</h1>
+<div class="fragment"><div class="line">        <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">MatchingEngine</a> me = <span class="keyword">new</span> <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">MatchingEngine</a>(context);</div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="a07ac6b57ce1573e837f311354bd1ef64"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a07ac6b57ce1573e837f311354bd1ef64">&#9670;&nbsp;</a></span>MatchingEngine() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">com.mobiledgex.matchingengine.MatchingEngine.MatchingEngine </td>
+          <td>(</td>
+          <td class="paramtype">Context&#160;</td>
+          <td class="paramname"><em>context</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ExecutorService&#160;</td>
+          <td class="paramname"><em>executorService</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Constructor for <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html">MatchingEngine</a> class. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">context</td><td>(android.content.Context) </td></tr>
+    <tr><td class="paramname">executorService</td><td>(java.util.concurrent.ExecutorService) </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<h2 class="groupheader">Member Function Documentation</h2>
+<a id="a6c00aa97e83b5490e3aa158678bd679a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6c00aa97e83b5490e3aa158678bd679a">&#9670;&nbsp;</a></span>getAppConnectionManager()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_app_connection_manager.html">AppConnectionManager</a> com.mobiledgex.matchingengine.MatchingEngine.getAppConnectionManager </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Retrieve the app connection manager associated with this <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html">MatchingEngine</a> instance. </p><dl class="section return"><dt>Returns</dt><dd><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_app_connection_manager.html">AppConnectionManager</a> </dd></dl>
+
+</div>
+</div>
+<a id="a600b0feb4121d716c77aef1a4356a51c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a600b0feb4121d716c77aef1a4356a51c">&#9670;&nbsp;</a></span>isRoamingData()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">boolean com.mobiledgex.matchingengine.MatchingEngine.isRoamingData </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Returns if the bound Data Network for application is currently roaming or not. </p><dl class="section return"><dt>Returns</dt><dd>boolean </dd></dl>
+
+</div>
+</div>
+<a id="a2da3b0ce572d9520cae2392b6cc06b50"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2da3b0ce572d9520cae2392b6cc06b50">&#9670;&nbsp;</a></span>isWiFiCallingSupported()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">boolean com.mobiledgex.matchingengine.MatchingEngine.isWiFiCallingSupported </td>
+          <td>(</td>
+          <td class="paramtype">CarrierConfigManager&#160;</td>
+          <td class="paramname"><em>carrierConfigManager</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Checks if the Carrier + Phone combination supports WiFiCalling. This does not return whether it is enabled. If under roaming conditions, WiFi Calling may disable cellular network data interfaces needed by cellular data only Distributed Matching Engine and Cloudlet network operations.</p>
+<dl class="section return"><dt>Returns</dt><dd>boolean </dd></dl>
+
+</div>
+</div>
+<a id="af3621e22a21bd1200437eb6ea02d5839"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af3621e22a21bd1200437eb6ea02d5839">&#9670;&nbsp;</a></span>isWiFiEnabled()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">boolean com.mobiledgex.matchingengine.MatchingEngine.isWiFiEnabled </td>
+          <td>(</td>
+          <td class="paramtype">Context&#160;</td>
+          <td class="paramname"><em>context</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Returns whether Wifi is enabled on the system or not, independent of Application's network state. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">context</td><td>(android.content.Context) </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>boolean </dd></dl>
+
+</div>
+</div>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<div class="ttc" id="aclasscom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_html_a169f68551802701593df83c15e1ee7c5"><div class="ttname"><a href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">com.mobiledgex.matchingengine.MatchingEngine.MatchingEngine</a></div><div class="ttdeci">MatchingEngine(Context context)</div><div class="ttdef"><b>Definition:</b> MatchingEngine.java:167</div></div>
+<!-- HTML footer for doxygen 1.8.18-->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><b>com</b></li><li class="navelem"><b>mobiledgex</b></li><li class="navelem"><a class="el" href="namespacecom_1_1mobiledgex_1_1matchingengine.html">matchingengine</a></li><li class="navelem"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html">MatchingEngine</a></li>
+    <li class="footer">Generated by
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
+  </ul>
+</div>
+</body>
+</html>
