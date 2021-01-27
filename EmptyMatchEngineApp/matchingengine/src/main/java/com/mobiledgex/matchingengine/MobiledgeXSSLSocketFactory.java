@@ -28,10 +28,11 @@ import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 
-/**
+/*!
  * A MobiledgeX SSLSocketFactory that originates from a particular network interface that is
  * powered up. This is a thin wrapper over the default SSLContext's SSLSocketFactory "SocketFactory"
  * implementation.
+ * \ingroup classes
  */
 public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
 
@@ -58,9 +59,9 @@ public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
         return mNetwork;
     }
 
-    /**
+    /*!
      * Check return. May be null if SSL is missing.
-     * @return
+     * \return SocketFactory
      */
     public static synchronized SocketFactory getDefault(Network network) {
         if (mSSLContext == null) {
@@ -80,10 +81,10 @@ public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
         return singleton;
     }
 
-    /**
+    /*!
      * Returns a socket, bound to a particular network. It is not connected to an endpoint.
-     * @return
-     * @throws IOException
+     * \return Socket
+     * \exception IOException
      */
     private Socket createNetworkBoundSocket() throws IOException {
         if (mNetwork == null) {
@@ -98,22 +99,22 @@ public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
         return socket;
     }
 
-    /**
+    /*!
      * Returns a network bound SSLSocket
-     * @return
-     * @throws IOException
+     * \return Socket
+     * \exception IOException
      */
     @Override
     public Socket createSocket() throws IOException {
         return createNetworkBoundSocket();
     }
 
-    /**
+    /*!
      * Returns a network bound SSLSocket
-     * @param host
-     * @param port
-     * @return
-     * @throws IOException
+     * \param host (String)
+     * \param port (int)
+     * \return Socket
+     * \exception IOException
      */
     @Override
     public Socket createSocket(String host, int port) throws IOException {
@@ -122,12 +123,12 @@ public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
         return socket;
     }
 
-    /**
+    /*!
      * Returns a network bound SSLSocket
-     * @param address
-     * @param port
-     * @return
-     * @throws IOException
+     * \param address (InetAddress)
+     * \param port (int)
+     * \return Socket
+     * \exception IOException
      */
     @Override
     public Socket createSocket(InetAddress address, int port)
@@ -138,15 +139,15 @@ public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
         return socket;
     }
 
-    /**
+    /*!
      * Returns a network bound SSLSocket. Interface override requirement. Conflicting goals. Client
      * address is that of the bound network.
-     * @param host
-     * @param port
-     * @param clientAddress
-     * @param clientPort
-     * @return
-     * @throws IOException
+     * \param host (String)
+     * \param port (int)
+     * \param clientAddress (InetAddress)
+     * \param clientPort (int)
+     * \return Socket
+     * \exception IOException
      */
     @Override
     public Socket createSocket(String host, int port,
@@ -155,15 +156,15 @@ public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
         return createSocket(host, port);
     }
 
-    /**
+    /*!
      * Returns a network bound SSLSocket. Interface override requirement. Conflicting goals. Client
      * address is that of the bound network.
-     * @param address
-     * @param port
-     * @param clientAddress
-     * @param clientPort
-     * @return
-     * @throws IOException
+     * \param address (InetAddress)
+     * \param port (int)
+     * \param clientAddress (InetAddress)
+     * \param clientPort (int)
+     * \return Socket
+     * \exception IOException
      */
     @Override
     public Socket createSocket(InetAddress address, int port,
@@ -172,14 +173,14 @@ public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
         return createSocket(address, port);
     }
 
-    /**
+    /*!
      * Returns a network bound SSLSocket
-     * @param socket
-     * @param host
-     * @param port
-     * @param autoClose
-     * @return
-     * @throws IOException
+     * \param socket (Socket)
+     * \param host (String)
+     * \param port (int)
+     * \param autoClose (boolean)
+     * \return Socket
+     * \exception IOException
      */
     @Override
     public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {

@@ -17,6 +17,10 @@
 
 package com.mobiledgex.matchingengine;
 
+/*!
+ * Occurs when MobiledgeX does not have user's MCC and MNC mapped to a DME
+ * \ingroup exceptions_dme
+ */
 public class DmeDnsException extends Exception {
     public DmeDnsException(String msg) {
         super(msg);

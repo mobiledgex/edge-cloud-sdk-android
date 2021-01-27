@@ -251,7 +251,9 @@ public class EngineCallTest {
     @Test
     public void mexDisabledTest() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        //! [meconstructorexample]
         MatchingEngine me = new MatchingEngine(context);
+        //! [meconstructorexample]
         me.setMatchingEngineLocationAllowed(false);
         me.setAllowSwitchIfNoSubscriberInfo(true);
         MeLocation meLoc = new MeLocation(me);
@@ -264,22 +266,29 @@ public class EngineCallTest {
 
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
+            //! [createdefregisterexample]
             AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, organizationName).build();
+            //! [createdefregisterexample]
             assertTrue(registerClientRequest == null);
 
-            AppClient.FindCloudletRequest findCloudletRequest;
-            findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+=            //! [createdeffindcloudletexample]
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                 .setCarrierName(findCloudletCarrierOverride)
                 .build();
+            //! [createdeffindcloudletexample]
             assertTrue(findCloudletRequest == null);
 
             AppClient.GetLocationRequest locationRequest = me.createDefaultGetLocationRequest(context).build();
             assertTrue(locationRequest == null);
 
+            //! [createdefverifylocationexample]
             AppClient.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location).build();
+            //! [createdefverifylocationexample]
             assertTrue(verifyLocationRequest == null);
 
+            //! [createdefappinstexample]
             AppClient.AppInstListRequest appInstListRequest = me.createDefaultAppInstListRequest(context, location).build();
+            //! [createdefappinstexample]
             assertTrue(appInstListRequest == null);
 
         } catch (PackageManager.NameNotFoundException nnfe) {
@@ -322,9 +331,13 @@ public class EngineCallTest {
             }
             regRequest = regRequestBuilder.build();
             if (useHostOverride) {
+                //! [registeroverrideexample]
                 registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+                //! [registeroverrideexample]
             } else {
+                //! [registerexample]
                 registerReply = me.registerClient(regRequest, GRPC_TIMEOUT_MS);
+                //! [registerexample]
             }
             assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
                     registerReply.getSessionCookie(), me.getSessionCookie());
@@ -458,9 +471,13 @@ public class EngineCallTest {
                 .setCarrierName(findCloudletCarrierOverride)
                 .build();
             if (useHostOverride) {
+                //! [findcloudletoverrideexample]
                 findCloudletReply1 = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+                //! [findcloudletoverrideexample]
             } else {
+                //! [findcloudletexample]
                 findCloudletReply1 = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
+                //! [findcloudletexample]
             }
 
             long size1 = me.getNetTest().sortedSiteList().size();
@@ -655,9 +672,13 @@ public class EngineCallTest {
                     .build();
 
             if (useHostOverride) {
+                //! [verifylocationoverrideexample]
                 verifyLocationReply = me.verifyLocation(verifyLocationRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+                //! [verifylocationoverrideexample]
             } else {
+                //! [verifylocationexample]
                 verifyLocationReply = me.verifyLocation(verifyLocationRequest, GRPC_TIMEOUT_MS);
+                //! [verifylocationexample]
             }
             assert (verifyLocationReply != null);
         } catch (DmeDnsException dde) {
@@ -900,9 +921,13 @@ public class EngineCallTest {
                     .setCarrierName(findCloudletCarrierOverride)
                     .build();
             if (useHostOverride) {
+                //! [appinstlistoverrideexample]
                 list = me.getAppInstList(appInstListRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+                //! [appinstlistoverrideexample]
             } else {
+                //! [appinstlistexample]
                 list = me.getAppInstList(appInstListRequest, GRPC_TIMEOUT_MS);
+                //! [appinstlistexample]
             }
 
             assertEquals(0, list.getVer());
@@ -999,13 +1024,19 @@ public class EngineCallTest {
 
             ArrayList<AppClient.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
 
+            //! [createdefqosexample]
             AppClient.QosPositionRequest request = me.createDefaultQosPositionRequest(kpiRequests, 0, null).build();
+            //! [createdefqosexample]
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
             if (useHostOverride) {
+                //! [qospositionoverrideexample]
                 responseIterator = me.getQosPositionKpi(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+                //! [qospositionoverrideexample]
             } else {
+                //! [qospositionexample]
                 responseIterator = me.getQosPositionKpi(request, GRPC_TIMEOUT_MS);
+                //! [qospositionexample]
             }
             // A stream of QosPositionKpiReply(s), with a non-stream block of responses.
             long total = 0;
@@ -1156,6 +1187,7 @@ public class EngineCallTest {
                 .build();
 
 
+        //! [gettcpsocketexample]
         Future<Socket> sf = null;
         Socket s = null;
         try {
@@ -1169,6 +1201,7 @@ public class EngineCallTest {
         } finally {
             closeSocket(s);
         }
+        //! [gettcpsocketexample]
 
         try {
             sf = me.getAppConnectionManager().getTcpSocket(reply, port, 3000, 10000);
@@ -1237,6 +1270,7 @@ public class EngineCallTest {
         }
 
         // This is...actually quite invalid, but just exercising code.
+        //! [getudpsocketexample]
         try {
             Future<DatagramSocket> dsf = me.getAppConnectionManager().getUdpSocket(reply, uport, 8008, 10000);
             DatagramSocket ds = dsf.get(); // Wrong port, and we know it doesn't exist.
@@ -1247,6 +1281,7 @@ public class EngineCallTest {
         } catch (InterruptedException ie) {
             assertFalse("Not expected InterruptedException: " + ie.getMessage(), true);
         }
+        //! [getudpsocketexample]
 
         // Slowest test one last in this test stream (apparently takes a while to fail to non-exported port/blackhole).
         try {
@@ -1466,8 +1501,10 @@ public class EngineCallTest {
             }
 
             // SSL:
+            //! [gethttpclientexample]
             Future<OkHttpClient> httpClientFuture = null;
             httpClientFuture = appConnect.getHttpClient((int) GRPC_TIMEOUT_MS);
+            //! [gethttpclientexample]
 
             // FIXME: UI Console exposes HTTP as TCP only, so test here use getTcpMap().
             String url = null;
@@ -1477,8 +1514,10 @@ public class EngineCallTest {
             AppPort one = portMap.get(3001);
 
             if (!MelMessaging.isMelEnabled()) {
+                //! [createurlexample]
                 String protocol = one.getTls() ? "https" : "http";
                 url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
+                //! [createurlexample]
             } else {
                 String protocol = one.getTls() ? "https" : "http";
                 url = protocol + "://" + findCloudletReply.getFqdn() + ":3001";
@@ -1677,10 +1716,12 @@ public class EngineCallTest {
         Location location = getTestLocation();
         Socket socket = null;
         try {
+            //! [registerandfindoverrideexample]
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
                     organizationName, appName,
                     appVersion, location, "",
                     0, null, null, null, MatchingEngine.FindCloudletMode.PROXIMITY); // FIXME: These parameters should be overloaded or optional.
+            //! [registerandfindoverrideexample]
             // Just wait:
             AppClient.FindCloudletReply findCloudletReply = findCloudletReplyFuture.get();
             HashMap<Integer, AppPort> appTcpPortMap = appConnectionManager.getTCPMap(findCloudletReply);
@@ -1745,6 +1786,7 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
         Location location = getTestLocation();
 
+        //! [nettest]
         try {
             registerClient(me);
 
@@ -1841,6 +1883,7 @@ public class EngineCallTest {
             Log.i(TAG, Log.getStackTraceString(ie));
             assertFalse("NetTestAPItest: InterruptedException!", true);
         }
+        //! [nettest]
     }
 
     @Test

@@ -24,6 +24,10 @@ import android.net.Network;
 import distributed_match_engine.AppClient;
 import distributed_match_engine.LocOuterClass;
 
+/*!
+ * Utility class used in NetTest to test specified host+port
+ * \ingroup classes_util
+ */
 public class Site
 {
     public Network network;
@@ -47,13 +51,13 @@ public class Site
 
     public static final int DEFAULT_NUM_SAMPLES = 3;
 
-    /**
+    /*!
      * Create a Site instance from the default network interface. Once set, it does not change automatically.
-     * @param context Application Context
-     * @param testType
-     * @param numSamples
-     * @param host
-     * @param port
+     * \param context Application Context
+     * \param testType (NetTest.TestType)
+     * \param numSamples (int)
+     * \param host (String)
+     * \param port (int)
      */
     public Site(Context context, NetTest.TestType testType, int numSamples, String host, int port)
     {
@@ -68,14 +72,14 @@ public class Site
         samples = new double[numSamples];
     }
 
-    /**
+    /*!
      * Test performance from a specific network interface. This interface may not be available at the time
      * of test.
-     * @param network
-     * @param testType
-     * @param numSamples
-     * @param host
-     * @param port
+     * \param network (Network)
+     * \param testType (NetTest.TestType)
+     * \param numSamples (int)
+     * \param host (String)
+     * \param port (int)
      */
     public Site(Network network, NetTest.TestType testType, int numSamples, String host, int port)
     {
@@ -89,12 +93,16 @@ public class Site
         samples = new double[numSamples];
     }
 
-    // Appinstance data for the site.
+    /*!
+     * Appinstance data for the site.
+     */
     public AppClient.Appinstance setAppinstance(AppClient.Appinstance appinstance) {
         return this.appInstance = appinstance;
     }
 
-    // GPS Cloudlet location
+    /*!
+     * GPS Cloudlet location
+     */
     public LocOuterClass.Loc setCloudletLocation(LocOuterClass.Loc cloudlet_location) {
         return this.cloudlet_location = cloudlet_location;
     }

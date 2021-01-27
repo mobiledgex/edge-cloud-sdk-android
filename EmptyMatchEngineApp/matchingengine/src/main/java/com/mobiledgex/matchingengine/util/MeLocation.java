@@ -35,7 +35,10 @@ import java.util.concurrent.Future;
 import android.util.Log;
 
 
-// Simple util class for last known location.
+/*!
+ * Simple util class for last known location.
+ * \ingroup classes_util
+ */
 public class MeLocation {
     private static final String TAG = "MeLocation";
     private MatchingEngine mMatchingEngine;

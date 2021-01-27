@@ -3,6 +3,8 @@ apply plugin: 'com.google.protobuf'
 
 apply plugin: 'com.jfrog.artifactory'
 
+apply plugin: 'org.ysb33r.doxygen'
+
 Properties properties = new Properties()
 properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
@@ -120,4 +122,14 @@ publishing {
 
 artifactoryPublish {
     publications(publishing.publications.aar)
+}
+
+doxygen {
+    template            new File(projectDir, '../doxygen/Doxyfile')
+    project_name        'Android SDK'
+    source              new File(projectDir,'src/main/java/com/mobiledgex/matchingengine'), new File(projectDir, '../doxygen/src/DoxygenModules.txt')
+    outputDir           new File(projectDir,'../doxygen/')
+    exclude             'build/'
+    file_paterns        '*.java', '*.class','*.md'
+    recursive           true
 }
