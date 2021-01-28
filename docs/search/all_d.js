@@ -1,0 +1,16 @@
+var searchData=
+[
+  ['setappinstance_74',['setAppinstance',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a913e265f442dbe1d712a54d4665d1a01',1,'com::mobiledgex::matchingengine::performancemetrics::Site']]],
+  ['setcloudletlocation_75',['setCloudletLocation',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#ade92c156186a359fe912ad2e0b2c2185',1,'com::mobiledgex::matchingengine::performancemetrics::Site']]],
+  ['setdefaulnetwork_76',['setDefaulNetwork',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a29e900338aeffaf544af839418aa71fc',1,'com::mobiledgex::matchingengine::NetworkManager']]],
+  ['setexecutorservice_77',['setExecutorService',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a0936ea4df597210e1b09eff63429b4f6',1,'com::mobiledgex::matchingengine::performancemetrics::NetTest']]],
+  ['setmatchingenginelocationallowed_78',['setMatchingEngineLocationAllowed',['../group__functions__dmeutils.html#ga69d99fc611022254d79618ceb14030e2',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
+  ['setusewifionly_79',['setUseWifiOnly',['../group__functions__dmeutils.html#gab033a53faf254f5a78858aa10791e48f',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
+  ['shutdown_80',['shutdown',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_channel_iterator.html#ab162aa33cd8381a501082e33c3411510',1,'com::mobiledgex::matchingengine::ChannelIterator']]],
+  ['site_81',['Site',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html',1,'com.mobiledgex.matchingengine.performancemetrics.Site'],['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#af10b10244fc27b7205ac680bb27fa262',1,'com.mobiledgex.matchingengine.performancemetrics.Site.Site(Context context, NetTest.TestType testType, int numSamples, String host, int port)'],['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#aa320db7fbfed29dc3075c755dc290721',1,'com.mobiledgex.matchingengine.performancemetrics.Site.Site(Network network, NetTest.TestType testType, int numSamples, String host, int port)']]],
+  ['sortedsitelist_82',['sortedSiteList',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a237bbf4d60336b9b9e55eb0c5c7b6f85',1,'com::mobiledgex::matchingengine::performancemetrics::NetTest']]],
+  ['switchtocellularinternetnetworkblocking_83',['switchToCellularInternetNetworkBlocking',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a51e71c0ba59ee4bd3119dae4ae23f6be',1,'com::mobiledgex::matchingengine::NetworkManager']]],
+  ['switchtocellularinternetnetworkfuture_84',['switchToCellularInternetNetworkFuture',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#affff443eb8b644db55f01f21835f94ab',1,'com::mobiledgex::matchingengine::NetworkManager']]],
+  ['switchtonetwork_85',['switchToNetwork',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#aa810cf8463788ce79dda66958bbc9348',1,'com::mobiledgex::matchingengine::NetworkManager']]],
+  ['switchtonetworkblocking_86',['switchToNetworkBlocking',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#ac230092c8b4fd8eaab1fd59068bb4a8e',1,'com::mobiledgex::matchingengine::NetworkManager']]]
+];
