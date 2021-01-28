@@ -1,0 +1,434 @@
+<!-- HTML header for doxygen 1.8.18-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.8.18"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Android SDK: com.mobiledgex.matchingengine.NetworkManager Class Reference</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+  $(document).ready(function() { init_search(); });
+/* @license-end */
+</script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+<link href="customdoxygen.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+​
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 46px;">
+  <td id="projectalign" style="padding-left: 0.5em; vertical-align: middle;">
+   <div id="projectname"><a href="https://developers.mobiledgex.com"><svg xmlns="http://www.w3.org/2000/svg" width="185" height="35.93" viewBox="-15 -7 210 30.93"><defs><style>.cls-1{fill:#121620;}.cls-2{fill:#93e019;}</style></defs><title>Asset 163logo</title><g id="Layer_2" data-name="Layer 2"><g id="design"><path class="cls-1" d="M51,12.93a7.31,7.31,0,1,1-14.61,0,7.31,7.31,0,1,1,14.61,0Zm-3.39,0c0-2.91-1.85-4.4-3.93-4.4s-3.93,1.49-3.93,4.4,1.88,4.45,3.93,4.45S47.6,15.86,47.6,12.93ZM53,20V.05h3.31V7.69A5.09,5.09,0,0,1,60.7,5.58c4.22,0,6.5,3.21,6.5,7.35s-2.51,7.49-6.62,7.49a4.87,4.87,0,0,1-4.34-2.26l-1.88,1.89ZM60,8.56c-2.14,0-3.79,1.59-3.79,4.39s1.65,4.46,3.79,4.46,3.79-1.68,3.79-4.46S62.26,8.56,60,8.56Zm9.5-2.64V20.05h3.33V5.92Zm6,14.13V.05h3.36v20ZM107.56,0V7.61c-.43-.9-1.68-2-4.14-2-4,0-6.71,3.33-6.71,7.38,0,4.25,2.7,7.46,6.74,7.46a4.7,4.7,0,0,0,4.17-2.2h0L109.44,20h1.39V17.47h0V0Zm-3.7,17.44c-2.29,0-3.79-1.79-3.79-4.48s1.62-4.4,3.82-4.4,3.7,1.68,3.7,4.37S106.06,17.44,103.86,17.44ZM13.5.05h4.39L24,11.12,30,.05h4.39v20H30.89V5.74L24.65,17.28H23.23L17,5.74V20.05H13.5Zm59.33,0H69.54v3.3h3.29Zm52.29,5.87-1.64,1.64c-.43-.9-1.68-2-4.13-2a6.44,6.44,0,0,0-3.26.86,6.76,6.76,0,0,0-3.43,6c0,.18,0,.36,0,.55,0,4.25,2.72,7.46,6.77,7.46a4.78,4.78,0,0,0,3.83-1.75v.16c0,2.84-1.31,4.2-3.94,4.22h0a6,6,0,0,1-3.92-1.36c-.25-.2-.33-.3-.39-.35l-2.09,2.09c.14.15.22.23.37.37a8.61,8.61,0,0,0,6.08,2.17h0c5.29,0,7.23-3.5,7.23-7.26V5.92ZM119.78,17.4c-2.28,0-3.79-1.79-3.79-4.48,0-2.35,1.24-3.95,3-4.32a6.07,6.07,0,0,1,.71,0,4.08,4.08,0,0,1,2.15.61,4.45,4.45,0,0,1,1.52,3.73C123.38,15.58,122,17.4,119.78,17.4Zm-29.29-.33a5.1,5.1,0,0,1-2,.42,3.86,3.86,0,0,1-2.58-.88,4.21,4.21,0,0,1-1.38-2.44H94.72a8.66,8.66,0,0,0,.1-1.06,8.11,8.11,0,0,0-1.67-5.47,6.36,6.36,0,0,0-5.06-2.1,7,7,0,0,0-3.65.94,6.43,6.43,0,0,0-2.51,2.63A8.17,8.17,0,0,0,81,13a8.14,8.14,0,0,0,.88,3.86,6.39,6.39,0,0,0,2.5,2.6,7.39,7.39,0,0,0,3.75.92,8,8,0,0,0,3.3-.65,7.46,7.46,0,0,0,2.59-1.86l-1.93-1.93A5,5,0,0,1,90.49,17.07ZM85.64,9.23a3.47,3.47,0,0,1,2.48-.94,3.28,3.28,0,0,1,2.47,1,3.6,3.6,0,0,1,1,2.54H84.46A3.83,3.83,0,0,1,85.64,9.23Zm52.2,7.84a5.1,5.1,0,0,1-2,.42,3.86,3.86,0,0,1-2.58-.88,4.21,4.21,0,0,1-1.38-2.44h10.23a8.66,8.66,0,0,0,.1-1.06,8.06,8.06,0,0,0-1.68-5.47,6.32,6.32,0,0,0-5.05-2.1,7.07,7.07,0,0,0-3.66.94,6.47,6.47,0,0,0-2.5,2.63,8.17,8.17,0,0,0-.89,3.86,8.14,8.14,0,0,0,.88,3.86,6.39,6.39,0,0,0,2.5,2.6,7.39,7.39,0,0,0,3.75.92,8.07,8.07,0,0,0,3.3-.65,7.56,7.56,0,0,0,2.59-1.86l-1.93-1.93A5,5,0,0,1,137.84,17.07ZM133,9.23a3.44,3.44,0,0,1,2.47-.94,3.27,3.27,0,0,1,2.47,1,3.56,3.56,0,0,1,1,2.54h-7.09A3.79,3.79,0,0,1,133,9.23Z"/><path class="cls-2" d="M164.46,17.69v2.37h-2.37l-6-6,2.37-2.37ZM11.21,2.4V.05H8.81L0,8.87v2.37l8.81,8.81h2.4V17.7L3.56,10.05ZM174.4,10.05l-7.65,7.65v2.35h2.39L178,11.24V8.86L169.15.05h-2.4V2.4ZM146.82.05h-2.4V2.4l6,6,2.37-2.37ZM164.46,2.4V.05h-2.39L144.42,17.7v2.35h2.4Z"/><path class="cls-2" d="M178.12.72h-1.23V0h3.23v.7h-1.23V4h-.77ZM181,0h.81L183,1.92,184.21,0H185V4h-.74V1.18L183,3.08H183l-1.23-1.9V4H181Z"/></g></g></svg></a> Android SDK
+   &#160;<span id="projectnumber">unspecified</span>
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.8.18 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+var searchBox = new SearchBox("searchBox", "search",false,'Search');
+/* @license-end */
+</script>
+  <div id="navrow1" class="tabs">
+    <ul class="tablist">
+      <li><a href="index.html"><span>Main&#160;Page</span></a></li>
+      <li class="current"><a href="annotated.html"><span>Classes</span></a></li>
+      <li><a href="modules.html"><span>Modules</span></a></li>
+      <li>
+        <div id="MSearchBox" class="MSearchBoxInactive">
+        <span class="left">
+          <img id="MSearchSelect" src="search/mag_sel.png"
+               onmouseover="return searchBox.OnSearchSelectShow()"
+               onmouseout="return searchBox.OnSearchSelectHide()"
+               alt=""/>
+          <input type="text" id="MSearchField" value="Search" accesskey="S"
+               onfocus="searchBox.OnSearchFieldFocus(true)" 
+               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onkeyup="searchBox.OnSearchFieldChange(event)"/>
+          </span><span class="right">
+            <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><img id="MSearchCloseImg" border="0" src="search/close.png" alt=""/></a>
+          </span>
+        </div>
+      </li>
+    </ul>
+  </div>
+  <div id="navrow2" class="tabs2">
+    <ul class="tablist">
+      <li><a href="classes.html"><span>Class&#160;Index</span></a></li>
+    </ul>
+  </div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(document).ready(function(){initNavTree('classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<iframe src="javascript:void(0)" frameborder="0" 
+        name="MSearchResults" id="MSearchResults">
+</iframe>
+</div>
+
+<div class="header">
+  <div class="summary">
+<a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pub-static-methods">Static Public Member Functions</a> &#124;
+<a href="#pub-static-attribs">Static Public Attributes</a> &#124;
+<a href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager-members.html">List of all members</a>  </div>
+  <div class="headertitle">
+<div class="title">com.mobiledgex.matchingengine.NetworkManager Class Reference<div class="ingroups"><a class="el" href="group__classes.html">Classes</a> &raquo; <a class="el" href="group__classes__util.html">Utility Classes</a></div></div>  </div>
+</div><!--header-->
+<div class="contents">
+
+<p>Inherits OnSubscriptionsChangedListener.</p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:ad3a3831d840d130f35c79dc413b0d854"><td class="memItemLeft" align="right" valign="top"><a id="ad3a3831d840d130f35c79dc413b0d854"></a>
+boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isNetworkSwitchingEnabled</b> ()</td></tr>
+<tr class="separator:ad3a3831d840d130f35c79dc413b0d854"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7b996fdf98d508b5b051c69616aaa871"><td class="memItemLeft" align="right" valign="top"><a id="a7b996fdf98d508b5b051c69616aaa871"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setNetworkSwitchingEnabled</b> (boolean networkSwitchingEnabled)</td></tr>
+<tr class="separator:a7b996fdf98d508b5b051c69616aaa871"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a260b9693543ac61609fa0549bbcc964a"><td class="memItemLeft" align="right" valign="top">synchronized void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a260b9693543ac61609fa0549bbcc964a">onSubscriptionsChanged</a> ()  throws SecurityException </td></tr>
+<tr class="separator:a260b9693543ac61609fa0549bbcc964a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2214625f677a6870b7e98a3bfb10a3f3"><td class="memItemLeft" align="right" valign="top"><a id="a2214625f677a6870b7e98a3bfb10a3f3"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setTimeout</b> (long timeoutInMilliseconds)</td></tr>
+<tr class="separator:a2214625f677a6870b7e98a3bfb10a3f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a364215e4613763e07b9fadcc98d9645d"><td class="memItemLeft" align="right" valign="top"><a id="a364215e4613763e07b9fadcc98d9645d"></a>
+long&#160;</td><td class="memItemRight" valign="bottom"><b>getTimeout</b> ()</td></tr>
+<tr class="separator:a364215e4613763e07b9fadcc98d9645d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa11fb703ae2c32f0b9ee05dcf713c6ab"><td class="memItemLeft" align="right" valign="top"><a id="aa11fb703ae2c32f0b9ee05dcf713c6ab"></a>
+long&#160;</td><td class="memItemRight" valign="bottom"><b>getNetworkActiveTimeoutMilliseconds</b> ()</td></tr>
+<tr class="separator:aa11fb703ae2c32f0b9ee05dcf713c6ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab786342b896b9b0d6bf4681ad5137ab0"><td class="memItemLeft" align="right" valign="top"><a id="ab786342b896b9b0d6bf4681ad5137ab0"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setNetworkActiveTimeoutMilliseconds</b> (long networkActiveTimeoutMilliseconds)</td></tr>
+<tr class="separator:ab786342b896b9b0d6bf4681ad5137ab0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abc76a34be3d49eefcbe45281108201c6"><td class="memItemLeft" align="right" valign="top"><a id="abc76a34be3d49eefcbe45281108201c6"></a>
+NetworkRequest&#160;</td><td class="memItemRight" valign="bottom"><b>getCellularNetworkRequest</b> ()</td></tr>
+<tr class="separator:abc76a34be3d49eefcbe45281108201c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a133da37eb5c248b86897248c2cfec1d5"><td class="memItemLeft" align="right" valign="top"><a id="a133da37eb5c248b86897248c2cfec1d5"></a>
+NetworkRequest&#160;</td><td class="memItemRight" valign="bottom"><b>getWifiNetworkRequest</b> ()</td></tr>
+<tr class="separator:a133da37eb5c248b86897248c2cfec1d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3ea74b2f7ca76a0e225a4a2350fa7d5b"><td class="memItemLeft" align="right" valign="top"><a id="a3ea74b2f7ca76a0e225a4a2350fa7d5b"></a>
+NetworkRequest&#160;</td><td class="memItemRight" valign="bottom"><b>getBluetoothNetworkRequest</b> ()</td></tr>
+<tr class="separator:a3ea74b2f7ca76a0e225a4a2350fa7d5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afa2b71373710df63f795551c00c8a672"><td class="memItemLeft" align="right" valign="top"><a id="afa2b71373710df63f795551c00c8a672"></a>
+NetworkRequest&#160;</td><td class="memItemRight" valign="bottom"><b>getEthernetNetworkRequest</b> ()</td></tr>
+<tr class="separator:afa2b71373710df63f795551c00c8a672"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abeeb9175153fda91a92d2e4d45883573"><td class="memItemLeft" align="right" valign="top"><a id="abeeb9175153fda91a92d2e4d45883573"></a>
+NetworkRequest&#160;</td><td class="memItemRight" valign="bottom"><b>getWiFiAwareNetworkRequest</b> ()</td></tr>
+<tr class="separator:abeeb9175153fda91a92d2e4d45883573"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9b0ad2bc2e69c5cd04cb786dcb2c3a07"><td class="memItemLeft" align="right" valign="top">Network&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a9b0ad2bc2e69c5cd04cb786dcb2c3a07">getActiveNetwork</a> ()</td></tr>
+<tr class="separator:a9b0ad2bc2e69c5cd04cb786dcb2c3a07"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a29e900338aeffaf544af839418aa71fc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a29e900338aeffaf544af839418aa71fc">setDefaulNetwork</a> (NetworkRequest defaultNetworkRequest)</td></tr>
+<tr class="separator:a29e900338aeffaf544af839418aa71fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a17939379441681d9fae0ce330b6c3d5e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a17939379441681d9fae0ce330b6c3d5e">resetNetworkToDefault</a> ()  throws InterruptedException, ExecutionException </td></tr>
+<tr class="separator:a17939379441681d9fae0ce330b6c3d5e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3f07c8a3ae7986e1dee1c023d345e21b"><td class="memItemLeft" align="right" valign="top"><a id="a3f07c8a3ae7986e1dee1c023d345e21b"></a>
+boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isSSLEnabled</b> ()</td></tr>
+<tr class="separator:a3f07c8a3ae7986e1dee1c023d345e21b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a91b3223f6162c329c35e9198a83982f5"><td class="memItemLeft" align="right" valign="top"><a id="a91b3223f6162c329c35e9198a83982f5"></a>
+synchronized List&lt; SubscriptionInfo &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>getActiveSubscriptionInfoList</b> (boolean clone)  throws SecurityException </td></tr>
+<tr class="separator:a91b3223f6162c329c35e9198a83982f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a19fb6a23f1aa9ab438298741176341c3"><td class="memItemLeft" align="right" valign="top"><a id="a19fb6a23f1aa9ab438298741176341c3"></a>
+boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isAllowSwitchIfNoSubscriberInfo</b> ()</td></tr>
+<tr class="separator:a19fb6a23f1aa9ab438298741176341c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac67e4fc1b0412685a22ce363960ea006"><td class="memItemLeft" align="right" valign="top"><a id="ac67e4fc1b0412685a22ce363960ea006"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setAllowSwitchIfNoSubscriberInfo</b> (boolean allowSwitchIfNoSubscriberInfo)</td></tr>
+<tr class="separator:ac67e4fc1b0412685a22ce363960ea006"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afe1bab5caa6ffb6b78bf544f28948467"><td class="memItemLeft" align="right" valign="top"><a id="afe1bab5caa6ffb6b78bf544f28948467"></a>
+boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isNetworkInternetCellularDataCapable</b> (Network network)</td></tr>
+<tr class="separator:afe1bab5caa6ffb6b78bf544f28948467"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af300ba2668c6ab0cef41b917892a94cf"><td class="memItemLeft" align="right" valign="top"><a id="af300ba2668c6ab0cef41b917892a94cf"></a>
+boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isCurrentNetworkInternetCellularDataCapable</b> ()</td></tr>
+<tr class="separator:af300ba2668c6ab0cef41b917892a94cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7f57b9d745b307ebb5b65fe9e820f344"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a7f57b9d745b307ebb5b65fe9e820f344">requestCellularNetwork</a> (ConnectivityManager.NetworkCallback networkCallback)</td></tr>
+<tr class="separator:a7f57b9d745b307ebb5b65fe9e820f344"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1bcc3c8c9f4be2321a29b236868adb0f"><td class="memItemLeft" align="right" valign="top"><a id="a1bcc3c8c9f4be2321a29b236868adb0f"></a>
+Network&#160;</td><td class="memItemRight" valign="bottom"><b>getCellularNetworkBlocking</b> (boolean bindProcess)  throws InterruptedException, ExecutionException </td></tr>
+<tr class="separator:a1bcc3c8c9f4be2321a29b236868adb0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af267af06ad41da7ac67d1a3fb2c008b6"><td class="memItemLeft" align="right" valign="top"><a id="af267af06ad41da7ac67d1a3fb2c008b6"></a>
+Network&#160;</td><td class="memItemRight" valign="bottom"><b>getCellularNetworkOrWifiBlocking</b> (boolean bindProcess, String currentMccMnc)  throws InterruptedException, ExecutionException </td></tr>
+<tr class="separator:af267af06ad41da7ac67d1a3fb2c008b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a51e71c0ba59ee4bd3119dae4ae23f6be"><td class="memItemLeft" align="right" valign="top">Network&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a51e71c0ba59ee4bd3119dae4ae23f6be">switchToCellularInternetNetworkBlocking</a> ()  throws InterruptedException, ExecutionException </td></tr>
+<tr class="separator:a51e71c0ba59ee4bd3119dae4ae23f6be"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:affff443eb8b644db55f01f21835f94ab"><td class="memItemLeft" align="right" valign="top">Future&lt; Network &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#affff443eb8b644db55f01f21835f94ab">switchToCellularInternetNetworkFuture</a> ()</td></tr>
+<tr class="separator:affff443eb8b644db55f01f21835f94ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac230092c8b4fd8eaab1fd59068bb4a8e"><td class="memItemLeft" align="right" valign="top">Network&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#ac230092c8b4fd8eaab1fd59068bb4a8e">switchToNetworkBlocking</a> (NetworkRequest networkRequest, boolean bindProcess)  throws InterruptedException, ExecutionException </td></tr>
+<tr class="separator:ac230092c8b4fd8eaab1fd59068bb4a8e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa810cf8463788ce79dda66958bbc9348"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#aa810cf8463788ce79dda66958bbc9348">switchToNetwork</a> (NetworkRequest networkRequest, final ConnectivityManager.NetworkCallback networkCallback)</td></tr>
+<tr class="separator:aa810cf8463788ce79dda66958bbc9348"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
+Static Public Member Functions</h2></td></tr>
+<tr class="memitem:a2d30a70dfa0a7ff0b1c487c67b2a6fdd"><td class="memItemLeft" align="right" valign="top"><a id="a2d30a70dfa0a7ff0b1c487c67b2a6fdd"></a>
+static <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html">NetworkManager</a>&#160;</td><td class="memItemRight" valign="bottom"><b>getInstance</b> (ConnectivityManager connectivityManager, SubscriptionManager subscriptionManager)</td></tr>
+<tr class="separator:a2d30a70dfa0a7ff0b1c487c67b2a6fdd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa807de7d0ee7c97fae761f28c57ad9f9"><td class="memItemLeft" align="right" valign="top"><a id="aa807de7d0ee7c97fae761f28c57ad9f9"></a>
+static <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html">NetworkManager</a>&#160;</td><td class="memItemRight" valign="bottom"><b>getInstance</b> (ConnectivityManager connectivityManager, SubscriptionManager subscriptionManager, ExecutorService executorService)</td></tr>
+<tr class="separator:aa807de7d0ee7c97fae761f28c57ad9f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-attribs"></a>
+Static Public Attributes</h2></td></tr>
+<tr class="memitem:a68e06b3aecb4c94e3fc5284900f4d601"><td class="memItemLeft" align="right" valign="top"><a id="a68e06b3aecb4c94e3fc5284900f4d601"></a>
+static final String&#160;</td><td class="memItemRight" valign="bottom"><b>TAG</b> = &quot;NetworkManager&quot;</td></tr>
+<tr class="separator:a68e06b3aecb4c94e3fc5284900f4d601"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac2bc522483d0369ddad6b8d4f421bb3f"><td class="memItemLeft" align="right" valign="top"><a id="ac2bc522483d0369ddad6b8d4f421bb3f"></a>
+static <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html">NetworkManager</a>&#160;</td><td class="memItemRight" valign="bottom"><b>mNetworkManager</b></td></tr>
+<tr class="separator:ac2bc522483d0369ddad6b8d4f421bb3f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html">NetworkManager</a> handles Network Interface and Network connectivity utilities </p>
+</div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a9b0ad2bc2e69c5cd04cb786dcb2c3a07"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9b0ad2bc2e69c5cd04cb786dcb2c3a07">&#9670;&nbsp;</a></span>getActiveNetwork()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">Network com.mobiledgex.matchingengine.NetworkManager.getActiveNetwork </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Returns the current active network, independent of what the <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html">NetworkManager</a> is doing. </p>
+
+</div>
+</div>
+<a id="a260b9693543ac61609fa0549bbcc964a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a260b9693543ac61609fa0549bbcc964a">&#9670;&nbsp;</a></span>onSubscriptionsChanged()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">synchronized void com.mobiledgex.matchingengine.NetworkManager.onSubscriptionsChanged </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> throws SecurityException</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Listener that gets the current SubscriptionInfo list.</p>
+<p>throws security exception if the revocable READ_PHONE_STATE (or hasCarrierPrivilages) is missing.</p>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">SecurityException</td><td></td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a7f57b9d745b307ebb5b65fe9e820f344"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7f57b9d745b307ebb5b65fe9e820f344">&#9670;&nbsp;</a></span>requestCellularNetwork()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void com.mobiledgex.matchingengine.NetworkManager.requestCellularNetwork </td>
+          <td>(</td>
+          <td class="paramtype">ConnectivityManager.NetworkCallback&#160;</td>
+          <td class="paramname"><em>networkCallback</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Wrapper function to get, if possible, to a Cellular Data Network connection. This isn't instant. Callback interface. </p>
+
+</div>
+</div>
+<a id="a17939379441681d9fae0ce330b6c3d5e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a17939379441681d9fae0ce330b6c3d5e">&#9670;&nbsp;</a></span>resetNetworkToDefault()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void com.mobiledgex.matchingengine.NetworkManager.resetNetworkToDefault </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> throws InterruptedException, ExecutionException</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Reset process level default network. </p>
+
+</div>
+</div>
+<a id="a29e900338aeffaf544af839418aa71fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a29e900338aeffaf544af839418aa71fc">&#9670;&nbsp;</a></span>setDefaulNetwork()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void com.mobiledgex.matchingengine.NetworkManager.setDefaulNetwork </td>
+          <td>(</td>
+          <td class="paramtype">NetworkRequest&#160;</td>
+          <td class="paramname"><em>defaultNetworkRequest</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Sets the request for the default network to reset to. It does not modify the network. </p>
+
+</div>
+</div>
+<a id="a51e71c0ba59ee4bd3119dae4ae23f6be"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a51e71c0ba59ee4bd3119dae4ae23f6be">&#9670;&nbsp;</a></span>switchToCellularInternetNetworkBlocking()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">Network com.mobiledgex.matchingengine.NetworkManager.switchToCellularInternetNetworkBlocking </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> throws InterruptedException, ExecutionException</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Switch entire process to a Cellular network type. This is a synchronous call. </p>
+
+</div>
+</div>
+<a id="affff443eb8b644db55f01f21835f94ab"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#affff443eb8b644db55f01f21835f94ab">&#9670;&nbsp;</a></span>switchToCellularInternetNetworkFuture()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">Future&lt;Network&gt; com.mobiledgex.matchingengine.NetworkManager.switchToCellularInternetNetworkFuture </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Switch to a particular network type. Returns a Future. </p>
+
+</div>
+</div>
+<a id="aa810cf8463788ce79dda66958bbc9348"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa810cf8463788ce79dda66958bbc9348">&#9670;&nbsp;</a></span>switchToNetwork()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void com.mobiledgex.matchingengine.NetworkManager.switchToNetwork </td>
+          <td>(</td>
+          <td class="paramtype">NetworkRequest&#160;</td>
+          <td class="paramname"><em>networkRequest</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">final ConnectivityManager.NetworkCallback&#160;</td>
+          <td class="paramname"><em>networkCallback</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Switch entire process to a network using Callbacks. The callback onAvailable(Network) will notify availability. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">networkRequest</td><td>(NetworkRequest) </td></tr>
+    <tr><td class="paramname">networkCallback</td><td>(ConnectivityManager.NetworkCallback) </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ac230092c8b4fd8eaab1fd59068bb4a8e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac230092c8b4fd8eaab1fd59068bb4a8e">&#9670;&nbsp;</a></span>switchToNetworkBlocking()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">Network com.mobiledgex.matchingengine.NetworkManager.switchToNetworkBlocking </td>
+          <td>(</td>
+          <td class="paramtype">NetworkRequest&#160;</td>
+          <td class="paramname"><em>networkRequest</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">boolean&#160;</td>
+          <td class="paramname"><em>bindProcess</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> throws InterruptedException, ExecutionException</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Switch to a particular network type in a blocking fashion for synchronous execution blocks. </p>
+
+</div>
+</div>
+</div><!-- contents -->
+</div><!-- doc-content -->
+<!-- HTML footer for doxygen 1.8.18-->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><b>com</b></li><li class="navelem"><b>mobiledgex</b></li><li class="navelem"><a class="el" href="namespacecom_1_1mobiledgex_1_1matchingengine.html">matchingengine</a></li><li class="navelem"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html">NetworkManager</a></li>
+    <li class="footer">Generated by
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.18 </li>
+  </ul>
+</div>
+</body>
+</html>
