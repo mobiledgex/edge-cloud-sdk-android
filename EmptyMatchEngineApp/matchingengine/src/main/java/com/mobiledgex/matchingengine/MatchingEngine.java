@@ -1807,6 +1807,7 @@ public class MatchingEngine {
                     .sslSocketFactory(mobiledgexSSLSocketFactory)
                     .build();
         } else {
+            Log.e(TAG, "MatchingEngine Communications Channel is set to NOT SECURE. Non-production use only!");
             return ManagedChannelBuilder
                     .forAddress(host, port)
                     .usePlaintext()
