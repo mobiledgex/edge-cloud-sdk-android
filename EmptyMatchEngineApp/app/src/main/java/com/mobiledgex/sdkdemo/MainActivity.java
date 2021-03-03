@@ -22,9 +22,9 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.Location;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -43,9 +43,10 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.DmeDnsException;
 import com.mobiledgex.matchingengine.MatchingEngine;
-import com.mobiledgex.matchingengine.NetworkManager;
 import com.mobiledgex.matchingengine.NetworkRequestTimeoutException;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
@@ -56,13 +57,18 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
+import distributed_match_engine.MatchEngineApiGrpc;
+import io.grpc.Server;
 import io.grpc.StatusRuntimeException;
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -73,10 +79,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private RequestPermissions mRpUtil;
     private MatchingEngine mMatchingEngine;
     private NetTest netTest;
+
+    private AppClient.FindCloudletReply mLastFindCloudlet;
     private FusedLocationProviderClient mFusedLocationClient;
+
+    private int internalPort = 7777;
 
     private LocationCallback mLocationCallback;
     private LocationRequest mLocationRequest;
+    private LocationResult mLastLocationResult;
     private boolean mDoLocationUpdates;
 
     @Override
@@ -126,6 +137,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     return;
                 }
                 String clientLocText = "";
+                mLastLocationResult = locationResult;
+                // TODO: DMEConnection for events is lazy initialized.
+                if (mMatchingEngine.getDmeConnection() != null && mLastLocationResult != null) {
+                    mMatchingEngine.getDmeConnection().postLocationUpdate(mLastLocationResult.getLastLocation());
+                }
                 for (Location location : locationResult.getLocations()) {
                     // Update UI with client location data
                     clientLocText += "[" + location.toString() + "]";
@@ -197,11 +213,185 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         if (mMatchingEngine == null) {
             // Permissions available. Create a MobiledgeX MatchingEngine instance (could also use Application wide instance).
             mMatchingEngine = new MatchingEngine(this);
+            // Register ourselves. The Subscribe annotation will be called on ClientEdgeEvents.
+            mMatchingEngine.getEdgeEventBus().register(this);
         }
 
         if (mDoLocationUpdates) {
             startLocationUpdates();
         }
+    }
+
+    /**
+     * Subscribe to ServerEdgeEvents! (Guava Interface)
+     * To optionally post messages to the DME, use MatchingEngine's DMEConnection.
+     */
+    @Subscribe
+    public void onMessageEvent(AppClient.ServerEdgeEvent event) {
+        Map<String, String> tagsMap = event.getTagsMap();
+
+        switch (event.getEventType()) {
+            case EVENT_INIT_CONNECTION:
+                System.out.println("Received Init response: " + event);
+                break;
+            case EVENT_APPINST_HEALTH:
+                System.out.println("Received: AppInst Health: " + event);
+                handleAppInstHealth(event);
+                break;
+            case EVENT_CLOUDLET_STATE:
+                System.out.println("Received: Cloutlet State event: " + event);
+                handleCloudletState(event);
+                break;
+            case EVENT_CLOUDLET_MAINTENANCE:
+                System.out.println("Received: Cloutlet Maintenance event." + event);
+                handleCloudletMaintenance(event);
+                break;
+            case EVENT_LATENCY_PROCESSED:
+                System.out.println("Received: Latency has been processed on server: " + event);
+                break;
+            case EVENT_LATENCY_REQUEST:
+                System.out.println("Received: Latency has been requested to be tested (client perspective): " + event);
+                handleLatencyRequest(event);
+                break;
+            case EVENT_CLOUDLET_UPDATE:
+                System.out.println("Received: Server pushed a new FindCloudletReply to switch to: " + event);
+                handleFindCloudletServerPush(event);
+                break;
+            case EVENT_UNKNOWN:
+                System.out.println("Received UnknownEvent.");
+                break;
+            default:
+                System.out.println("Event Received: " + event.getEventType());
+        }
+        // TODO: Need event switch of some kind to handle.
+        if (tagsMap.containsKey("shutdown")) {
+            // unregister self.
+            mMatchingEngine.getEdgeEventBus().unregister(this);
+        }
+    }
+
+    void handleFindCloudletServerPush(AppClient.ServerEdgeEvent event) {
+        // In a real app:
+        // Sync any user app data
+        // switch servers
+        // restore state to continue.
+
+        // Just print:
+        AppClient.FindCloudletReply reply = event.getNewCloudlet();
+
+        HashMap<Integer, Appcommon.AppPort> ports = mMatchingEngine.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
+        Appcommon.AppPort aport = ports.get(internalPort);
+        int publicPort = aport.getPublicPort();
+        String url = mMatchingEngine.getAppConnectionManager().createUrl(reply, aport, publicPort, "https", "");
+
+        someText += "New FindCloudlet path is: " + url;
+
+        // And set it for use later.
+        mLastFindCloudlet = reply;
+    }
+
+    void handleAppInstHealth(AppClient.ServerEdgeEvent event) {
+        if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_APPINST_HEALTH) {
+            return;
+        }
+
+        switch (event.getHealthCheck()) {
+            case HEALTH_CHECK_FAIL_ROOTLB_OFFLINE:
+            case HEALTH_CHECK_FAIL_SERVER_FAIL:
+                doEnhancedLocationVerification();
+                break;
+            case HEALTH_CHECK_OK:
+                System.out.println("AppInst Health is OK");
+                break;
+            case UNRECOGNIZED:
+                // fall through
+            default:
+                System.out.println("AppInst Health event: " + event.getHealthCheck());
+        }
+    }
+
+    void handleCloudletMaintenance(AppClient.ServerEdgeEvent event) {
+        if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_MAINTENANCE) {
+            return;
+        }
+
+        switch (event.getMaintenanceState()) {
+            case NORMAL_OPERATION:
+                System.out.println("Maintenance state is all good!");
+                break;
+            default:
+                System.out.println("Server maintenance: " + event.getMaintenanceState());
+        }
+    }
+
+    void handleCloudletState(AppClient.ServerEdgeEvent event) {
+        if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_STATE) {
+            return;
+        }
+
+        switch (event.getCloudletState()) {
+            case CLOUDLET_STATE_INIT:
+                System.out.println("Cloudlet is not ready yet. Wait or FindCloudlet again.");
+                break;
+            case CLOUDLET_STATE_NOT_PRESENT:
+            case CLOUDLET_STATE_UPGRADE:
+            case CLOUDLET_STATE_OFFLINE:
+            case CLOUDLET_STATE_ERRORS:
+                System.out.println("Cloudlet State is: " + event.getCloudletState());
+                break;
+            case CLOUDLET_STATE_READY:
+                // Timer Retry or just retry.
+                doEnhancedLocationVerification();
+                break;
+            case CLOUDLET_STATE_NEED_SYNC:
+                System.out.println("Cloudlet data needs to sync.");
+                break;
+            default:
+                System.out.println("Not handled");
+        }
+    }
+    // Only the app knows with any certainty which AppPort (and internal port array)
+    // it wants to test, so this is in the application.
+    void handleLatencyRequest(AppClient.ServerEdgeEvent event) {
+        if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_LATENCY_REQUEST) {
+            return;
+        }
+        CompletableFuture<Void> future = CompletableFuture.runAsync(new Runnable() {
+            @Override
+            public void run() {
+                // NetTest
+                // Local copy:
+                NetTest netTest = new NetTest();
+
+                // If there's a current FindCloudlet, we'd just use that.
+                if (mLastFindCloudlet == null) {
+                    return;
+                }
+
+                // Assuming some knowledge of your own internal un-remapped server port
+                // discover, and test with the PerformanceMetrics API:
+                int publicPort;
+                HashMap<Integer, Appcommon.AppPort> ports = mMatchingEngine.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
+                Appcommon.AppPort anAppPort = ports.get(internalPort);
+                if (anAppPort == null) {
+                    System.out.println("Your expected server (or port) doesn't seem to be here!");
+                }
+
+                // Test with default network in use:
+                publicPort = anAppPort.getPublicPort();
+                String host = mMatchingEngine.getAppConnectionManager().getHost(mLastFindCloudlet, anAppPort);
+
+                // Bad find cloudlet string (test.dme)
+                host = "192.168.1.172";
+                publicPort = mMatchingEngine.getPort(); // We'll just ping DME since the AppInst isn't there.
+                Site site = new Site(getApplicationContext(), NetTest.TestType.CONNECT, 5, host, publicPort);
+                netTest.addSite(site);
+                netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
+
+                mMatchingEngine.getDmeConnection().postLatencyResult(netTest.getSite(host),
+                        mLastLocationResult == null ? null : mLastLocationResult.getLastLocation());
+            }
+        });
     }
 
     @Override
@@ -280,12 +470,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     private void doEnhancedLocationUpdateInBackground(final Task<Location> aTask, final AppCompatActivity ctx) {
-        AsyncTask.execute(new Runnable() {
+        CompletableFuture<Void> future = CompletableFuture.runAsync(new Runnable() {
             @Override
             public void run() {
-                Location location = aTask.getResult();
-                location.setLatitude(49d);
-                location.setLongitude(-123d);
+            Location location = aTask.getResult();
+                if (location == null) {
+                    Log.e(TAG, "Mising location. Cannot update.");
+                    return;
+                }
                 // Location found. Create a request:
                 try {
                     someText = "";
@@ -332,8 +524,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
                     }
                     dmeHostAddress = "us-mexdemo." + MatchingEngine.baseDmeHost;
-                    //mMatchingEngine.setUseWifiOnly(true);
-                    //dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+                    mMatchingEngine.setUseWifiOnly(true);
+                    mMatchingEngine.setSSLEnabled(false);
+                    dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+                    dmeHostAddress = "localhost"; // TODO: Remove when Persistent Connection is deployed.
+                    EventBus bus = mMatchingEngine.getEdgeEventBus();
+                    bus.post(AppClient.ClientEdgeEvent.newBuilder().build());
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
@@ -365,8 +561,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     if (registerClientReply.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {
                         someText += "Registration Failed. Error: " + registerClientReply.getStatus();
-                        TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                        tv.setText(someText);
                         return;
                     }
 
@@ -379,6 +573,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
                             dmeHostAddress, port, 10000);
                     Log.i(TAG, "closest Cloudlet is " + closestCloudlet);
+                    mLastFindCloudlet = closestCloudlet;
+
+                    if (closestCloudlet.getStatus() != AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
+                        someText += "Cloudlet not found!";
+                        return;
+                    }
 
                     registerClientReplyFuture =
                             mMatchingEngine.registerClientFuture(registerClientRequest,
@@ -389,7 +589,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             mMatchingEngine.createDefaultVerifyLocationRequest(ctx, location)
                                 .build();
                     Log.i(TAG, "verifyRequest is " + verifyRequest);
-                    if (verifyRequest != null) {
+
+                    //bus.post()
+                    // Skip the bus. Just send it:
+                    location.setLatitude(40.7127837); // New York.
+                    location.setLongitude(-74.0059413);
+                    mMatchingEngine.getDmeConnection().postLocationUpdate(location);
+
+                    if (false /*verifyRequest != null*/) {
                         // Location Verification (Blocking, or use verifyLocationFuture):
                         AppClient.VerifyLocationReply verifiedLocation =
                                 mMatchingEngine.verifyLocation(verifyRequest, dmeHostAddress, port, 10000);
@@ -504,7 +711,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     // Set network back to last default one, if desired:
                     mMatchingEngine.getNetworkManager().resetNetworkToDefault();
-                } catch ( /*DmeDnsException |*/  ExecutionException | StatusRuntimeException e) {
+                } catch (/*DmeDnsException |*/ ExecutionException | StatusRuntimeException e) {
                     Log.e(TAG, e.getMessage());
                     Log.e(TAG, Log.getStackTraceString(e));
                     if (e.getCause() instanceof NetworkRequestTimeoutException) {
@@ -532,13 +739,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     });
                     Log.e(TAG, Log.getStackTraceString(e));
                 } catch (Exception e) {
-                    someText += "Exception failure: " + e.getMessage();
+                    someText += "Exception failure: " + e.getMessage() + ": ";
+                    e.printStackTrace();
+                } finally {
                     ctx.runOnUiThread(new Runnable() {
-                      @Override
-                      public void run() {
-                          TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                          tv.setText(someText);
-                      }
+                        @Override
+                        public void run() {
+                            TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+                            if (tv != null) {
+                                tv.setText(someText);
+                            }
+                        }
                     });
                 }
             }

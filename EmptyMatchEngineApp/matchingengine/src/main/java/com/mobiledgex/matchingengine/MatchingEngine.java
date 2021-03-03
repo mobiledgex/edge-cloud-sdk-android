@@ -62,15 +62,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.AppClient.RegisterClientRequest;
@@ -103,6 +98,11 @@ import android.content.pm.PackageInfo;
 import android.util.Log;
 import android.util.Pair;
 
+import com.google.android.gms.common.api.Api;
+import com.google.common.eventbus.AsyncEventBus;
+import com.google.common.eventbus.DeadEvent;
+import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.mel.MelMessaging;
 
@@ -126,15 +126,16 @@ public class MatchingEngine {
 
     // A threadpool for all the MatchEngine API callable interfaces:
     final ExecutorService threadpool;
+    private boolean externalExecutor = false;
 
     // State info for engine
-    private String mSessionCookie; // TODO: Session Map lookup for multiple Edge Apps.
+    String mSessionCookie; // TODO: Session Map lookup for multiple Edge Apps.
     private String mTokenServerURI;
     private String mTokenServerToken;
 
     private RegisterClientRequest mRegisterClientRequest;
     private RegisterClientReply mRegisterClientReply;
-    private FindCloudletReply mFindCloudletReply;
+    FindCloudletReply mFindCloudletReply;
     private VerifyLocationReply mVerifyLocationReply;
     private GetLocationReply mGetLocationReply;
     private DynamicLocGroupReply mDynamicLocGroupReply;
@@ -158,6 +159,9 @@ public class MatchingEngine {
     private NetTest mNetTest;
     private boolean threadedPerformanceTest = false;
 
+    private EventBus mEdgeEventBus;
+    private DMEConnection mDmeConnection;
+
     /*!
      * Constructor for MatchingEngine class.
      * \param context (android.content.Context)
@@ -171,10 +175,15 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
+        mEdgeEventBus = new EventBus();
+        mEdgeEventBus.register(this);
         if (MelMessaging.isMelEnabled()) {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
         }
+
+        // Self event Test (client internal):
+        //mEdgeEventBus.post(AppClient.ClientEdgeEvent.newBuilder().putTags("foo", "bort").build());
     }
 
     /*!
@@ -184,15 +193,103 @@ public class MatchingEngine {
      */
     public MatchingEngine(Context context, ExecutorService executorService) {
         threadpool = executorService;
+        externalExecutor = true;
         ConnectivityManager connectivityManager = context.getSystemService(ConnectivityManager.class);
         mNetworkManager = NetworkManager.getInstance(connectivityManager, getSubscriptionManager(context), threadpool);
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
+        mEdgeEventBus = new AsyncEventBus(executorService); // TODO: Should not be implicit.
+        mEdgeEventBus.register(this);
         if (MelMessaging.isMelEnabled()) {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
         }
+    }
+
+    /**
+     * Gets or re-establishes a connection to the DME, and returns a DMEConnection singleton.
+     * @param dmeHost
+     * @param port
+     * @param network
+     * @param edgeEventsCookie This events session cookie part of FindClooudletReply for the app's
+     *                         resolved edge AppInst.
+     * @return a connected DMEConnection instance
+     */
+    DMEConnection getDmeConnection(String dmeHost, int port, Network network, String edgeEventsCookie) {
+        if (mDmeConnection == null || mDmeConnection.isShutdown()) {
+            mDmeConnection = new DMEConnection(this, dmeHost, port, null);
+        }
+
+        // Client identifies itself with an Init message to DME EdgeEvents Connection.
+        AppClient.ClientEdgeEvent initDmeEvent = AppClient.ClientEdgeEvent.newBuilder()
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
+                .setSessionCookie(mSessionCookie)
+                .setEdgeEventsCookie(edgeEventsCookie)
+                .build();
+        mDmeConnection.send(initDmeEvent);
+
+        return mDmeConnection;
+    }
+
+    // EventBus is not to be used for outgoing events. No subscription to serverEdgeEvents.
+    // Ingress from DMEConnection.
+    @Subscribe
+    private void handleClientEdgeEvent(AppClient.ClientEdgeEvent clientEdgeEvent) {
+        Log.d(TAG, "EventBus: Event: " + clientEdgeEvent.getEventType());
+    }
+
+    /**
+     * Listens to dead events, and prints them in debug builds. If they are of interest, subscribe.
+     * @param deadEvent
+     */
+    @Subscribe
+    private void handleDeadEdgeEvent(DeadEvent deadEvent) {
+        Log.d(TAG, "EventBus: Unhandled event: " + deadEvent.toString());
+
+        if (deadEvent.getEvent() instanceof AppClient.ClientEdgeEvent) {
+            AppClient.ClientEdgeEvent unhandledEvent = (AppClient.ClientEdgeEvent) deadEvent.getEvent();
+
+            switch (unhandledEvent.getEventType()) {
+                case EVENT_LATENCY_SAMPLES:
+                    Log.w(TAG, "EventBus: To get pushed FindCloudlet updates, handle the ClientEdgeEvent: EVENT_LATENCY_SAMPLES");
+                    break;
+            }
+        }
+    }
+
+    public DMEConnection getDmeConnection() {
+        return mDmeConnection;
+    }
+
+    /**
+     * MatchingEngine contains some long lived resources.
+     */
+    public void close() {
+        mEdgeEventBus.unregister(this);
+        getDmeConnection().sendTerminate();
+
+        // Kill ExecutorService.
+        if (!externalExecutor && threadpool != null) {
+            threadpool.shutdown();
+        }
+
+        mSessionCookie = null;
+        mTokenServerToken = null;
+        mTokenServerURI = null;
+        mRegisterClientReply = null;
+        mContext = null;
+        mNetworkManager = null;
+        mAppConnectionManager = null;
+    }
+
+    /**
+     * This is an event bus for EdgeEvents.
+     * It is Async if you specify your own ExecutorService with MatchingEgnine init.
+     * @return
+     */
+    public EventBus getEdgeEventBus() {
+        return mEdgeEventBus;
     }
 
     // Application state Bundle Key.
@@ -463,6 +560,7 @@ public class MatchingEngine {
      * \throws SecurityException if GET_PHONE_STATE missing.
      * \ingroup functions_dmeutils
      */
+    @Deprecated
     public List<Pair<String, Long>> retrieveCellId(Context context) throws SecurityException {
         TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
 
@@ -959,7 +1057,7 @@ public class MatchingEngine {
         return builder;
     }
 
-    private Loc androidLocToMeLoc(android.location.Location loc) {
+    Loc androidLocToMeLoc(android.location.Location loc) {
         Loc.Builder builder = Loc.newBuilder()
                 .setLatitude((loc == null) ? 0.0d : loc. getLatitude())
                 .setLongitude((loc == null) ? 0.0d : loc.getLongitude())
@@ -1069,7 +1167,7 @@ public class MatchingEngine {
     }
 
     /*!
-     * findCloudlet finds the closest cloudlet instance as per request.
+   * findCloudlet finds the closest cloudlet instance as per request.
      * FindCloudlet returns information needed for the client app to connect to an application backend deployed through MobiledgeX.
      * If there is an application backend instance found, FindCloudetReply will contain the fqdn of the application backend and an array of AppPorts (with information specific to each application backend endpoint)
      * \param request (FindCloudletRequest)
@@ -1080,15 +1178,15 @@ public class MatchingEngine {
      * \exception InterruptedException
      * \exception ExecutionException
      * \ingroup functions_dmeapis
-     */
-    public FindCloudletReply findCloudlet(FindCloudletRequest request,
+   */
+  public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                         long timeoutInMilliseconds, FindCloudletMode mode)
-            throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
-        return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, mode);
-    }
+          throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
+      return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, mode);
+  }
 
     /*!
-     * findCloudlet finds the closest cloudlet instance as per request.
+   * findCloudlet finds the closest cloudlet instance as per request.
      * FindCloudlet overload with hardcoded DME host and port. Only use for testing.
      * \param request (FindCloudletRequest)
      * \param host (String): Distributed Matching Engine hostname
@@ -1099,19 +1197,19 @@ public class MatchingEngine {
      * \ingroup functions_dmeapis
      * \section findcloudletoverrideexample Example
      * \snippet EngineCallTest.java findcloudletoverrideexample
-     */
-    public FindCloudletReply findCloudlet(FindCloudletRequest request,
+   */
+  public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                         String host, int port,
                                         long timeoutInMilliseconds)
-      throws StatusRuntimeException, InterruptedException, ExecutionException {
-        FindCloudlet findCloudlet = new FindCloudlet(this);
+    throws StatusRuntimeException, InterruptedException, ExecutionException {
+      FindCloudlet findCloudlet = new FindCloudlet(this);
 
-        // This also needs some info for MEL.
-        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
+      // This also needs some info for MEL.
+      findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
 
-        Log.i(TAG, "DME host is: " + host);
-        return findCloudlet.call();
-    }
+      Log.i(TAG, "DME host is: " + host);
+      return findCloudlet.call();
+  }
 
     /*!
      * findCloudlet finds the closest cloudlet instance as per request.
@@ -1153,13 +1251,13 @@ public class MatchingEngine {
     }
 
     /*!
-     * findCloudlet finds the closest cloudlet instance as per request. Returns a Future.
+   * findCloudlet finds the closest cloudlet instance as per request. Returns a Future.
      * \param request (FindCloudletRequest)
      * \param timeoutInMilliseconds (long)
      * \param mode (FindCloudletMode): algorithm to use to find edge cloudlets.
      * \return Future<FindCloudletReply>: cloudlet URI Future.
      * \ingroup functions_dmeapis
-     */
+   */
     public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
                                                         long timeoutInMilliseconds,
                                                         FindCloudletMode mode)
@@ -1185,7 +1283,7 @@ public class MatchingEngine {
     }
 
     /*!
-     * findCloudletFuture finds the closest cloudlet instance as per request. Returns a Future.
+   * findCloudletFuture finds the closest cloudlet instance as per request. Returns a Future.
      * \param request (FindCloudletRequest)
      * \param host (String): Distributed Matching Engine hostname
      * \param port (int): Distributed Matching Engine port
@@ -1193,7 +1291,7 @@ public class MatchingEngine {
      * \param mode (FindCloudletMode): algorithm to use to find edge cloudlets.
      * \return Future<FindCloudletReply>: cloudlet URI Future.
      * \ingroup functions_dmeapis
-     */
+   */
     public Future<FindCloudletReply> findCloudletFuture(FindCloudletRequest request,
                                                         String host, int port,
                                                         long timeoutInMilliseconds,
@@ -1814,4 +1912,6 @@ public class MatchingEngine {
                     .build();
         }
     }
+
+
 }
