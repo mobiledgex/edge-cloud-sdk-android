@@ -67,8 +67,8 @@ public class NetMetricsTest {
         AppClient.RegisterClientRequest.Builder registerClientRequestBuilder = null;
         try {
             registerClientRequestBuilder = me.createDefaultRegisterClientRequest(context, "MobiledgeX-Samples")
-                    .setAppName("ComputerVision")
-                    .setAppVers("2.2");
+                    .setAppName("HttpEcho")
+                    .setAppVers("1.0");
             AppClient.RegisterClientRequest req = registerClientRequestBuilder.build();
 
             AppClient.RegisterClientReply regReply = me.registerClient(req, 10000);
@@ -97,7 +97,7 @@ public class NetMetricsTest {
 
 
         List<Site> sites = netTest.sortedSiteList();
-        assertEquals("Site list size wrong!", 2, sites.size());
+        assertEquals("Site list size wrong!", 1, sites.size());
 
         Site bestSite;
         // Emulator WiFi unit test only! (and still unstable)
@@ -110,7 +110,7 @@ public class NetMetricsTest {
         if (!site2.host.equals(bestSite.host)) {
             assertTrue("Serial winner Not within 10% margin: ", Math.abs(bestSite.average-site2.average)/site2.average < 0.1d);
         } else {
-            assertEquals("Test expectation is LA wins: ", site2.host, netTest.bestSite().host);
+            assertEquals("Test expectation is vancouver-main wins: ", site2.host, netTest.bestSite().host);
         }
 
         netTest.testSitesOnExecutor(TimeoutMS);
@@ -121,10 +121,10 @@ public class NetMetricsTest {
             assertTrue("Threaded winner Not within 10% margin: ", Math.abs(bestSite.average-site2.average)/site2.average < 0.1d);
         } else {
             Log.d(TAG, "Got best site: " + netTest.bestSite().host);
-            assertEquals("Test expectation is LA wins: ", site2.host, netTest.bestSite().host);
+            assertEquals("Test expectation is vancouver-main wins: ", site2.host, netTest.bestSite().host);
         }
         // Might fail:
-        assertEquals("computervision-tcp.mobiledgex-samplescomputervision22.cv-cluster.us-north-virginia.gcp.mobiledgex.net", bestSite.host);
+        assertEquals("httpecho-tcp.vancouver-main.telus.mobiledgex.net", bestSite.host);
 
     }
 
@@ -144,7 +144,7 @@ public class NetMetricsTest {
         AppClient.RegisterClientRequest.Builder registerClientRequestBuilder = null;
         try {
             registerClientRequestBuilder = me.createDefaultRegisterClientRequest(context, "MobiledgeX-Samples")
-                    .setAppName("ComputerVision")
+                    .setAppName("ComputerVision-GPU")
                     .setAppVers("2.2");
             AppClient.RegisterClientRequest req = registerClientRequestBuilder.build();
 
@@ -187,7 +187,7 @@ public class NetMetricsTest {
         if (!site2.host.equals(bestSite.host)) {
             assertTrue("Serial winner Not within 10% margin: ", Math.abs(bestSite.average-site2.average)/site2.average < 0.1d);
         } else {
-            assertEquals("Test expectation is Virgina wins: ", site2.host, netTest.bestSite().host);
+            assertEquals("Test expectation is vancouver-main wins: ", site2.host, netTest.bestSite().host);
         }
 
         netTest.testSitesOnExecutor(TimeoutMS);
@@ -198,10 +198,10 @@ public class NetMetricsTest {
             assertTrue("Threaded winner Not within 10% margin: ", Math.abs(bestSite.average-site2.average)/site2.average < 0.10d);
         } else {
             Log.d(TAG, "Got best site: " + netTest.bestSite().host);
-            assertEquals("Test expectation is Virginia wins: ", site2.host, netTest.bestSite().host);
+            assertEquals("Test expectation is vancouver-main site wins: ", site2.host, netTest.bestSite().host);
         }
         // Might fail:
-        assertEquals("computervision-tcp.mobiledgex-samplescomputervision22.cv-cluster.us-north-virginia.gcp.mobiledgex.net", bestSite.host);
+        assertEquals("cv-gpu-cluster.vancouver-main.telus.mobiledgex.net", bestSite.host);
 
     }
 }

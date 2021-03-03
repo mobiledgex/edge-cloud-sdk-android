@@ -114,9 +114,10 @@ public class RegisterClient implements Callable {
         AppClient.RegisterClientReply reply;
         ManagedChannel channel = null;
         NetworkManager nm;
+        Network network = null;
         try {
             nm = mMatchingEngine.getNetworkManager();
-            Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
+            network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);

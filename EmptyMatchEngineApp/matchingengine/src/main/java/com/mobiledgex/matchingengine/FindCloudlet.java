@@ -337,6 +337,11 @@ public class FindCloudlet implements Callable {
 
         AppClient.FindCloudletReply fcReply;
 
+        Network network = mMatchingEngine.getNetworkManager()
+                .getCellularNetworkOrWifiBlocking(
+                        false,
+                        mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
+
         // Is Wifi Enabled, and has IP?
         Stopwatch stopwatch = Stopwatch.createStarted();
         long ip = mMatchingEngine.getWifiIp(mMatchingEngine.mContext);
@@ -352,6 +357,11 @@ public class FindCloudlet implements Callable {
         }
 
         mMatchingEngine.setFindCloudletResponse(fcReply);
+
+        // Create message channel for DME EdgeEvents:
+        if (fcReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
+            mMatchingEngine.getDmeConnection(mHost, mPort, network, fcReply.getEdgeEventsCookie());
+        }
         return fcReply;
     }
 
