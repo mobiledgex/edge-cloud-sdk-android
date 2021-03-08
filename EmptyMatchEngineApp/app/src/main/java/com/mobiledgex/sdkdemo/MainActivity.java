@@ -139,8 +139,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 String clientLocText = "";
                 mLastLocationResult = locationResult;
                 // TODO: DMEConnection for events is lazy initialized.
-                if (mMatchingEngine.getDmeConnection() != null && mLastLocationResult != null) {
-                    mMatchingEngine.getDmeConnection().postLocationUpdate(mLastLocationResult.getLastLocation());
+                if (mMatchingEngine.getEdgeEventsConnection() != null && mLastLocationResult != null) {
+                    mMatchingEngine.getEdgeEventsConnection().postLocationUpdate(mLastLocationResult.getLastLocation());
                 }
                 for (Location location : locationResult.getLocations()) {
                     // Update UI with client location data
@@ -222,9 +222,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
     }
 
-    /**
+    /*!
      * Subscribe to ServerEdgeEvents! (Guava Interface)
-     * To optionally post messages to the DME, use MatchingEngine's DMEConnection.
+     * To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
      */
     @Subscribe
     public void onMessageEvent(AppClient.ServerEdgeEvent event) {
@@ -388,7 +388,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 netTest.addSite(site);
                 netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
 
-                mMatchingEngine.getDmeConnection().postLatencyResult(netTest.getSite(host),
+                mMatchingEngine.getEdgeEventsConnection().postLatencyResult(netTest.getSite(host),
                         mLastLocationResult == null ? null : mLastLocationResult.getLastLocation());
             }
         });
@@ -594,7 +594,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // Skip the bus. Just send it:
                     location.setLatitude(40.7127837); // New York.
                     location.setLongitude(-74.0059413);
-                    mMatchingEngine.getDmeConnection().postLocationUpdate(location);
+                    mMatchingEngine.getEdgeEventsConnection().postLocationUpdate(location);
 
                     if (false /*verifyRequest != null*/) {
                         // Location Verification (Blocking, or use verifyLocationFuture):

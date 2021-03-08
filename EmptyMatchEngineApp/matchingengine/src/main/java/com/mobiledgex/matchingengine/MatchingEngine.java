@@ -98,7 +98,6 @@ import android.content.pm.PackageInfo;
 import android.util.Log;
 import android.util.Pair;
 
-import com.google.android.gms.common.api.Api;
 import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.EventBus;
@@ -160,7 +159,7 @@ public class MatchingEngine {
     private boolean threadedPerformanceTest = false;
 
     private EventBus mEdgeEventBus;
-    private DMEConnection mDmeConnection;
+    private EdgeEventsConnection mEdgeEventsConnection;
 
     /*!
      * Constructor for MatchingEngine class.
@@ -207,18 +206,21 @@ public class MatchingEngine {
         }
     }
 
-    /**
-     * Gets or re-establishes a connection to the DME, and returns a DMEConnection singleton.
-     * @param dmeHost
-     * @param port
-     * @param network
-     * @param edgeEventsCookie This events session cookie part of FindClooudletReply for the app's
+    /*!
+     * Gets or re-establishes a connection to the DME, and returns a EdgeEventsConnection singleton.
+     * If you want to receive events, register your class that has a @Subscribe annotation with a
+     * ServerEdgeEvent method parameter.
+     *
+     * \param dmeHost
+     * \param port
+     * \param network
+     * \param edgeEventsCookie This events session cookie part of FindClooudletReply for the app's
      *                         resolved edge AppInst.
-     * @return a connected DMEConnection instance
+     * \return a connected EdgeEventsConnection instance
      */
-    DMEConnection getDmeConnection(String dmeHost, int port, Network network, String edgeEventsCookie) {
-        if (mDmeConnection == null || mDmeConnection.isShutdown()) {
-            mDmeConnection = new DMEConnection(this, dmeHost, port, null);
+    EdgeEventsConnection getEdgeEventsConnection(String dmeHost, int port, Network network, String edgeEventsCookie) {
+        if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
+            mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, port, null);
         }
 
         // Client identifies itself with an Init message to DME EdgeEvents Connection.
@@ -227,16 +229,16 @@ public class MatchingEngine {
                 .setSessionCookie(mSessionCookie)
                 .setEdgeEventsCookie(edgeEventsCookie)
                 .build();
-        mDmeConnection.send(initDmeEvent);
+        mEdgeEventsConnection.send(initDmeEvent);
 
-        return mDmeConnection;
+        return mEdgeEventsConnection;
     }
 
     // EventBus is not to be used for outgoing events. No subscription to serverEdgeEvents.
-    // Ingress from DMEConnection.
+    // Ingress from EdgeEventsConnection.
     @Subscribe
-    private void handleClientEdgeEvent(AppClient.ClientEdgeEvent clientEdgeEvent) {
-        Log.d(TAG, "EventBus: Event: " + clientEdgeEvent.getEventType());
+    private void handleClientEdgeEvent(AppClient.ServerEdgeEvent serverEdgeEvent) {
+        Log.d(TAG, "EventBus: Event: " + serverEdgeEvent.getEventType());
     }
 
     /**
@@ -247,19 +249,14 @@ public class MatchingEngine {
     private void handleDeadEdgeEvent(DeadEvent deadEvent) {
         Log.d(TAG, "EventBus: Unhandled event: " + deadEvent.toString());
 
-        if (deadEvent.getEvent() instanceof AppClient.ClientEdgeEvent) {
-            AppClient.ClientEdgeEvent unhandledEvent = (AppClient.ClientEdgeEvent) deadEvent.getEvent();
-
-            switch (unhandledEvent.getEventType()) {
-                case EVENT_LATENCY_SAMPLES:
-                    Log.w(TAG, "EventBus: To get pushed FindCloudlet updates, handle the ClientEdgeEvent: EVENT_LATENCY_SAMPLES");
-                    break;
-            }
+        if (deadEvent.getEvent() instanceof AppClient.ServerEdgeEvent) {
+            AppClient.ServerEdgeEvent unhandledEvent = (AppClient.ServerEdgeEvent) deadEvent.getEvent();
+            Log.w(TAG, "EventBus: To get pushed edgeEvent updates, subscribe to ServerEdgeEvents: " + unhandledEvent.getEventType());
         }
     }
 
-    public DMEConnection getDmeConnection() {
-        return mDmeConnection;
+    public EdgeEventsConnection getEdgeEventsConnection() {
+        return mEdgeEventsConnection;
     }
 
     /**
@@ -267,7 +264,10 @@ public class MatchingEngine {
      */
     public void close() {
         mEdgeEventBus.unregister(this);
-        getDmeConnection().sendTerminate();
+
+        if (getEdgeEventsConnection() != null) {
+            getEdgeEventsConnection().sendTerminate();
+        }
 
         // Kill ExecutorService.
         if (!externalExecutor && threadpool != null) {
@@ -283,10 +283,15 @@ public class MatchingEngine {
         mAppConnectionManager = null;
     }
 
-    /**
+    /*!
      * This is an event bus for EdgeEvents.
      * It is Async if you specify your own ExecutorService with MatchingEgnine init.
-     * @return
+     *
+     * If you want to send a response back to the server, call getEdgeEventsConnection()
+     * to access Utility functions to help with the response.
+     *
+     * \return
+     * \ingroup functions_dmeutils
      */
     public EventBus getEdgeEventBus() {
         return mEdgeEventBus;
