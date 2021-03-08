@@ -23,11 +23,11 @@ import static distributed_match_engine.AppClient.ServerEdgeEvent.ServerEventType
 
 
 /**
- * Async EdgeEvents StreamObserver to and from DME.
+ * EdgeEventsConnection provides a asynchronious bi-directional connection to the server side DME.
  */
-public class DMEConnection {
+public class EdgeEventsConnection {
 
-    public static final String TAG = "DMEConnection";
+    public static final String TAG = "EdgeEventsConnection";
 
     // Persistent connection:
     private MatchingEngine me;
@@ -48,7 +48,7 @@ public class DMEConnection {
      * Establish an asynchronous DME Connection for streamed EdgeEvents to the current DME edge server.
      * @param me
      */
-    DMEConnection(MatchingEngine me) {
+    EdgeEventsConnection(MatchingEngine me) {
         synchronized (this) {
             hostOverride = null;
             portOverride = 0;
@@ -61,7 +61,7 @@ public class DMEConnection {
         }
     }
 
-    DMEConnection(MatchingEngine me, String host, int port, Network network) {
+    EdgeEventsConnection(MatchingEngine me, String host, int port, Network network) {
         this.me = me;
         try {
             synchronized (this) {
