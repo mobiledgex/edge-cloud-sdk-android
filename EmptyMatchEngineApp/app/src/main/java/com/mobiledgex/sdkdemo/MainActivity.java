@@ -539,7 +539,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     }
                     dmeHostAddress = "us-mexdemo." + MatchingEngine.baseDmeHost;
                     //mMatchingEngine.setUseWifiOnly(true);
-                    mMatchingEngine.setSSLEnabled(false);
+                    //mMatchingEngine.setSSLEnabled(false);
+                    //mMatchingEngine.setNetworkSwitchingEnabled(true);
                     dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
                     dmeHostAddress = "192.168.1.172";
                     EventBus bus = mMatchingEngine.getEdgeEventsBus();
