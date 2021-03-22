@@ -222,6 +222,16 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        if (mMatchingEngine != null) {
+            mMatchingEngine.close();
+            mMatchingEngine = null;
+        }
+    }
+
     /*!
      * Subscribe to ServerEdgeEvents! (Guava Interface)
      * To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
@@ -524,10 +534,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
                     }
                     dmeHostAddress = "us-mexdemo." + MatchingEngine.baseDmeHost;
-                    mMatchingEngine.setUseWifiOnly(true);
-                    mMatchingEngine.setSSLEnabled(false);
+                    //mMatchingEngine.setUseWifiOnly(true);
+                    //mMatchingEngine.setSSLEnabled(false);
+                    //mMatchingEngine.setNetworkSwitchingEnabled(true);
                     dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
-                    dmeHostAddress = "localhost"; // TODO: Remove when Persistent Connection is deployed.
+                    //dmeHostAddress = "localhost"; // TODO: Remove when Persistent Connection is deployed.
                     EventBus bus = mMatchingEngine.getEdgeEventBus();
                     bus.post(AppClient.ClientEdgeEvent.newBuilder().build());
 
