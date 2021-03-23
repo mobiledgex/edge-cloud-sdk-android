@@ -180,9 +180,6 @@ public class MatchingEngine {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
         }
-
-        // Self event Test (client internal):
-        //mEdgeEventBus.post(AppClient.ClientEdgeEvent.newBuilder().putTags("foo", "bort").build());
     }
 
     /*!
@@ -285,7 +282,7 @@ public class MatchingEngine {
 
     /*!
      * This is an event bus for EdgeEvents.
-     * It is Async if you specify your own ExecutorService with MatchingEgnine init.
+     * You can specify your own ExecutorService with MatchingEgnine init.
      *
      * If you want to send a response back to the server, call getEdgeEventsConnection()
      * to access Utility functions to help with the response.
@@ -293,7 +290,7 @@ public class MatchingEngine {
      * \return
      * \ingroup functions_dmeutils
      */
-    public EventBus getEdgeEventBus() {
+    public EventBus getEdgeEventsBus() {
         return mEdgeEventBus;
     }
 

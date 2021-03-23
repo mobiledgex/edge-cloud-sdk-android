@@ -5,7 +5,6 @@ import android.location.Location;
 import android.net.Network;
 import android.util.Log;
 
-import com.google.android.gms.location.LocationResult;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 
@@ -144,7 +143,7 @@ public class EdgeEventsConnection {
                     sendTerminate();
                 }
 
-                me.getEdgeEventBus().post(value);
+                me.getEdgeEventsBus().post(value);
             }
 
             @Override
@@ -162,7 +161,7 @@ public class EdgeEventsConnection {
                         reconnect();
                     }
                 } catch (DmeDnsException dde) {
-                    me.getEdgeEventBus().post(
+                    me.getEdgeEventsBus().post(
                             AppClient.ServerEdgeEvent.newBuilder()
                                     .setEventType(EVENT_INIT_CONNECTION)
                                     .putTags("Message", "DME Connection failed. A new client initiated FindCloudlet required for edge events stream.")
@@ -177,6 +176,9 @@ public class EdgeEventsConnection {
         open = true;
     }
 
+    /*!
+     * Call this to shutdown EdgeEvents cleanly.
+     */
     synchronized void close() {
         if (!isShutdown()) {
             channel.shutdown();
@@ -201,15 +203,16 @@ public class EdgeEventsConnection {
         return channel.isShutdown();
     }
 
-    void send(AppClient.ClientEdgeEvent clientEdgeEvent) {
+    boolean send(AppClient.ClientEdgeEvent clientEdgeEvent) {
         if (isShutdown()) {
-            return;
+            return false;
         }
 
         sender.onNext(clientEdgeEvent);
+        return true;
     }
 
-    private void tryPost(AppClient.ClientEdgeEvent clientEdgeEvent) {
+    private boolean tryPost(AppClient.ClientEdgeEvent clientEdgeEvent) {
         try {
             if (isShutdown()) {
                 reconnect();
@@ -218,43 +221,81 @@ public class EdgeEventsConnection {
         } catch (DmeDnsException dde) {
             Log.e(TAG, dde.getMessage() + ", cause: " + dde.getCause());
             dde.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    public void sendTerminate() {
+    public boolean sendTerminate() {
         if (isShutdown()) {
-            return;
+            return false;
         }
 
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
                 .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_TERMINATE_CONNECTION);
 
-        tryPost(clientEdgeEventBuilder.build());
+        return tryPost(clientEdgeEventBuilder.build());
     }
 
-    /**
-     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudlet. A DME
-     * administrator of your Application may request an client application to collect performance
+    // Utility functions below:
+
+    /*!
+     * Outbound Client to Server location update. If there is a closer cloudlet, this will cause a
+     * Guava ServerEdgeEvent EVENT_CLOUDLET_UPDATE message to be sent to subscribers.
+     * @param location
+     * @return whether the message was posted.
+     */
+    public boolean postLocationUpdate(Location location) {
+        if (!me.isMatchingEngineLocationAllowed()) {
+            return false;
+        }
+
+        if (location == null) {
+            return false;
+        }
+
+        if (isShutdown()) {
+            return false;
+        }
+
+        LocOuterClass.Loc loc = me.androidLocToMeLoc(location);
+        if (loc == null) {
+            return false;
+        }
+
+        AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LOCATION_UPDATE)
+                .setGpsLocation(loc);
+
+        AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
+
+        return tryPost(clientEdgeEvent);
+    }
+
+    /*!
+     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
+     * A DME administrator of your Application may request an client application to collect performance
      * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
      * @param site
      * @param location
+     * @return boolean indicating whether the site results are posted or not.
      */
-    public void postLatencyResult(Site site, Location location) {
+    public boolean postLatencyResult(Site site, Location location) {
 
         if (!me.isMatchingEngineLocationAllowed()) {
-            return;
+            return false;
         }
 
         if (isShutdown()) {
-            return;
+            return false;
         }
 
         LocOuterClass.Loc loc = null;
 
         if (site == null || (site.samples == null || site.samples.length == 0)) {
             // No results to post.
-            return;
+            return false;
         }
 
         if (location != null) {
@@ -280,38 +321,164 @@ public class EdgeEventsConnection {
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        tryPost(clientEdgeEvent);
+        return tryPost(clientEdgeEvent);
     }
 
-    /**
-     * Outbound Client to Server location update. If there is a closer cloudlet, this will cause a
-     * Guava ServerEdgeEvent EVENT_CLOUDLET_UPDATE message to be sent to subscribers.
+    /*!
+     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
+     * A DME administrator of your Application may request an client application to collect performance
+     * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
+     *
+     * @param host string uri of the site to test with Ping (from default network network interface)
      * @param location
+     * @return boolean indicating whether the site results are posted or not.
      */
-    public void postLocationUpdate(Location location) {
-        if (!me.isMatchingEngineLocationAllowed()) {
-            return;
-        }
+    public boolean testPingAndPostLatencyResult(String host, Location location) {
+        return testPingAndPostLatencyResult(host, location, 5);
+    }
 
-        if (location == null) {
-            return;
+    /*!
+     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
+     * A DME administrator of your Application may request an client application to collect performance
+     * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
+     *
+     * @param site
+     * @param android format location
+     * @param number of samples to test.
+     * @return boolean indicating whether the site results are posted or not.
+     */
+    public boolean testPingAndPostLatencyResult(String host, Location location, int numSamples) {
+        if (!me.isMatchingEngineLocationAllowed()) {
+            return false;
         }
 
         if (isShutdown()) {
-            return;
+            return false;
         }
 
-        LocOuterClass.Loc loc = me.androidLocToMeLoc(location);
-        if (loc == null) {
-            return;
+        LocOuterClass.Loc loc = null;
+
+        if (host == null || host.length() == 0) {
+            // No results to post.
+            return false;
+        }
+
+        if (location != null) {
+            loc = me.androidLocToMeLoc(location);
         }
 
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
-                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LOCATION_UPDATE)
-                .setGpsLocation(loc);
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LATENCY_SAMPLES);
+
+        if (loc != null) {
+            clientEdgeEventBuilder.setGpsLocation(loc);
+        }
+
+        if (numSamples == 0) {
+            numSamples = 5;
+        }
+        Site site = new Site(me.mContext, NetTest.TestType.PING, numSamples, host, 0);
+        NetTest netTest = new NetTest();
+        netTest.addSite(site);
+        // Test list of sites:
+        netTest.testSites(netTest.TestTimeoutMS);
+
+        for (int i = 0; i < site.samples.length; i++) {
+            if (site.samples[i] > 0d) {
+                LocOuterClass.Sample.Builder sampleBuilder = LocOuterClass.Sample.newBuilder()
+                        //.setLoc(loc) Location is not synchronous with measurement.
+                        // Samples are not timestamped.
+                        .setValue(site.samples[i]);
+                clientEdgeEventBuilder.addSamples(sampleBuilder.build());
+            }
+        }
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        tryPost(clientEdgeEvent);
+        return tryPost(clientEdgeEvent);
+    }
+
+    /*!
+     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
+     * A DME administrator of your Application may request an client application to collect performance
+     * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
+     *
+     * This utility function uses the default network path. It does not swap networks.
+     *
+     * @param site
+     * @param location
+     * @return boolean indicating whether the site results are posted or not.
+     */
+    public boolean testConnectAndPostLatencyResult(String host, int port, Location location) {
+        return testConnectAndPostLatencyResult(host, port, location, 5);
+    }
+
+    /*!
+     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
+     * A DME administrator of your Application may request an client application to collect performance
+     * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
+     *
+     * This utility function uses the default network path. It does not swap networks.
+     *
+     * @param host
+     * @param port
+     * @param android format GPS location.
+     * @param number of samples to test
+     * @return boolean indicating whether the site results are posted or not.
+     */
+    public boolean testConnectAndPostLatencyResult(String host, int port, Location location, int numSamples) {
+        if (!me.isMatchingEngineLocationAllowed()) {
+            return false;
+        }
+
+        if (isShutdown()) {
+            return false;
+        }
+
+        LocOuterClass.Loc loc = null;
+
+        if (host == null || host.length() == 0) {
+            // No results to post.
+            return false;
+        }
+
+        if (port <= 0) {
+            return false;
+        }
+
+        if (location != null) {
+            loc = me.androidLocToMeLoc(location);
+        }
+
+        AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LATENCY_SAMPLES);
+
+        if (loc != null) {
+            clientEdgeEventBuilder.setGpsLocation(loc);
+        }
+
+        if (numSamples == 0) {
+            numSamples = 5;
+        }
+
+        Site site = new Site(me.mContext, NetTest.TestType.CONNECT, numSamples, host, port);
+        NetTest netTest = new NetTest();
+        netTest.addSite(site);
+        // Test list of sites:
+        netTest.testSites(netTest.TestTimeoutMS);
+
+        for (int i = 0; i < site.samples.length; i++) {
+            if (site.samples[i] > 0d) {
+                LocOuterClass.Sample.Builder sampleBuilder = LocOuterClass.Sample.newBuilder()
+                        //.setLoc(loc) Location is not synchronous with measurement.
+                        // Samples are not timestamped.
+                        .setValue(site.samples[i]);
+                clientEdgeEventBuilder.addSamples(sampleBuilder.build());
+            }
+        }
+
+        AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
+
+        return tryPost(clientEdgeEvent);
     }
 }
