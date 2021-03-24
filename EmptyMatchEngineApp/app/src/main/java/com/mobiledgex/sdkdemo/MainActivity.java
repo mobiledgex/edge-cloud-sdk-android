@@ -380,7 +380,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 // discover, and test with the PerformanceMetrics API:
                 int publicPort;
                 HashMap<Integer, Appcommon.AppPort> ports = mMatchingEngine.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
-                Appcommon.AppPort anAppPort = ports.get(3838 /*internalPort*/);
+                Appcommon.AppPort anAppPort = ports.get(internalPort);
                 if (anAppPort == null) {
                     System.out.println("Your expected server (or port) doesn't seem to be here!");
                 }
@@ -390,20 +390,20 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 String host = mMatchingEngine.getAppConnectionManager().getHost(mLastFindCloudlet, anAppPort);
 
                 // Bad find cloudlet string (test.dme) if using edgebox. Override.
-                host = "192.168.1.172";
+                //host = "192.168.1.172";
                 publicPort = mMatchingEngine.getPort(); // We'll just ping DME since the AppInst isn't there.
                 Site site = new Site(getApplicationContext(), NetTest.TestType.CONNECT, 5, host, publicPort);
                 netTest.addSite(site);
                 netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
 
-                mMatchingEngine.getEdgeEventsConnection().postLatencyResult(netTest.getSite(host),
+                mMatchingEngine.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host),
                         mLastLocationResult == null ? null : mLastLocationResult.getLastLocation());
 
                 // Post with Ping Util:
-                mMatchingEngine.getEdgeEventsConnection().testPingAndPostLatencyResult(host, mLastLocationResult.getLastLocation());
+                mMatchingEngine.getEdgeEventsConnection().testPingAndPostLatencyUpdate(host, mLastLocationResult.getLastLocation());
 
                 // Post with Connect Util:
-                mMatchingEngine.getEdgeEventsConnection().testConnectAndPostLatencyResult(host, 50051, mLastLocationResult.getLastLocation());
+                mMatchingEngine.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(host, 50051, mLastLocationResult.getLastLocation());
             }
         });
     }
@@ -548,12 +548,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
-                    String orgName = "mobiledgex"; // Always supplied by application, and in the MobiledgeX web admin console.
+                    String orgName = "MobiledgeX-Samples"; // Always supplied by application, and in the MobiledgeX web admin console.
                     // For illustration, the matching engine can be used to programatically get the name of your application details
                     // so it can go to the correct appInst version. That AppInst on the server side must match the application
                     // version or else it won't be found and cannot be used.
-                    String appName = "arshooter"; // AppName must be added to the MobiledgeX web admin console.
-                    String appVers = "1"; // override the version of that known registered app.
+                    String appName = "sdktest"; // AppName must be added to the MobiledgeX web admin console.
+                    String appVers = "9.0"; // override the version of that known registered app.
 
                     // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
                     // like AuthToken or Tag key value pairs.

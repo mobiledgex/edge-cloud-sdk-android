@@ -94,8 +94,8 @@ public class EngineCallTest {
     // not be required in the future.
     public static final String organizationName = "MobiledgeX-Samples";
     // Other globals:
-    public static final String applicationName = "ComputerVision";
-    public static final String appVersion = "2.2";
+    public static final String applicationName = "sdktest";
+    public static final String appVersion = "9.0";
 
     FusedLocationProviderClient fusedLocationClient;
 
@@ -519,6 +519,8 @@ public class EngineCallTest {
 
         assertNotNull("FindCloudletReply1 is null!", findCloudletReply1);
         assertNotNull("FindCloudletReply2 is null!", findCloudletReply2);
+        assertTrue(findCloudletReply1.getStatus().equals(AppClient.FindCloudletReply.FindStatus.FIND_FOUND));
+        assertTrue(findCloudletReply2.getStatus().equals(AppClient.FindCloudletReply.FindStatus.FIND_FOUND));
 
         assertNotNull(findCloudletReply1.getCloudletLocation());
         assertNotNull(findCloudletReply2.getCloudletLocation());
@@ -644,8 +646,8 @@ public class EngineCallTest {
         assertNotNull("FindCloudletReply1 is null!", findCloudletReply1);
         assertNotNull("FindCloudletReply2 is null!", findCloudletReply2);
 
-        assertEquals("FindCloudletReply1 is not found!", findCloudletReply1.getStatus(), AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
-        assertEquals("FindCloudletReply2 is not found!", findCloudletReply2.getStatus(), AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
+        assertEquals("FindCloudletReply1 is not found!", AppClient.FindCloudletReply.FindStatus.FIND_FOUND, findCloudletReply1.getStatus());
+        assertEquals("FindCloudletReply2 is not found!", AppClient.FindCloudletReply.FindStatus.FIND_FOUND, findCloudletReply2.getStatus());
 
 
         assertNotNull(findCloudletReply1.getCloudletLocation());
@@ -732,9 +734,9 @@ public class EngineCallTest {
             // We will try to receive a DME response in a reasonable amount of time.
 
             // Fire Away, unsolicited responses.
-            me.getEdgeEventsConnection().postLatencyResult(site, location);
-            me.getEdgeEventsConnection().testPingAndPostLatencyResult(host, location);
-            me.getEdgeEventsConnection().testConnectAndPostLatencyResult(host, port, location);
+            me.getEdgeEventsConnection().postLatencyUpdate(site, location);
+            me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(host, location);
+            me.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(host, port, location);
 
             Thread.sleep(3000); // Plenty of time.
 

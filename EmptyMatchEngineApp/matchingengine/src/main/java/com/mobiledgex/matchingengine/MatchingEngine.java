@@ -216,7 +216,7 @@ public class MatchingEngine {
     }
 
     /*!
-     * Gets or re-establishes a connection to the DME, and returns a EdgeEventsConnection singleton.
+     * Gets or re-establishes a connection to the DME, and returns an EdgeEventsConnection singleton.
      * If you want to receive events, register your class that has a @Subscribe annotation with a
      * ServerEdgeEvent method parameter.
      *
