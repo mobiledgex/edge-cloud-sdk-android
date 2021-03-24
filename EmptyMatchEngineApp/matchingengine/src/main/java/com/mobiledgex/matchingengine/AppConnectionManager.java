@@ -242,10 +242,6 @@ public class AppConnectionManager {
                 socket = (SSLSocket)mobiledgexSSLSocketFactory.createSocket(host, aPortNum);
                 socket.setSoTimeout(timeout);
 
-                if (socket.isConnected()) {
-                    System.out.print("SSL socket is connected.");
-                }
-
                 mNetworkManager.resetNetworkToDefault();
                 return socket;
             }
