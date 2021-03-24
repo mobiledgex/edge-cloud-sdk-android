@@ -160,6 +160,7 @@ public class MatchingEngine {
 
     private EventBus mEdgeEventBus;
     private EdgeEventsConnection mEdgeEventsConnection;
+    private boolean enableEdgeEvents = true;
 
     /*!
      * Constructor for MatchingEngine class.
@@ -195,12 +196,22 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
+        enableEdgeEvents = true;
         mEdgeEventBus = new AsyncEventBus(executorService); // TODO: Should not be implicit.
         mEdgeEventBus.register(this);
         if (MelMessaging.isMelEnabled()) {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
         }
+    }
+
+
+    public boolean isEnableEdgeEvents() {
+        return enableEdgeEvents;
+    }
+
+    public void setEnableEdgeEvents(boolean enableEdgeEvents) {
+        this.enableEdgeEvents = enableEdgeEvents;
     }
 
     /*!
@@ -216,6 +227,10 @@ public class MatchingEngine {
      * \return a connected EdgeEventsConnection instance
      */
     EdgeEventsConnection getEdgeEventsConnection(String dmeHost, int port, Network network, String edgeEventsCookie) {
+        if (!enableEdgeEvents) {
+            Log.d(TAG, "EdgeEvents has been disabled for this MatchingEngine. Enable to receive EdgeEvents states for your app.");
+            return null;
+        }
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
             mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, port, null);
         }

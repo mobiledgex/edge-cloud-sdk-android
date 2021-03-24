@@ -26,6 +26,7 @@ import android.os.Looper;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.common.base.Stopwatch;
+import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.MeLocation;
@@ -66,6 +67,7 @@ import java.util.concurrent.TimeUnit;
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
 import distributed_match_engine.Appcommon.AppPort;
+import io.grpc.Server;
 import io.grpc.StatusRuntimeException;
 
 import static junit.framework.TestCase.assertNotNull;
@@ -81,6 +83,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSocket;
 
 @RunWith(AndroidJUnit4.class)
 public class EngineCallTest {
@@ -89,10 +92,10 @@ public class EngineCallTest {
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
-    public static final String organizationName = "MobiledgeX";
+    public static final String organizationName = "MobiledgeX-Samples";
     // Other globals:
-    public static final String applicationName = "MobiledgeX SDK Demo";
-    public static final String appVersion = "2.0";
+    public static final String applicationName = "ComputerVision";
+    public static final String appVersion = "2.2";
 
     FusedLocationProviderClient fusedLocationClient;
 
@@ -271,7 +274,7 @@ public class EngineCallTest {
             //! [createdefregisterexample]
             assertTrue(registerClientRequest == null);
 
-=            //! [createdeffindcloudletexample]
+            //! [createdeffindcloudletexample]
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                 .setCarrierName(findCloudletCarrierOverride)
                 .build();
@@ -307,6 +310,7 @@ public class EngineCallTest {
             Log.e(TAG, "Creation of request is not supposed to succeed!");
             Log.e(TAG, Log.getStackTraceString(e));
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
     }
@@ -378,6 +382,7 @@ public class EngineCallTest {
             assertTrue(reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
             //assertTrue( !reply.getUniqueId().isEmpty());
             assertTrue( reply.getSessionCookie().length() > 0);
+            assertEquals("Sessions must be equal.", reply.getSessionCookie(), me.getSessionCookie());
         } catch (PackageManager.NameNotFoundException nnfe) {
             Log.e(TAG, Log.getStackTraceString(nnfe));
             assertFalse("ExecutionException registering using PackageManager.", true);
@@ -394,11 +399,10 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(ie));
             assertFalse("registerClientTest: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
 
-
-        assertEquals("Sessions must be equal.", reply.getSessionCookie(), me.getSessionCookie());
         // Temporary.
         Log.i(TAG, "registerClientTest reply: " + reply.toString());
         assertEquals(0, reply.getVer());
@@ -430,6 +434,7 @@ public class EngineCallTest {
             }
             reply = registerReplyFuture.get();
             assert(reply != null);
+            assertEquals("Sessions must be equal.", reply.getSessionCookie(), me.getSessionCookie());
         } catch (PackageManager.NameNotFoundException nnfe) {
             Log.e(TAG, Log.getStackTraceString(nnfe));
             assertFalse("ExecutionException registering using PackageManager.", true);
@@ -443,10 +448,10 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(ie));
             assertFalse("registerClientFutureTest: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
 
-        assertEquals("Sessions must be equal.", reply.getSessionCookie(), me.getSessionCookie());
         // Temporary.
         Log.i(TAG, "registerClientFutureTest() response: " + reply.toString());
         assertEquals(0, reply.getVer());
@@ -508,6 +513,7 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(ie));
             assertFalse("FindCloudlet: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
 
@@ -527,7 +533,7 @@ public class EngineCallTest {
 
 
         // Might also fail, since the network is not under test control:
-        assertEquals("App's expected test cloudlet FQDN doesn't match.", "mobiledgexmobiledgexsdkdemo20.sdkdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net", findCloudletReply1.getFqdn());
+        assertEquals("App's expected test cloudlet FQDN doesn't match.", "cv-cluster.dusseldorf-main.mobiledgex.net", findCloudletReply1.getFqdn());
     }
 
     // This test only tests "" any, and not subject to the global override.
@@ -572,6 +578,7 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(ie));
             assertFalse("FindCloudlet: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
 
@@ -629,7 +636,116 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(ie));
             assertFalse("FindCloudletFuture: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
+        }
+
+
+        assertNotNull("FindCloudletReply1 is null!", findCloudletReply1);
+        assertNotNull("FindCloudletReply2 is null!", findCloudletReply2);
+
+        assertNotNull(findCloudletReply1.getCloudletLocation());
+        assertNotNull(findCloudletReply2.getCloudletLocation());
+
+        NetTest netTest = me.getNetTest();
+        if (!findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn())) {
+            Site site1 = netTest.getSite(findCloudletReply1.getPorts(0).getFqdnPrefix() + findCloudletReply1.getFqdn());
+            Site site2 = netTest.getSite(findCloudletReply2.getPorts(0).getFqdnPrefix() + findCloudletReply2.getFqdn());
+            double margin = Math.abs(site1.average-site2.average)/site2.average;
+            assertTrue("Winner Not within 15% margin: " + margin, margin < .15d);
+        }
+
+        // Might also fail, since the network is not under test control:
+        assertEquals("App's expected test cloudlet FQDN doesn't match.", "cv-cluster.hamburg-main.tdg.mobiledgex.net", findCloudletReply1.getFqdn());
+    }
+
+    @Test
+    public void LatencyUtilEdgeEventsTest() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        Future<AppClient.FindCloudletReply> response;
+        AppClient.FindCloudletReply findCloudletReply1 = null;
+        AppClient.FindCloudletReply findCloudletReply2 = null;
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+
+        // attach an EdgeEventBus to receive the server response, if any (inline class):
+        final List<AppClient.ServerEdgeEvent> responses = new ArrayList<AppClient.ServerEdgeEvent>();
+        class EventReceiver {
+            @Subscribe
+            void HandleEdgeEvent(AppClient.ServerEdgeEvent edgeEvent) {
+                switch (edgeEvent.getEventType()) {
+                    case EVENT_LATENCY_PROCESSED:
+                        responses.add(edgeEvent);
+                        break;
+                }
+            }
+        }
+        EventReceiver er = new EventReceiver();
+        me.getEdgeEventsBus().register(er);
+
+        try {
+            Location location = getTestLocation();
+
+            registerClient(me);
+
+            // Cannot use the older API if overriding.
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName(findCloudletCarrierOverride)
+                    .build();
+
+            if (useHostOverride) {
+                response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
+                        MatchingEngine.FindCloudletMode.PROXIMITY);
+            } else {
+                response = me.findCloudletFuture(findCloudletRequest, 10000);
+            }
+            findCloudletReply1 = response.get();
+
+            assertTrue("FindCloudlet did not succeed!",findCloudletReply1.getStatus()
+                    == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
+
+
+            AppPort aPort = findCloudletReply1.getPorts(0);
+            String host = me.getAppConnectionManager().getHost(findCloudletReply1, aPort);
+            int port = aPort.getPublicPort();
+
+            Site site = new Site(context, NetTest.TestType.PING, 5, host, aPort.getPublicPort());
+
+            NetTest netTest = new NetTest();
+            netTest.addSite(site);
+            netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
+
+            // EdgeEventsConnection Utilities are fire and forget, due to the fact they have no
+            // expectation of a server response unlike other GRPC calls.
+            // We will try to receive a DME response in a reasonable amount of time.
+
+            // Fire Away, unsolicited responses.
+            me.getEdgeEventsConnection().postLatencyResult(site, location);
+            me.getEdgeEventsConnection().testPingAndPostLatencyResult(host, location);
+            me.getEdgeEventsConnection().testConnectAndPostLatencyResult(host, port, location);
+
+            Thread.sleep(3000); // Plenty of time.
+
+            assertEquals("Must get 3 responses back from server.", responses.size(), 3);
+
+            for (AppClient.ServerEdgeEvent s : responses) {
+                assertTrue("Must have 3 non-zero averages!", s.getStatistics().getAvg() > 0f);
+            }
+
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertFalse("FindCloudletFuture: DmeDnsException", true);
+        } catch (ExecutionException ee) {
+            Log.e(TAG, Log.getStackTraceString(ee));
+            assertFalse("FindCloudletFuture: ExecutionExecution!", true);
+        } catch (InterruptedException ie) {
+            Log.e(TAG, Log.getStackTraceString(ie));
+            assertFalse("FindCloudletFuture: InterruptedException!", true);
+        } finally {
+            me.close();
+            enableMockLocation(context,false);
+            me.getEdgeEventsBus().unregister(er);
         }
 
 
@@ -741,6 +857,7 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(ie));
             assertFalse("verifyLocationFutureTest: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
 
@@ -791,6 +908,7 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(ie));
             assertFalse("verifyMockedLocationTest_NorthPole: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
 
@@ -844,6 +962,7 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(ie));
             assertFalse("dynamicLocationGroupAddTest: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
 
@@ -894,6 +1013,7 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(ie));
             assertFalse("dynamicLocationGroupAddFutureTest: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
 
@@ -951,6 +1071,7 @@ public class EngineCallTest {
             Log.i(TAG, Log.getStackTraceString(ie));
             assertFalse("getAppInstListTest: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
     }
@@ -1000,6 +1121,7 @@ public class EngineCallTest {
             Log.i(TAG, Log.getStackTraceString(ie));
             assertFalse("getAppInstListFutureTest: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
     }
@@ -1063,6 +1185,7 @@ public class EngineCallTest {
             Log.i(TAG, Log.getStackTraceString(ie));
             assertFalse("queryQosKpiTest: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
             if (responseIterator != null) {
                 responseIterator.shutdown();
@@ -1126,6 +1249,7 @@ public class EngineCallTest {
             Log.i(TAG, Log.getStackTraceString(ie));
             assertFalse("getQosPositionKpiFutureTest: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
 
@@ -1560,6 +1684,7 @@ public class EngineCallTest {
             Log.i(TAG, Log.getStackTraceString(ie));
             assertFalse("appConnectionTestTcp002: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
     }
@@ -1694,6 +1819,7 @@ public class EngineCallTest {
             Log.i(TAG, Log.getStackTraceString(ie));
             assertFalse("appConnectionTestTcp001: InterruptedException!", true);
         } finally {
+            me.close();
             enableMockLocation(context,false);
         }
     }
@@ -1702,34 +1828,31 @@ public class EngineCallTest {
     public void testRegisterAndFindCloudlet_001() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
+        me.setEnableEdgeEvents(false);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
         AppConnectionManager appConnectionManager = me.getAppConnectionManager();
-
-        AppClient.RegisterClientReply registerClientReply = null;
-        String carrierName = "TDG";
-        String organizationName = "MobiledgeX";
-        String appName = "HttpEcho";
-        String appVersion = "20191204";
 
         Location location = getTestLocation();
         Socket socket = null;
         try {
             //! [registerandfindoverrideexample]
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
-                    organizationName, appName,
+                    organizationName, applicationName,
                     appVersion, location, "",
                     0, null, null, null, MatchingEngine.FindCloudletMode.PROXIMITY); // FIXME: These parameters should be overloaded or optional.
             //! [registerandfindoverrideexample]
             // Just wait:
             AppClient.FindCloudletReply findCloudletReply = findCloudletReplyFuture.get();
+            assertTrue("Should find something.", findCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
             HashMap<Integer, AppPort> appTcpPortMap = appConnectionManager.getTCPMap(findCloudletReply);
-            AppPort appPort = appTcpPortMap.get(3001);
+            AppPort appPort = appTcpPortMap.get(8008);
             if (!MelMessaging.isMelEnabled()) {
                 assertTrue(appPort != null); // There should be at least one for a connection to be made.
-                Future<Socket> socketFuture = me.getAppConnectionManager().getTcpSocket(findCloudletReply, appPort, appPort.getPublicPort(), (int)GRPC_TIMEOUT_MS);
+                Future<SSLSocket> socketFuture = me.getAppConnectionManager().getTcpSslSocket(findCloudletReply, appPort, appPort.getPublicPort(), (int)GRPC_TIMEOUT_MS);
                 socket = socketFuture.get();
+                assertTrue("Socket should have been created!", socket != null);
             }
 
             assertTrue("FindCloudletReply failed!", findCloudletReply != null);
@@ -1750,6 +1873,7 @@ public class EngineCallTest {
             } catch (IOException ioe) {
                 ioe.printStackTrace();
             }
+            me.close();
             enableMockLocation(context,false);
         }
     }
