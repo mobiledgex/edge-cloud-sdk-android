@@ -8,10 +8,13 @@ import android.util.Log;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import distributed_match_engine.AppClient;
+import distributed_match_engine.Appcommon;
 import distributed_match_engine.LocOuterClass;
 import distributed_match_engine.MatchEngineApiGrpc;
 import io.grpc.ManagedChannel;
@@ -238,6 +241,43 @@ public class EdgeEventsConnection {
     }
 
     // Utility functions below:
+    // Why are we dumplicating this? And only some?
+    Appcommon.DeviceInfo getDeviceInfo() {
+        Appcommon.DeviceInfo.Builder deviceInfoBuilder = Appcommon.DeviceInfo.newBuilder();
+        HashMap<String, String> hmap = me.getDeviceInfo();
+        if (hmap != null && hmap.size() > 0) {
+            return null;
+        }
+
+        for (Map.Entry<String, String> entry : hmap.entrySet()) {
+            String key;
+            String value;
+            key = entry.getKey();
+            if (entry.getValue() != null && entry.getValue().length() > 0) {
+                switch (key) {
+                    case "PhoneType":
+                        deviceInfoBuilder.setDeviceOs(entry.getValue());
+                        break;
+                    case "DataNetworkType":
+                        deviceInfoBuilder.setDataNetworkType(entry.getValue());
+                        break;
+                    case "ManufacturerCode":
+                        deviceInfoBuilder.setDeviceModel(entry.getValue());
+                        break;
+                    case "SignalStrength":
+                        try {
+                            // This is an abstract "getLevel()" for the last known radio signal update.
+                            deviceInfoBuilder.setSignalStrength(new Integer(entry.getValue()));
+                        } catch (NumberFormatException e) {
+                            Log.e(TAG, "Cannot attach signal strength. Reason: " + e.getMessage());
+                        }
+                        break;
+                }
+            }
+        }
+        return deviceInfoBuilder.build();
+    }
+
 
     /*!
      * Outbound Client to Server location update. If there is a closer cloudlet, this will cause a
@@ -281,7 +321,7 @@ public class EdgeEventsConnection {
      * @param location
      * @return boolean indicating whether the site results are posted or not.
      */
-    public boolean postLatencyResult(Site site, Location location) {
+    public boolean postLatencyUpdate(Site site, Location location) {
 
         if (!me.isMatchingEngineLocationAllowed()) {
             return false;
@@ -333,8 +373,8 @@ public class EdgeEventsConnection {
      * @param location
      * @return boolean indicating whether the site results are posted or not.
      */
-    public boolean testPingAndPostLatencyResult(String host, Location location) {
-        return testPingAndPostLatencyResult(host, location, 5);
+    public boolean testPingAndPostLatencyUpdate(String host, Location location) {
+        return testPingAndPostLatencyUpdate(host, location, 5);
     }
 
     /*!
@@ -347,7 +387,7 @@ public class EdgeEventsConnection {
      * @param number of samples to test.
      * @return boolean indicating whether the site results are posted or not.
      */
-    public boolean testPingAndPostLatencyResult(String host, Location location, int numSamples) {
+    public boolean testPingAndPostLatencyUpdate(String host, Location location, int numSamples) {
         if (!me.isMatchingEngineLocationAllowed()) {
             return false;
         }
@@ -409,8 +449,8 @@ public class EdgeEventsConnection {
      * @param location
      * @return boolean indicating whether the site results are posted or not.
      */
-    public boolean testConnectAndPostLatencyResult(String host, int port, Location location) {
-        return testConnectAndPostLatencyResult(host, port, location, 5);
+    public boolean testConnectAndPostLatencyUpdate(String host, int port, Location location) {
+        return testConnectAndPostLatencyUpdate(host, port, location, 5);
     }
 
     /*!
@@ -426,7 +466,7 @@ public class EdgeEventsConnection {
      * @param number of samples to test
      * @return boolean indicating whether the site results are posted or not.
      */
-    public boolean testConnectAndPostLatencyResult(String host, int port, Location location, int numSamples) {
+    public boolean testConnectAndPostLatencyUpdate(String host, int port, Location location, int numSamples) {
         if (!me.isMatchingEngineLocationAllowed()) {
             return false;
         }

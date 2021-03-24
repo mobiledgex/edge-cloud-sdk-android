@@ -46,6 +46,7 @@ import android.telephony.CellInfoLte;
 import android.telephony.CellInfoNr;
 import android.telephony.CellInfoTdscdma;
 import android.telephony.CellInfoWcdma;
+import android.telephony.SignalStrength;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
@@ -527,6 +528,12 @@ public class MatchingEngine {
             int nType = telManager.getDataNetworkType(); // Type Name is not visible.
             NetworkManager.DataNetworkType dataType = NetworkManager.DataNetworkType.intMap.get(nType);
             map.put("DataNetworkType", dataType.name());
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            SignalStrength s = telManager.getSignalStrength();
+            Integer abstractLevel = s.getLevel();
+            map.put("SignalStrength", abstractLevel.toString());
         }
 
         map.put("PhoneType", Integer.toString(telManager.getPhoneType()));
