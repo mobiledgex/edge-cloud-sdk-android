@@ -644,6 +644,10 @@ public class EngineCallTest {
         assertNotNull("FindCloudletReply1 is null!", findCloudletReply1);
         assertNotNull("FindCloudletReply2 is null!", findCloudletReply2);
 
+        assertEquals("FindCloudletReply1 is not found!", findCloudletReply1.getStatus(), AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
+        assertEquals("FindCloudletReply2 is not found!", findCloudletReply2.getStatus(), AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
+
+
         assertNotNull(findCloudletReply1.getCloudletLocation());
         assertNotNull(findCloudletReply2.getCloudletLocation());
 
@@ -668,6 +672,10 @@ public class EngineCallTest {
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
+
+        // This EdgeEventsConnection test requires an EdgeEvents enabled server.
+        // me.setSSLEnabled(false);
+        // me.setNetworkSwitchingEnabled(false);
 
         // attach an EdgeEventBus to receive the server response, if any (inline class):
         final List<AppClient.ServerEdgeEvent> responses = new ArrayList<AppClient.ServerEdgeEvent>();
@@ -709,6 +717,9 @@ public class EngineCallTest {
             AppPort aPort = findCloudletReply1.getPorts(0);
             String host = me.getAppConnectionManager().getHost(findCloudletReply1, aPort);
             int port = aPort.getPublicPort();
+            // If using a local server, edgebox returns a invalid DNS entry. Your override test server here.
+            //host = "192.168.1.172";
+            //port = 3000;
 
             Site site = new Site(context, NetTest.TestType.PING, 5, host, aPort.getPublicPort());
 
@@ -727,7 +738,7 @@ public class EngineCallTest {
 
             Thread.sleep(3000); // Plenty of time.
 
-            assertEquals("Must get 3 responses back from server.", responses.size(), 3);
+            assertEquals("Must get 3 responses back from server.", 3, responses.size());
 
             for (AppClient.ServerEdgeEvent s : responses) {
                 assertTrue("Must have 3 non-zero averages!", s.getStatistics().getAvg() > 0f);
@@ -1300,13 +1311,13 @@ public class EngineCallTest {
 
         // A dummy FindCloudletReply:
         AppClient.FindCloudletReply reply = AppClient.FindCloudletReply.newBuilder()
-                .setFqdn("mobiledgexmobiledgexsdkdemo20.sdkdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net")
+                .setFqdn("cv-cluster.berlin-main.tdg.mobiledgex.net")
                 .addPorts(port)
                 .build();
 
         // A dummy FindCloudletReply:
         AppClient.FindCloudletReply replyReal = AppClient.FindCloudletReply.newBuilder()
-                .setFqdn("mobiledgexmobiledgexsdkdemo20.sdkdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net")
+                .setFqdn("cv-cluster.hamburg-main.tdg.mobiledgex.net")
                 .addPorts(portReal)
                 .build();
 
@@ -1831,6 +1842,7 @@ public class EngineCallTest {
         me.setEnableEdgeEvents(false);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
+        // Do not enable WiFi only, by default, it also disables SSL and network switching: It's test only, but breaks this test!
 
         AppConnectionManager appConnectionManager = me.getAppConnectionManager();
 
@@ -1845,7 +1857,7 @@ public class EngineCallTest {
             //! [registerandfindoverrideexample]
             // Just wait:
             AppClient.FindCloudletReply findCloudletReply = findCloudletReplyFuture.get();
-            assertTrue("Should find something.", findCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
+            assertTrue("Could not find an appInst: " + findCloudletReply.getStatus(), findCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
             HashMap<Integer, AppPort> appTcpPortMap = appConnectionManager.getTCPMap(findCloudletReply);
             AppPort appPort = appTcpPortMap.get(8008);
             if (!MelMessaging.isMelEnabled()) {
@@ -1853,6 +1865,7 @@ public class EngineCallTest {
                 Future<SSLSocket> socketFuture = me.getAppConnectionManager().getTcpSslSocket(findCloudletReply, appPort, appPort.getPublicPort(), (int)GRPC_TIMEOUT_MS);
                 socket = socketFuture.get();
                 assertTrue("Socket should have been created!", socket != null);
+                assertTrue("SSL Socket must be connected!", socket.isConnected());
             }
 
             assertTrue("FindCloudletReply failed!", findCloudletReply != null);
