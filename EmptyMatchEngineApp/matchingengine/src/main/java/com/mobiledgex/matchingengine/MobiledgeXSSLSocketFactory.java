@@ -21,6 +21,7 @@ import android.net.Network;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
 
@@ -93,8 +94,7 @@ public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
                 new MissingNetworkException("Network required for creating network bound sockets.")
             );
         }
-
-        Socket socket = mSSLContext.getSocketFactory().createSocket();
+        Socket socket = new Socket();
         mNetwork.bindSocket(socket);
         return socket;
     }
@@ -119,6 +119,8 @@ public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
     @Override
     public Socket createSocket(String host, int port) throws IOException {
         Socket raw = createNetworkBoundSocket();
+        // Now connect(), then upgrade to SSL:
+        raw.connect(new InetSocketAddress(host, port));
         Socket socket = createSocket(raw, host, port, true);
         return socket;
     }
@@ -135,6 +137,7 @@ public final class MobiledgeXSSLSocketFactory extends SSLSocketFactory {
             throws IOException {
         Socket raw = createNetworkBoundSocket();
         String host = address.getHostName(); // Reverse lookup. SSL host verification needed.
+        raw.connect(new InetSocketAddress(host, port));
         Socket socket = createSocket(raw, host, port, true);
         return socket;
     }
