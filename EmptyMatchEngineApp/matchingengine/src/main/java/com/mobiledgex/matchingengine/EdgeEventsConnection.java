@@ -5,6 +5,8 @@ import android.location.Location;
 import android.net.Network;
 import android.util.Log;
 
+import com.mobiledgex.matchingengine.DmeDnsException;
+import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 

@@ -103,6 +103,7 @@ import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.mel.MelMessaging;
 
@@ -162,6 +163,16 @@ public class MatchingEngine {
     private EventBus mEdgeEventBus;
     private EdgeEventsConnection mEdgeEventsConnection;
     private boolean enableEdgeEvents = true;
+
+    // Default EdgeEvents config:
+    public EdgeEventsConfig getDefaultEdgeEventsConfig() {
+        EdgeEventsConfig eeConfig = new EdgeEventsConfig();
+
+        eeConfig.latencyPort = 0; // implicitly Ping.
+        eeConfig.latencyThresholdTrigger = 100; // Single threshold.
+        eeConfig.newFindCloudletEvents = null;
+        return eeConfig;
+    }
 
     /*!
      * Constructor for MatchingEngine class.
