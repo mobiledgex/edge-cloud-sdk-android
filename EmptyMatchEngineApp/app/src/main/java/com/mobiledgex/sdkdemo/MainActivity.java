@@ -67,8 +67,6 @@ import java.util.concurrent.Future;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
-import distributed_match_engine.MatchEngineApiGrpc;
-import io.grpc.Server;
 import io.grpc.StatusRuntimeException;
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -139,8 +137,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 String clientLocText = "";
                 mLastLocationResult = locationResult;
                 // TODO: DMEConnection for events is lazy initialized.
-                if (mMatchingEngine.getDmeConnection() != null && mLastLocationResult != null) {
-                    mMatchingEngine.getDmeConnection().postLocationUpdate(mLastLocationResult.getLastLocation());
+                if (mMatchingEngine.getEdgeEventsConnection() != null && mLastLocationResult != null) {
+                    mMatchingEngine.getEdgeEventsConnection().postLocationUpdate(mLastLocationResult.getLastLocation());
                 }
                 for (Location location : locationResult.getLocations()) {
                     // Update UI with client location data
@@ -214,7 +212,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // Permissions available. Create a MobiledgeX MatchingEngine instance (could also use Application wide instance).
             mMatchingEngine = new MatchingEngine(this);
             // Register ourselves. The Subscribe annotation will be called on ClientEdgeEvents.
-            mMatchingEngine.getEdgeEventBus().register(this);
+            mMatchingEngine.getEdgeEventsBus().register(this);
         }
 
         if (mDoLocationUpdates) {
@@ -222,9 +220,19 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
     }
 
-    /**
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        if (mMatchingEngine != null) {
+            mMatchingEngine.close();
+            mMatchingEngine = null;
+        }
+    }
+
+    /*!
      * Subscribe to ServerEdgeEvents! (Guava Interface)
-     * To optionally post messages to the DME, use MatchingEngine's DMEConnection.
+     * To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
      */
     @Subscribe
     public void onMessageEvent(AppClient.ServerEdgeEvent event) {
@@ -266,7 +274,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         // TODO: Need event switch of some kind to handle.
         if (tagsMap.containsKey("shutdown")) {
             // unregister self.
-            mMatchingEngine.getEdgeEventBus().unregister(this);
+            mMatchingEngine.getEdgeEventsBus().unregister(this);
         }
     }
 
@@ -381,15 +389,21 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 publicPort = anAppPort.getPublicPort();
                 String host = mMatchingEngine.getAppConnectionManager().getHost(mLastFindCloudlet, anAppPort);
 
-                // Bad find cloudlet string (test.dme)
-                host = "192.168.1.172";
+                // Bad find cloudlet string (test.dme) if using edgebox. Override.
+                //host = "192.168.1.172";
                 publicPort = mMatchingEngine.getPort(); // We'll just ping DME since the AppInst isn't there.
                 Site site = new Site(getApplicationContext(), NetTest.TestType.CONNECT, 5, host, publicPort);
                 netTest.addSite(site);
                 netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
 
-                mMatchingEngine.getDmeConnection().postLatencyResult(netTest.getSite(host),
+                mMatchingEngine.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host),
                         mLastLocationResult == null ? null : mLastLocationResult.getLastLocation());
+
+                // Post with Ping Util:
+                mMatchingEngine.getEdgeEventsConnection().testPingAndPostLatencyUpdate(host, mLastLocationResult.getLastLocation());
+
+                // Post with Connect Util:
+                mMatchingEngine.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(host, 50051, mLastLocationResult.getLastLocation());
             }
         });
     }
@@ -524,11 +538,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
                     }
                     dmeHostAddress = "us-mexdemo." + MatchingEngine.baseDmeHost;
-                    mMatchingEngine.setUseWifiOnly(true);
+                    //mMatchingEngine.setUseWifiOnly(true);
                     mMatchingEngine.setSSLEnabled(false);
+                    mMatchingEngine.setNetworkSwitchingEnabled(true);
                     dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
-                    dmeHostAddress = "localhost"; // TODO: Remove when Persistent Connection is deployed.
-                    EventBus bus = mMatchingEngine.getEdgeEventBus();
+                    dmeHostAddress = "192.168.1.172";
+                    EventBus bus = mMatchingEngine.getEdgeEventsBus();
                     bus.post(AppClient.ClientEdgeEvent.newBuilder().build());
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
@@ -537,8 +552,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // For illustration, the matching engine can be used to programatically get the name of your application details
                     // so it can go to the correct appInst version. That AppInst on the server side must match the application
                     // version or else it won't be found and cannot be used.
-                    String appName = "ComputerVision"; // AppName must be added to the MobiledgeX web admin console.
-                    String appVers = "2.2"; // override the version of that known registered app.
+                    String appName = "sdktest"; // AppName must be added to the MobiledgeX web admin console.
+                    String appVers = "9.0"; // override the version of that known registered app.
 
                     // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
                     // like AuthToken or Tag key value pairs.
@@ -594,7 +609,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // Skip the bus. Just send it:
                     location.setLatitude(40.7127837); // New York.
                     location.setLongitude(-74.0059413);
-                    mMatchingEngine.getDmeConnection().postLocationUpdate(location);
+                    mMatchingEngine.getEdgeEventsConnection().postLocationUpdate(location);
 
                     if (false /*verifyRequest != null*/) {
                         // Location Verification (Blocking, or use verifyLocationFuture):

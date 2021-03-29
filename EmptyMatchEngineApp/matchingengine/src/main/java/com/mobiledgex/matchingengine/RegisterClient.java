@@ -130,7 +130,10 @@ public class RegisterClient implements Callable {
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .registerClient(mRequest);
         } catch (Exception e) {
-            Log.e(TAG, "Exception during RegisterClient: " + e.getMessage());
+            Log.e(TAG, "Exception during RegisterClient. DME Server used: " + mHost + ", carrierName: " + mRequest.getCarrierName() + ", appName: " + mRequest.getAppName() + ", appVersion: " + mRequest.getAppVers() + ", organizationName: " + mRequest.getOrgName() + ", Message: " + e.getMessage());
+            if (e.getMessage() != null && e.getMessage().contains("NOT_FOUND")) {
+                Log.e(TAG, "Please check that the appName, appVersion, and orgName correspond to a valid app definition on MobiledgeX.");
+            }
             throw e;
         } finally {
             if (channel != null) {
