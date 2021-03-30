@@ -352,7 +352,6 @@ public class MatchingEngine {
      */
     public void setUseWifiOnly(boolean enabled) {
         useOnlyWifi = enabled;
-        setNetworkSwitchingEnabled(!useOnlyWifi);
     }
 
     private SubscriptionManager getSubscriptionManager(Context context) {

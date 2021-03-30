@@ -510,7 +510,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                 someText += "Active Subscription network: " + info.toString() + "\n";
                             }
                         }
-                        mMatchingEngine.setNetworkSwitchingEnabled(true);
+                        //mMatchingEngine.setNetworkSwitchingEnabled(true);
                     } else {
                         // This example will continue to execute anyway, as Demo DME may still be reachable to discover nearby edge cloudlets.
                         someText += "No active cellular networks: app should use public cloud instead of the edgecloudlet at this time.\n";
@@ -540,7 +540,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     dmeHostAddress = "us-mexdemo." + MatchingEngine.baseDmeHost;
                     //mMatchingEngine.setUseWifiOnly(true);
                     mMatchingEngine.setSSLEnabled(false);
-                    mMatchingEngine.setNetworkSwitchingEnabled(true);
                     dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
                     dmeHostAddress = "192.168.1.172";
                     EventBus bus = mMatchingEngine.getEdgeEventsBus();
