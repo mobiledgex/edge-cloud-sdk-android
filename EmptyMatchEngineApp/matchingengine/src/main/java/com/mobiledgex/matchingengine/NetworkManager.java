@@ -65,7 +65,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     private NetworkRequest mDefaultRequest;
 
     private ExecutorService mThreadPool;
-    private boolean mNetworkSwitchingEnabled = true;
+    private boolean mNetworkSwitchingEnabled = false;
     private boolean mSSLEnabled = true;
     private boolean mAllowSwitchIfNoSubscriberInfo = false;
 
