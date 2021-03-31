@@ -48,6 +48,8 @@ import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.DmeDnsException;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.NetworkRequestTimeoutException;
+import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
+import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.RequestPermissions;
@@ -228,6 +230,16 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             mMatchingEngine.close();
             mMatchingEngine = null;
         }
+    }
+
+    @Subscribe
+    /*!
+     * Subscribe to Latency updates to appInst:
+     */
+    public void onMessageEvent(FindCloudletEvent findCloudletEvent) {
+        Log.d(TAG, "Latency update, reason: " + findCloudletEvent.trigger);
+
+        CompletableFuture future = CompletableFuture.supplyAsync();
     }
 
     /*!

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2021 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -103,12 +103,16 @@ import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
+import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
+import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEventTrigger;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.mel.MelMessaging;
 
 import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
+import static com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEventTrigger.CloudletStateChanged;
 
 /*!
  * Main MobiledgeX SDK class. This class provides functions to find nearest cloudlet with the
@@ -134,7 +138,7 @@ public class MatchingEngine {
     private String mTokenServerURI;
     private String mTokenServerToken;
 
-    private RegisterClientRequest mRegisterClientRequest;
+    RegisterClientRequest mRegisterClientRequest;
     private RegisterClientReply mRegisterClientReply;
     FindCloudletReply mFindCloudletReply;
     private VerifyLocationReply mVerifyLocationReply;
@@ -169,8 +173,9 @@ public class MatchingEngine {
         EdgeEventsConfig eeConfig = new EdgeEventsConfig();
 
         eeConfig.latencyPort = 0; // implicitly Ping.
+        eeConfig.testType = NetTest.TestType.PING;
         eeConfig.latencyThresholdTrigger = 100; // Single threshold.
-        eeConfig.newFindCloudletEvents = null;
+        eeConfig.newFindCloudletEventTriggers = new FindCloudletEventTrigger[] { CloudletStateChanged };
         return eeConfig;
     }
 
@@ -224,6 +229,19 @@ public class MatchingEngine {
 
     public void setEnableEdgeEvents(boolean enableEdgeEvents) {
         this.enableEdgeEvents = enableEdgeEvents;
+    }
+
+    public boolean startEdgeEvents(EdgeEventsConfig eeConfig, ClientEventsConfig ceConfig) {
+        if (!enableEdgeEvents) {
+            return false;
+        }
+        EdgeEventsConnection connection = getEdgeEventsConnection();
+
+        if (connection == null) {
+            return false;
+        }
+
+        return connection.startEdgeEvents(eeConfig, ceConfig);
     }
 
     /*!
@@ -445,32 +463,32 @@ public class MatchingEngine {
         return mRegisterClientRequest;
     }
 
-    void setLastRegisterClientRequest(AppClient.RegisterClientRequest registerRequest) {
+    synchronized void setLastRegisterClientRequest(AppClient.RegisterClientRequest registerRequest) {
         mRegisterClientRequest = registerRequest;
     }
 
-    void setMatchEngineStatus(AppClient.RegisterClientReply status) {
+    synchronized void setMatchEngineStatus(AppClient.RegisterClientReply status) {
         mRegisterClientReply = status;
     }
 
-    void setGetLocationReply(GetLocationReply locationReply) {
+    synchronized void setGetLocationReply(GetLocationReply locationReply) {
         mGetLocationReply = locationReply;
         mMatchEngineLocation = locationReply.getNetworkLocation();
     }
 
-    void setVerifyLocationReply(AppClient.VerifyLocationReply locationVerify) {
+    synchronized void setVerifyLocationReply(AppClient.VerifyLocationReply locationVerify) {
         mVerifyLocationReply = locationVerify;
     }
 
-    void setFindCloudletResponse(AppClient.FindCloudletReply reply) {
+    synchronized void setFindCloudletResponse(AppClient.FindCloudletReply reply) {
         mFindCloudletReply = reply;
     }
 
-    void setDynamicLocGroupReply(DynamicLocGroupReply reply) {
+    synchronized void setDynamicLocGroupReply(DynamicLocGroupReply reply) {
         mDynamicLocGroupReply = reply;
     }
 
-    void setAppOfficialFqdnReply(AppClient.AppOfficialFqdnReply reply) {
+    synchronized void setAppOfficialFqdnReply(AppClient.AppOfficialFqdnReply reply) {
         mAppOfficialFqdnReply = reply;
     }
 
