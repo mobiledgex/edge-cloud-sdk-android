@@ -100,6 +100,7 @@ import android.util.EventLog;
 import android.util.Log;
 import android.util.Pair;
 
+import com.google.android.gms.common.api.Api;
 import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.EventBus;
@@ -233,7 +234,47 @@ public class MatchingEngine {
         this.enableEdgeEvents = enableEdgeEvents;
     }
 
-    public boolean startEdgeEvents(EdgeEventsConfig eeConfig, ClientEventsConfig ceConfig) {
+    public EdgeEventsConfig createDefaultEdgeEventsConfig() {
+        EdgeEventsConfig eeConfig = new EdgeEventsConfig();
+        eeConfig.latencyThresholdTrigger = 50;
+
+        eeConfig.latencyUpdateConfig.updateIntervalSeconds = 30;
+        eeConfig.latencyUpdateConfig.updatePattern = ClientEventsConfig.UpdatePattern.onTrigger;
+
+        // This one will require location to be posted to the EdgeEvents state machine
+        // by the Android location handler. Then, it posts to EdgeEvents that result at this interval.
+        eeConfig.locationUpdateConfig.updateIntervalSeconds = 30;
+        eeConfig.locationUpdateConfig.updatePattern = ClientEventsConfig.UpdatePattern.onTrigger;
+
+        return eeConfig;
+    }
+
+    /*!
+     * Helper util to create a useful config.
+     */
+    public EdgeEventsConfig createDefaultEdgeEventsConfig(double latencyUpdateIntervalSeconds,
+                                                            double locationUpdateIntervalSeconds,
+                                                            double latencyThresholdTriggerMs,
+                                                            ClientEventsConfig.UpdatePattern updatePattern) {
+        EdgeEventsConfig eeConfig = new EdgeEventsConfig();
+        eeConfig.latencyThresholdTrigger = latencyThresholdTriggerMs;
+
+        eeConfig.latencyUpdateConfig.updateIntervalSeconds = latencyUpdateIntervalSeconds;
+        eeConfig.latencyUpdateConfig.updatePattern = updatePattern;
+
+        // This one will require location to be posted to the EdgeEvents state machine
+        // by the Android location handler. Then, it posts that result at this interval.
+        eeConfig.locationUpdateConfig.updateIntervalSeconds = locationUpdateIntervalSeconds;
+        eeConfig.locationUpdateConfig.updatePattern = updatePattern;
+
+        return eeConfig;
+    }
+
+    /*!
+     * \param host host of a specific AppInst. That's .. not right.
+     * \param port if null, latency tests will be Ping only.
+     */
+    public boolean startEdgeEvents(String host, int port, EdgeEventsConfig eeConfig) {
         if (!enableEdgeEvents) {
             return false;
         }
@@ -243,7 +284,7 @@ public class MatchingEngine {
             return false;
         }
 
-        return connection.startEdgeEvents(eeConfig, ceConfig);
+        return connection.startEdgeEvents(host, port, eeConfig);
     }
 
     /*!
@@ -266,7 +307,7 @@ public class MatchingEngine {
             return null;
         }
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
-            mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, port, null, threadpool, null);
+            mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, port, null, threadpool);
         }
         // Attach our EventBus instance to use:
         mEdgeEventsConnection.setEdgeEventsBus(mEdgeEventBus);
@@ -283,6 +324,8 @@ public class MatchingEngine {
     }
 
     boolean closeEdgeEventsConnection() {
+        mFindCloudletReply = null;
+
         if (mEdgeEventsConnection != null) {
             mEdgeEventsConnection.close();
             mEdgeEventsConnection = null;

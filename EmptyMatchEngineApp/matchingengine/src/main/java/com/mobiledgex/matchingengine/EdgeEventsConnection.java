@@ -5,6 +5,7 @@ import android.location.Location;
 import android.net.Network;
 import android.util.Log;
 
+import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
@@ -17,6 +18,8 @@ import com.mobiledgex.matchingengine.performancemetrics.Site;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -56,18 +59,23 @@ public class EdgeEventsConnection {
     int portOverride;
     Network networkOverride = null;
 
-    EdgeEventsConfig eeConfig = null;
-    ClientEventsConfig ceConfig = null;
+    EdgeEventsConfig eeConfig;
     Location mLastLocationPosted = null;
 
     ConcurrentLinkedQueue eventsQueue = new ConcurrentLinkedQueue();
 
     /*!
-     * A DeadEvent handler will print messages still.
+     * A DeadEvent handler will print messages still. Outside EdgeEvents handler.
      */
     private EventBus mEdgeEventsBus;
     private DeadEventHandler deadEventHandler = new DeadEventHandler();
     private boolean noEventHandlersObserved = true;
+
+    /*!
+     * This eventBus instance is a duplicate handler, but for the managed EventBus state machine so
+     * it doesn't interfere with DeadEvents handling.
+     */
+    private EventBus mDefaultEdgeEventsBus;
 
     // This class is mainly here to allow a clear object to register for deadEvents subscription.
     private class DeadEventHandler {
@@ -107,6 +115,9 @@ public class EdgeEventsConnection {
         uninitializedEdgeEventsConnection
     }
 
+    /*!
+     * Status for EdgeEvents
+     */
     public enum EdgeEventsStatus {
         success,
         fail
@@ -124,6 +135,10 @@ public class EdgeEventsConnection {
         }
         this.me = me;
 
+        Log.w(TAG, "Configuring EdgeEvent Defaults");
+        eeConfig = me.createDefaultEdgeEventsConfig();
+        mDefaultEdgeEventsBus = new AsyncEventBus(executorService);
+
         try {
             open();
         } catch (DmeDnsException dmedns) {
@@ -131,14 +146,12 @@ public class EdgeEventsConnection {
         }
     }
 
-    EdgeEventsConnection(MatchingEngine me, String host, int port, Network network, ExecutorService executorService, EdgeEventsConfig edgeEventsConfig) {
+    EdgeEventsConnection(MatchingEngine me, String host, int port, Network network, ExecutorService executorService) {
         this.me = me;
 
-        eeConfig = edgeEventsConfig;
-        if (eeConfig == null) {
-            Log.w(TAG, "No EdgeEventsConfig is specified, using defaults");
-            eeConfig = new EdgeEventsConfig();
-        }
+        Log.w(TAG, "Configuring EdgeEvent Defaults");
+        eeConfig = me.createDefaultEdgeEventsConfig();
+        mDefaultEdgeEventsBus = new AsyncEventBus(executorService);
 
         try {
             synchronized (this) {
@@ -287,6 +300,7 @@ public class EdgeEventsConnection {
                 mEdgeEventsBus.post(value);
 
                 // Default handler will handle incoming messages if no subscribers are currently observed.
+                // This also preserves the DeadEvent handler for outside users.
                 if (noEventHandlersObserved) {
                     HandleDefaultEdgeEvents(value);
                 }
@@ -327,16 +341,20 @@ public class EdgeEventsConnection {
      */
     synchronized void close() {
         mEdgeEventsBus = null;
-        if (!isShutdown()) {
 
+        if (!isShutdown()) {
             try {
                 sender = null;
                 receiver = null;
+                latencyTimer.cancel();
+                locationTimer.cancel();
                 channel.shutdown();
                 channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } finally {
+                latencyTimer = null;
+                locationTimer = null;
                 open = false;
                 channel = null;
             }
@@ -669,67 +687,178 @@ public class EdgeEventsConnection {
         return tryPost(clientEdgeEvent);
     }
 
+    public void validateStartConfig(String host, int port, EdgeEventsConfig edgeEventsConfig) {
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalArgumentException("Host canot be null!");
+        }
+        if (edgeEventsConfig == null) {
+            throw new IllegalArgumentException("Config cannot be null!");
+        }
+    }
+
     /*!
      * Entry functions for default handlers.
      */
-    public boolean startEdgeEvents(final EdgeEventsConfig eeConfig, final ClientEventsConfig ceConfig) {
+    public class LatencyTask extends TimerTask {
+        ClientEventsConfig ceConfig;
+        int calledCount;
+        String host;
+        int port;
+        LatencyTask(String host, int port, ClientEventsConfig clientEventsConfig) {
+            ceConfig = clientEventsConfig;
+            calledCount = 0;
+            this.host = host;
+            this.port = port;
+
+            if (host == null || host.trim().isEmpty()) {
+                throw new IllegalArgumentException("Host cannot be null!");
+            }
+        }
+
+        public void run() {
+            if (calledCount < ceConfig.maxNumberOfUpdates) {
+                if (port == 0) {
+                    testPingAndPostLatencyUpdate(host, mLastLocationPosted);
+                }
+                else {
+                    // This needs a connect test if a ping doesn't work.
+                    testConnectAndPostLatencyUpdate(host, port, mLastLocationPosted);
+                }
+            } else {
+                latencyTimer.cancel();
+            }
+        }
+    }
+
+    /*!
+     * Entry functions for default handlers.
+     */
+    public class LocationTask extends TimerTask {
+        ClientEventsConfig ceConfig;
+        int calledCount;
+        String host;
+        int port;
+        LocationTask(ClientEventsConfig clientEventsConfig) {
+            ceConfig = clientEventsConfig;
+            calledCount = 0;
+
+            if (host == null || host.trim().isEmpty()) {
+                throw new IllegalArgumentException("Host cannot be null!");
+            }
+        }
+
+        public void run() {
+            if (calledCount < ceConfig.maxNumberOfUpdates) {
+                if (mLastLocationPosted != null) {
+                    postLocationUpdate(mLastLocationPosted);
+                }
+            } else {
+                locationTimer.cancel(); // Tests done.
+            }
+        }
+    }
+    private Timer latencyTimer = new Timer();
+    private Timer locationTimer = new Timer();
+    /*!
+     * \param dmeHost DME hostname. FIXME: Why?
+     * \param dmePort
+     * \param edgeEventsConfig
+     */
+    public boolean startEdgeEvents(String dmeHost, int dmePort, final EdgeEventsConfig edgeEventsConfig) throws IllegalArgumentException {
         if (!me.isEnableEdgeEvents()) {
             return false;
         }
 
-        this.eeConfig = eeConfig;
-        this.ceConfig = ceConfig;
+        String host;
+        int port = -1;
 
-        // Run on a threadpool (that expands as needed).
-        CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(new Supplier<Boolean>() {
-            @Override
-            public Boolean get() {
-                long updateInterval = 1000;
-                long numUpdates = 0;
-                if (ceConfig != null) {
-                    if (ceConfig.updateIntervalSeconds < 1d) {
-                        updateInterval = 1000;
+        // Abort if no find cloudlet yet.
+        if (me.mFindCloudletReply == null) {
+            Log.e(TAG, "The App needs to have a FindCloudlet reply of FIND_FOUND before startEdgeEvents can be used");
+            return false;
+        }
+
+        if (me.mFindCloudletReply.getPortsCount() < 1) {
+            Log.e(TAG, "The last findCloudlet does NOT have any ports! Ports Count: " + me.mFindCloudletReply.getPortsCount());
+            return false;
+        }
+        Appcommon.AppPort aPort = me.mFindCloudletReply.getPorts(0); // Get the first one.
+        host = aPort.getFqdnPrefix() + me.mFindCloudletReply.getFqdn();
+        port = edgeEventsConfig.latencyPort; // Caller specified port, presumably a valid port.
+
+        // TODO: Validate that port (loop, and vaidate against ranges).
+
+        eeConfig = edgeEventsConfig;
+        if (eeConfig == null) {
+            return false;
+        }
+
+        validateStartConfig(host, port, edgeEventsConfig);
+
+        if (latencyTimer != null) {
+            latencyTimer.cancel();
+            latencyTimer = null;
+        }
+        if (eeConfig.latencyUpdateConfig != null) {
+            ClientEventsConfig latencyUpdateConfig = eeConfig.latencyUpdateConfig;
+
+            latencyTimer = new Timer();
+
+            switch (latencyUpdateConfig.updatePattern) {
+                case onStart:
+                    if (port <= 0) {
+                        testPingAndPostLatencyUpdate(host, mLastLocationPosted);
                     } else {
-                        updateInterval = (long) ceConfig.updateIntervalSeconds;
+                        testConnectAndPostLatencyUpdate(host, port, mLastLocationPosted);
                     }
-
-                    if (ceConfig.maxNumberOfUpdates < 0) {
-                        return false;
-                    } else {
-                        numUpdates = ceConfig.maxNumberOfUpdates; // Including INT_MAX.
-                    }
-                }
-
-                // Loop on configured events.
-                while (true) {
-
-                    // Latency:
-                    Log.d(TAG, "Waiter not Implemented");
-
-                    // If a FindCloudlet arrived, post to Polymorphic EventBus
-
-
-                    // If Latency is past configured threshold:
-
-
-                    // Scheduled Interval.
-                    try {
-                        // If Posted Event queue is empty, just sleep until notified.
-                        numUpdates--;
-                        if (numUpdates < 0) {
-                            return true;
-                        }
-                        syncObject.wait(updateInterval);
-                    } catch (InterruptedException e) {
-                        // if told to exit, close() EdgeEventsBus:
-                        // close();
-                    }
-                }
+                    break;
+                case onTrigger:
+                    mEdgeEventsBus.register(this); // Attach Subscriber for triggers.
+                    break;
+                case onInterval:
+                    // Last FindCloudlet
+                    latencyTimer.schedule(new LatencyTask(host, port, latencyUpdateConfig),
+                            (long)(latencyUpdateConfig.updateIntervalSeconds * 1000d));
+                    break;
             }
-        }, me.threadpool);
+        }
 
+        if (locationTimer != null) {
+            locationTimer.cancel();
+            locationTimer = null;
+        }
+        if (eeConfig.locationUpdateConfig != null) {
+            ClientEventsConfig locationUpdateConfig = eeConfig.locationUpdateConfig;
 
-        return true; // Launched thread.
+            locationTimer = new Timer();
+
+            switch (locationUpdateConfig.updatePattern) {
+                case onStart:
+                    postLocationUpdate(mLastLocationPosted);
+                    break;
+                case onTrigger:
+                    mEdgeEventsBus.register(this); // Attach Subscriber for triggers.
+                    break;
+                case onInterval:
+                    locationTimer.schedule(new LocationTask(locationUpdateConfig),
+                            (long)(locationUpdateConfig.updateIntervalSeconds * 1000d));
+                    break;
+            }
+        }
+
+        // Launched Scheduled tasks, or EdgeEvents listener..
+        return true;
+    }
+
+    public void stopEdgeEvents() {
+        if (latencyTimer != null) {
+            latencyTimer.cancel();
+        }
+        if (locationTimer != null) {
+            locationTimer.cancel();
+        }
+        latencyTimer = null;
+        locationTimer = null;
     }
 
     // Configured Defaults:

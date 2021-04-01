@@ -30,7 +30,7 @@ public class ClientEventsConfig {
 
     public ClientEventsConfig() {
         updatePattern = UpdatePattern.onTrigger;
-        updateIntervalSeconds = 0;
+        updateIntervalSeconds = 30;
         maxNumberOfUpdates = 1;
     }
 }
