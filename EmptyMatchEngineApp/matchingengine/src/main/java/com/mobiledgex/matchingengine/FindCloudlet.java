@@ -360,6 +360,7 @@ public class FindCloudlet implements Callable {
 
         // Create message channel for DME EdgeEvents:
         if (fcReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
+            mMatchingEngine.closeEdgeEventsConnection();
             mMatchingEngine.getEdgeEventsConnection(mHost, mPort, network, fcReply.getEdgeEventsCookie());
         }
         return fcReply;

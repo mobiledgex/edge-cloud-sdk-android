@@ -24,19 +24,23 @@ public class EdgeEventsConfig {
     public int latencyPort; // port information for latency testing, internal port, not public port for current AppInst.
     public NetTest.TestType testType = NetTest.TestType.PING; // TCP connect. Use ping for UDP.
     public ClientEventsConfig latencyUpdateConfig; // config for latency updates
-    public ClientEventsConfig gpsUpdateConfig;// config for gps location updates
+    public ClientEventsConfig locationUpdateConfig;// config for gps location updates
 
     // Configure how to respond to events
     public double latencyThresholdTrigger; // latency threshold in ms when new FindCloudlet is triggered
-    public FindCloudletEventTrigger newFindCloudletEventTriggers[];// events that application wants a new find cloudlet for
+    public FindCloudletEventTrigger triggers[];// events that application wants a new find cloudlet for
 
     // Defaults:
     public EdgeEventsConfig() {
         latencyPort = 0; // implicit Ping only.
         latencyThresholdTrigger = 100f;
-        newFindCloudletEventTriggers = new FindCloudletEventTrigger[] {
+        triggers = new FindCloudletEventTrigger[] {
                 FindCloudletEventTrigger.CloudletStateChanged, FindCloudletEventTrigger.LatencyTooHigh
         };
+
+        // Sane defaults, onTrigger, and once.
+        latencyUpdateConfig = new ClientEventsConfig();
+        locationUpdateConfig = new ClientEventsConfig();
     }
 }
 

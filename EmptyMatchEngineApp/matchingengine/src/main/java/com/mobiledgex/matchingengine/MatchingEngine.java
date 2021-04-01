@@ -96,6 +96,7 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 
 import android.content.pm.PackageInfo;
+import android.util.EventLog;
 import android.util.Log;
 import android.util.Pair;
 
@@ -105,7 +106,6 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
-import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEventTrigger;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.mel.MelMessaging;
@@ -164,8 +164,9 @@ public class MatchingEngine {
     private NetTest mNetTest;
     private boolean threadedPerformanceTest = false;
 
-    private EventBus mEdgeEventBus;
+
     private EdgeEventsConnection mEdgeEventsConnection;
+    private EventBus mEdgeEventBus;
     private boolean enableEdgeEvents = true;
 
     // Default EdgeEvents config:
@@ -175,7 +176,7 @@ public class MatchingEngine {
         eeConfig.latencyPort = 0; // implicitly Ping.
         eeConfig.testType = NetTest.TestType.PING;
         eeConfig.latencyThresholdTrigger = 100; // Single threshold.
-        eeConfig.newFindCloudletEventTriggers = new FindCloudletEventTrigger[] { CloudletStateChanged };
+        eeConfig.triggers = new FindCloudletEventTrigger[] { CloudletStateChanged };
         return eeConfig;
     }
 
@@ -192,8 +193,9 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-        mEdgeEventBus = new EventBus();
-        mEdgeEventBus.register(this);
+        enableEdgeEvents = true;
+        mEdgeEventBus = new AsyncEventBus(threadpool);
+
         if (MelMessaging.isMelEnabled()) {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
@@ -214,8 +216,8 @@ public class MatchingEngine {
         mContext = context;
         mNetTest = new NetTest();
         enableEdgeEvents = true;
-        mEdgeEventBus = new AsyncEventBus(executorService); // TODO: Should not be implicit.
-        mEdgeEventBus.register(this);
+        mEdgeEventBus = new AsyncEventBus(executorService);
+
         if (MelMessaging.isMelEnabled()) {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
@@ -249,6 +251,8 @@ public class MatchingEngine {
      * If you want to receive events, register your class that has a @Subscribe annotation with a
      * ServerEdgeEvent method parameter.
      *
+     * FIXME: EdgeEventsConfig.
+     *
      * \param dmeHost
      * \param port
      * \param network
@@ -262,8 +266,10 @@ public class MatchingEngine {
             return null;
         }
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
-            mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, port, null);
+            mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, port, null, threadpool, null);
         }
+        // Attach our EventBus instance to use:
+        mEdgeEventsConnection.setEdgeEventsBus(mEdgeEventBus);
 
         // Client identifies itself with an Init message to DME EdgeEvents Connection.
         AppClient.ClientEdgeEvent initDmeEvent = AppClient.ClientEdgeEvent.newBuilder()
@@ -276,27 +282,14 @@ public class MatchingEngine {
         return mEdgeEventsConnection;
     }
 
-    // EventBus is not to be used for outgoing events. No subscription to serverEdgeEvents.
-    // Ingress from EdgeEventsConnection.
-    @Subscribe
-    private void handleClientEdgeEvent(AppClient.ServerEdgeEvent serverEdgeEvent) {
-        Log.d(TAG, "EventBus: Event: " + serverEdgeEvent.getEventType());
-    }
-
-    /**
-     * Listens to dead events, and prints them in debug builds. If they are of interest, subscribe.
-     * @param deadEvent
-     */
-    @Subscribe
-    private void handleDeadEdgeEvent(DeadEvent deadEvent) {
-        Log.d(TAG, "EventBus: Unhandled event: " + deadEvent.toString());
-
-        if (deadEvent.getEvent() instanceof AppClient.ServerEdgeEvent) {
-            AppClient.ServerEdgeEvent unhandledEvent = (AppClient.ServerEdgeEvent) deadEvent.getEvent();
-            Log.w(TAG, "EventBus: To get pushed edgeEvent updates, subscribe to ServerEdgeEvents: " + unhandledEvent.getEventType());
+    boolean closeEdgeEventsConnection() {
+        if (mEdgeEventsConnection != null) {
+            mEdgeEventsConnection.close();
+            mEdgeEventsConnection = null;
+            return true;
         }
+        return false;
     }
-
     public EdgeEventsConnection getEdgeEventsConnection() {
         return mEdgeEventsConnection;
     }
@@ -305,8 +298,6 @@ public class MatchingEngine {
      * MatchingEngine contains some long lived resources.
      */
     public void close() {
-        mEdgeEventBus.unregister(this);
-
         if (getEdgeEventsConnection() != null) {
             getEdgeEventsConnection().sendTerminate();
         }
@@ -336,6 +327,7 @@ public class MatchingEngine {
      * \ingroup functions_dmeutils
      */
     public EventBus getEdgeEventsBus() {
+        // This lives outside the EdgeEventsConnect, so the eventBus can be set.
         return mEdgeEventBus;
     }
 
