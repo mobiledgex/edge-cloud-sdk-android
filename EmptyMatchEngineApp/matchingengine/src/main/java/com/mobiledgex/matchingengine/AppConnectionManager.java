@@ -18,6 +18,7 @@
 package com.mobiledgex.matchingengine;
 
 import android.net.Network;
+import android.util.Log;
 
 import com.squareup.okhttp.OkHttpClient;
 
@@ -36,6 +37,7 @@ import javax.net.ssl.SSLSocket;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.AppClient.FindCloudletReply;
+import distributed_match_engine.Appcommon;
 import distributed_match_engine.Appcommon.LProto;
 import distributed_match_engine.Appcommon.AppPort;
 
@@ -187,6 +189,44 @@ public class AppConnectionManager {
             return true;
         }
         return false;
+    }
+
+    /*!
+     * Gets a public port from an internal port, without knowing which Port List. This works
+     * only for non-overlapping port ranges configured on the server.
+     * \param findCloudletReply
+     * \param internalPort
+     */
+    public int getPublicPort(AppClient.FindCloudletReply findCloudletReply, int internalPort) {
+        int publicPort = 0;
+        // Get's the appPort with the internal port:
+        for (Appcommon.AppPort p : findCloudletReply.getPortsList()) {
+            try {
+                publicPort = getPort(p, internalPort);
+            } catch (InvalidPortException e) {
+                Log.d(TAG, "Internal Port [" + internalPort + "] Not found in AppPort, continuing to next port...");
+                continue;
+            }
+        }
+        return publicPort;
+    }
+
+    public AppPort getAppPort(AppClient.FindCloudletReply findCloudletReply, int internalPort) {
+        int publicPort = 0;
+        AppPort aPort = null;
+        // Get's the appPort with the internal port:
+        for (Appcommon.AppPort p : findCloudletReply.getPortsList()) {
+            try {
+                publicPort = getPort(p, internalPort);
+                if (publicPort != 0) {
+                    aPort = p;
+                }
+            } catch (InvalidPortException e) {
+                Log.d(TAG, "Internal Port [" + internalPort + "] Not found in AppPort, continuing to next port...");
+                continue;
+            }
+        }
+        return aPort;
     }
 
     /*!

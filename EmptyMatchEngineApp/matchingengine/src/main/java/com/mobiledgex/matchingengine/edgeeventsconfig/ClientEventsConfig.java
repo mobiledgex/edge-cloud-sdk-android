@@ -33,4 +33,10 @@ public class ClientEventsConfig {
         updateIntervalSeconds = 30;
         maxNumberOfUpdates = 1;
     }
+
+    public ClientEventsConfig(ClientEventsConfig clientEventsConfig) {
+        updatePattern = clientEventsConfig.updatePattern;
+        updateIntervalSeconds = clientEventsConfig.updateIntervalSeconds;
+        maxNumberOfUpdates = clientEventsConfig.maxNumberOfUpdates;
+    }
 }

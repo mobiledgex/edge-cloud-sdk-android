@@ -131,6 +131,10 @@ public class MeLocation {
             throw new IllegalStateException("Location util requires a Context.");
         }
 
+        if (!MatchingEngine.isMatchingEngineLocationAllowed()) {
+            return null;
+        }
+
         if (timeoutInMilliseconds < 0) {
             throw new IllegalArgumentException("Timeout must be higher than 0.");
         }
