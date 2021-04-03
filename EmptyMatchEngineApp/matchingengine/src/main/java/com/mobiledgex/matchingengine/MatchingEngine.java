@@ -250,11 +250,14 @@ public class MatchingEngine {
     /*!
      * Helper util to create a useful config.
      */
-    public EdgeEventsConfig createDefaultEdgeEventsConfig(double latencyUpdateIntervalSeconds,
-                                                            double locationUpdateIntervalSeconds,
-                                                            double latencyThresholdTriggerMs,
-                                                            ClientEventsConfig.UpdatePattern updatePattern) {
+    public EdgeEventsConfig createDefaultEdgeEventsConfig() {
 
+        return EdgeEventsConfig.createDefaultEdgeEventsConfig();
+    }
+    public EdgeEventsConfig createDefaultEdgeEventsConfig(double latencyUpdateIntervalSeconds,
+                                                          double locationUpdateIntervalSeconds,
+                                                          double latencyThresholdTriggerMs,
+                                                          ClientEventsConfig.UpdatePattern updatePattern) {
         return EdgeEventsConfig.createDefaultEdgeEventsConfig(latencyUpdateIntervalSeconds, locationUpdateIntervalSeconds, latencyThresholdTriggerMs, updatePattern);
     }
 
@@ -273,7 +276,15 @@ public class MatchingEngine {
     }
 
     // Do not use in production. DME will likely change.
-    public boolean startEdgeEvents(String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig) {
+    boolean mAppInitiatedRunEdgeEvents = false;
+    synchronized public boolean startEdgeEvents(String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig) {
+        mAppInitiatedRunEdgeEvents = true;
+        if (edgeEventsConfig == null) {
+            Log.w(TAG, "Using default EdgeEventsConfig.");
+            this.mEdgeEventsConfig = EdgeEventsConfig.createDefaultEdgeEventsConfig();
+        } else {
+            this.mEdgeEventsConfig = edgeEventsConfig;
+        }
         // This is an exposed path to start/restart EdgeEvents, state check everything.
         if (!validateEdgeEventsConfig(edgeEventsConfig)) {
             return false; // NOT started.
@@ -287,14 +298,11 @@ public class MatchingEngine {
             Log.i(TAG, "EdgeEventsConnection is already running Stop, before starting a new one.");
         }
 
-        if (!mEdgeEventsConnection.isShutdown()) {
-            mEdgeEventsConnection.runEdgeEvents();
-        }
-
         return true;
     }
 
-    public boolean stopEdgeEvents() {
+    synchronized public boolean stopEdgeEvents() {
+        mAppInitiatedRunEdgeEvents = false;
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
             Log.i(TAG, "EdgeEventsConnection is already stopped.");
             return false;
@@ -321,12 +329,6 @@ public class MatchingEngine {
         if (!mEnableEdgeEvents) {
             Log.w(TAG, "MobiledgeX EdgeEvents are disabled. Reduced functionality.");
             return false;
-        }
-
-        if (edgeEventsConfig == null) {
-            this.mEdgeEventsConfig = EdgeEventsConfig.createDefaultEdgeEventsConfig();
-        } else {
-            this.mEdgeEventsConfig = edgeEventsConfig;
         }
 
         if (mFindCloudletReply == null) {
@@ -365,8 +367,11 @@ public class MatchingEngine {
         }
 
         // Clean:
-        if (mEdgeEventsConnection != null || !mEdgeEventsConnection.isShutdown()) {
-            mEdgeEventsConnection.close();
+        if (mEdgeEventsConnection != null && !mEdgeEventsConnection.isShutdown()) {
+            if (edgeEventsConfig != null) {
+                mEdgeEventsConfig = edgeEventsConfig; // For future use, existing connection will keep config.
+            }
+            return mEdgeEventsConnection;
         }
 
         // Open:
@@ -375,12 +380,13 @@ public class MatchingEngine {
         // Attach our EventBus instance to use
         mEdgeEventsConnection.setEdgeEventsBus(mEdgeEventBus);
 
+        // app or sdk default, edgeEvents is enabled, so run that config, always.
+        mEdgeEventsConnection.runEdgeEvents();
+
         return mEdgeEventsConnection;
     }
 
     boolean closeEdgeEventsConnection() {
-        mFindCloudletReply = null;
-
         if (mEdgeEventsConnection != null) {
             mEdgeEventsConnection.close();
             mEdgeEventsConnection = null;

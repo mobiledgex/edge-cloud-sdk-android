@@ -46,8 +46,10 @@ import com.google.android.gms.tasks.Task;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.DmeDnsException;
+import com.mobiledgex.matchingengine.EdgeEventsConnection;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.NetworkRequestTimeoutException;
+import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
@@ -78,11 +80,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private RequestPermissions mRpUtil;
     private MatchingEngine mMatchingEngine;
     private NetTest netTest;
+    private EdgeEventsSubscriber mEdgeEventsSubscriber;
 
     private AppClient.FindCloudletReply mLastFindCloudlet;
     private FusedLocationProviderClient mFusedLocationClient;
 
-    private int internalPort = 7777;
+    private int internalPort = 8008;
 
     private LocationCallback mLocationCallback;
     private LocationRequest mLocationRequest;
@@ -211,8 +214,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         if (mMatchingEngine == null) {
             // Permissions available. Create a MobiledgeX MatchingEngine instance (could also use Application wide instance).
             mMatchingEngine = new MatchingEngine(this);
-            // Register ourselves. The Subscribe annotation will be called on ClientEdgeEvents.
-            //mMatchingEngine.getEdgeEventsBus().register(this);
+            // Register ourselves. The Subscribe annotation will be called on ServerEdgeEvents.
+
+            // Attach an class (could even be this class), to the EdgeEventsBus (Guava EventBus interface).
+            mEdgeEventsSubscriber = new EdgeEventsSubscriber();
+            mMatchingEngine.getEdgeEventsBus().register(mEdgeEventsSubscriber);
+            mMatchingEngine.setEnableEdgeEvents(true);
+
+            // set a default config.
+            mMatchingEngine.startEdgeEvents(mMatchingEngine.createDefaultEdgeEventsConfig());
         }
 
         if (mDoLocationUpdates) {
@@ -228,189 +238,225 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             mMatchingEngine.close();
             mMatchingEngine = null;
         }
-    }
-
-    @Subscribe
-    /*!
-     * Subscribe to Latency updates to appInst:
-     */
-    public void onMessageEvent(FindCloudletEvent findCloudletEvent) {
-        Log.d(TAG, "Latency update, reason: " + findCloudletEvent.trigger);
-
-        // Connect to new Cloudlet in the event here.
+        mEdgeEventsSubscriber = null;
     }
 
     /*!
-     * Subscribe to ServerEdgeEvents! (Guava Interface)
-     * To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
+     * This class encapsulates what an app might implement to watch for edge events. Not ever event needs to be implemented.
+     * If you just want FindCloudlet, just subscribe to FindCloudletEvents. It is send into the event-bus
+     * as is.
      */
-    @Subscribe
-    public void onMessageEvent(AppClient.ServerEdgeEvent event) {
-        Map<String, String> tagsMap = event.getTagsMap();
+    class EdgeEventsSubscriber {
+        @Subscribe
+        /*!
+         * Subscribe to error handlers. (Guava EventBus Interface)
+         */
+        public void onMessageEvent(EdgeEventsConnection.EdgeEventsError error) {
+            Log.d(TAG, "EdgeEvents error reported, reason: " + error);
 
-        switch (event.getEventType()) {
-            case EVENT_INIT_CONNECTION:
-                System.out.println("Received Init response: " + event);
-                break;
-            case EVENT_APPINST_HEALTH:
-                System.out.println("Received: AppInst Health: " + event);
-                handleAppInstHealth(event);
-                break;
-            case EVENT_CLOUDLET_STATE:
-                System.out.println("Received: Cloutlet State event: " + event);
-                handleCloudletState(event);
-                break;
-            case EVENT_CLOUDLET_MAINTENANCE:
-                System.out.println("Received: Cloutlet Maintenance event." + event);
-                handleCloudletMaintenance(event);
-                break;
-            case EVENT_LATENCY_PROCESSED:
-                System.out.println("Received: Latency has been processed on server: " + event);
-                break;
-            case EVENT_LATENCY_REQUEST:
-                System.out.println("Received: Latency has been requested to be tested (client perspective): " + event);
-                handleLatencyRequest(event);
-                break;
-            case EVENT_CLOUDLET_UPDATE:
-                System.out.println("Received: Server pushed a new FindCloudletReply to switch to: " + event);
-                handleFindCloudletServerPush(event);
-                break;
-            case EVENT_UNKNOWN:
-                System.out.println("Received UnknownEvent.");
-                break;
-            default:
-                System.out.println("Event Received: " + event.getEventType());
-        }
-    }
-
-    void handleFindCloudletServerPush(AppClient.ServerEdgeEvent event) {
-        // In a real app:
-        // Sync any user app data
-        // switch servers
-        // restore state to continue.
-
-        // Just print:
-        AppClient.FindCloudletReply reply = event.getNewCloudlet();
-
-        HashMap<Integer, Appcommon.AppPort> ports = mMatchingEngine.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
-        Appcommon.AppPort aport = ports.get(internalPort);
-        int publicPort = aport.getPublicPort();
-        String url = mMatchingEngine.getAppConnectionManager().createUrl(reply, aport, publicPort, "https", "");
-
-        someText += "New FindCloudlet path is: " + url;
-
-        // And set it for use later.
-        mLastFindCloudlet = reply;
-    }
-
-    void handleAppInstHealth(AppClient.ServerEdgeEvent event) {
-        if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_APPINST_HEALTH) {
-            return;
+            // Check config.
         }
 
-        switch (event.getHealthCheck()) {
-            case HEALTH_CHECK_FAIL_ROOTLB_OFFLINE:
-            case HEALTH_CHECK_FAIL_SERVER_FAIL:
-                doEnhancedLocationVerification();
-                break;
-            case HEALTH_CHECK_OK:
-                System.out.println("AppInst Health is OK");
-                break;
-            case UNRECOGNIZED:
-                // fall through
-            default:
-                System.out.println("AppInst Health event: " + event.getHealthCheck());
-        }
-    }
+        /*!
+         * Subscribe to FindCloudletEvent updates to appInst:
+         */
+        @Subscribe
+        public void onMessageEvent(FindCloudletEvent findCloudletEvent) {
+            Log.d(TAG, "Cloudlet update, reason: " + findCloudletEvent.trigger);
 
-    void handleCloudletMaintenance(AppClient.ServerEdgeEvent event) {
-        if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_MAINTENANCE) {
-            return;
+            // Connect to new Cloudlet in the event here.
+            Log.d(TAG, "Cloudlet: " + findCloudletEvent.newCloudlet);
         }
 
-        switch (event.getMaintenanceState()) {
-            case NORMAL_OPERATION:
-                System.out.println("Maintenance state is all good!");
-                break;
-            default:
-                System.out.println("Server maintenance: " + event.getMaintenanceState());
-        }
-    }
+        /*!
+         * Subscribe to ServerEdgeEvents! (Guava EventBus Interface)
+         *
+         * Optional. If you set this event handler, the app will take ownership ownership of raw
+         * events off the EdgeEventBus so a custom handler can be written in to fit your application
+         * use case better.
+         *
+         * To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
+         */
+        //@Subscribe
+        public void onMessageEvent(AppClient.ServerEdgeEvent event) {
+            Map<String, String> tagsMap = event.getTagsMap();
 
-    void handleCloudletState(AppClient.ServerEdgeEvent event) {
-        if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_STATE) {
-            return;
-        }
-
-        switch (event.getCloudletState()) {
-            case CLOUDLET_STATE_INIT:
-                System.out.println("Cloudlet is not ready yet. Wait or FindCloudlet again.");
-                break;
-            case CLOUDLET_STATE_NOT_PRESENT:
-            case CLOUDLET_STATE_UPGRADE:
-            case CLOUDLET_STATE_OFFLINE:
-            case CLOUDLET_STATE_ERRORS:
-                System.out.println("Cloudlet State is: " + event.getCloudletState());
-                break;
-            case CLOUDLET_STATE_READY:
-                // Timer Retry or just retry.
-                doEnhancedLocationVerification();
-                break;
-            case CLOUDLET_STATE_NEED_SYNC:
-                System.out.println("Cloudlet data needs to sync.");
-                break;
-            default:
-                System.out.println("Not handled");
-        }
-    }
-    // Only the app knows with any certainty which AppPort (and internal port array)
-    // it wants to test, so this is in the application.
-    void handleLatencyRequest(AppClient.ServerEdgeEvent event) {
-        if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_LATENCY_REQUEST) {
-            return;
-        }
-        CompletableFuture<Void> future = CompletableFuture.runAsync(new Runnable() {
-            @Override
-            public void run() {
-                // NetTest
-                // Local copy:
-                NetTest netTest = new NetTest();
-
-                // If there's a current FindCloudlet, we'd just use that.
-                if (mLastFindCloudlet == null) {
-                    return;
-                }
-
-                // Assuming some knowledge of your own internal un-remapped server port
-                // discover, and test with the PerformanceMetrics API:
-                int publicPort;
-                HashMap<Integer, Appcommon.AppPort> ports = mMatchingEngine.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
-                Appcommon.AppPort anAppPort = ports.get(internalPort);
-                if (anAppPort == null) {
-                    System.out.println("Your expected server (or port) doesn't seem to be here!");
-                }
-
-                // Test with default network in use:
-                publicPort = anAppPort.getPublicPort();
-                String host = mMatchingEngine.getAppConnectionManager().getHost(mLastFindCloudlet, anAppPort);
-
-                // Bad find cloudlet string (test.dme) if using edgebox. Override.
-                //host = "192.168.1.172";
-                publicPort = mMatchingEngine.getPort(); // We'll just ping DME since the AppInst isn't there.
-                Site site = new Site(getApplicationContext(), NetTest.TestType.CONNECT, 5, host, publicPort);
-                netTest.addSite(site);
-                netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
-
-                mMatchingEngine.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host),
-                        mLastLocationResult == null ? null : mLastLocationResult.getLastLocation());
-
-                // Post with Ping Util:
-                mMatchingEngine.getEdgeEventsConnection().testPingAndPostLatencyUpdate(host, mLastLocationResult.getLastLocation());
-
-                // Post with Connect Util:
-                mMatchingEngine.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(host, 50051, mLastLocationResult.getLastLocation());
+            switch (event.getEventType()) {
+                case EVENT_INIT_CONNECTION:
+                    System.out.println("Received Init response: " + event);
+                    break;
+                case EVENT_APPINST_HEALTH:
+                    System.out.println("Received: AppInst Health: " + event);
+                    handleAppInstHealth(event);
+                    break;
+                case EVENT_CLOUDLET_STATE:
+                    System.out.println("Received: Cloutlet State event: " + event);
+                    handleCloudletState(event);
+                    break;
+                case EVENT_CLOUDLET_MAINTENANCE:
+                    System.out.println("Received: Cloutlet Maintenance event." + event);
+                    handleCloudletMaintenance(event);
+                    break;
+                case EVENT_LATENCY_PROCESSED:
+                    System.out.println("Received: Latency has been processed on server: " + event);
+                    break;
+                case EVENT_LATENCY_REQUEST:
+                    System.out.println("Received: Latency has been requested to be tested (client perspective): " + event);
+                    handleLatencyRequest(event);
+                    break;
+                case EVENT_CLOUDLET_UPDATE:
+                    System.out.println("Received: Server pushed a new FindCloudletReply to switch to: " + event);
+                    handleFindCloudletServerPush(event);
+                    break;
+                case EVENT_UNKNOWN:
+                    System.out.println("Received UnknownEvent.");
+                    break;
+                default:
+                    System.out.println("Event Received: " + event.getEventType());
             }
-        });
+        }
+
+        // These are app specific handlers for the app to make effective.
+        void handleFindCloudletServerPush(AppClient.ServerEdgeEvent event) {
+            // In a real app:
+            // Sync any user app data
+            // switch servers
+            // restore state to continue.
+
+            // Just print:
+            AppClient.FindCloudletReply reply = event.getNewCloudlet();
+
+            HashMap<Integer, Appcommon.AppPort> ports = mMatchingEngine.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
+            Appcommon.AppPort aPort = ports.get(internalPort);
+            if (aPort == null) {
+                Log.e(TAG, "wrong port configuration.");
+                return;
+            }
+            int publicPort = aPort.getPublicPort();
+            String url = mMatchingEngine.getAppConnectionManager().createUrl(reply, aPort, publicPort, "https", "");
+
+            someText += "New FindCloudlet path is: " + url;
+
+            // And set it for use later.
+            mLastFindCloudlet = reply;
+        }
+
+        void handleAppInstHealth(AppClient.ServerEdgeEvent event) {
+            if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_APPINST_HEALTH) {
+                return;
+            }
+
+            switch (event.getHealthCheck()) {
+                case HEALTH_CHECK_FAIL_ROOTLB_OFFLINE:
+                case HEALTH_CHECK_FAIL_SERVER_FAIL:
+                    doEnhancedLocationVerification();
+                    break;
+                case HEALTH_CHECK_OK:
+                    System.out.println("AppInst Health is OK");
+                    break;
+                case UNRECOGNIZED:
+                    // fall through
+                default:
+                    System.out.println("AppInst Health event: " + event.getHealthCheck());
+            }
+        }
+
+        void handleCloudletMaintenance(AppClient.ServerEdgeEvent event) {
+            if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_MAINTENANCE) {
+                return;
+            }
+
+            switch (event.getMaintenanceState()) {
+                case NORMAL_OPERATION:
+                    System.out.println("Maintenance state is all good!");
+                    break;
+                default:
+                    System.out.println("Server maintenance: " + event.getMaintenanceState());
+            }
+        }
+
+        void handleCloudletState(AppClient.ServerEdgeEvent event) {
+            if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_STATE) {
+                return;
+            }
+
+            switch (event.getCloudletState()) {
+                case CLOUDLET_STATE_INIT:
+                    System.out.println("Cloudlet is not ready yet. Wait or FindCloudlet again.");
+                    break;
+                case CLOUDLET_STATE_NOT_PRESENT:
+                case CLOUDLET_STATE_UPGRADE:
+                case CLOUDLET_STATE_OFFLINE:
+                case CLOUDLET_STATE_ERRORS:
+                    System.out.println("Cloudlet State is: " + event.getCloudletState());
+                    break;
+                case CLOUDLET_STATE_READY:
+                    // Timer Retry or just retry.
+                    doEnhancedLocationVerification();
+                    break;
+                case CLOUDLET_STATE_NEED_SYNC:
+                    System.out.println("Cloudlet data needs to sync.");
+                    break;
+                default:
+                    System.out.println("Not handled");
+            }
+        }
+
+        // Only the app knows with any certainty which AppPort (and internal port array)
+        // it wants to test, so this is in the application.
+        CompletableFuture latencyTestFuture = null;
+
+        void handleLatencyRequest(AppClient.ServerEdgeEvent event) {
+            if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_LATENCY_REQUEST) {
+                return;
+            }
+            latencyTestFuture = CompletableFuture.runAsync(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        // NetTest
+                        // Local copy:
+                        NetTest netTest = new NetTest();
+
+                        // If there's a current FindCloudlet, we'd just use that.
+                        if (mLastFindCloudlet == null) {
+                            return;
+                        }
+
+                        // Assuming some knowledge of your own internal un-remapped server port
+                        // discover, and test with the PerformanceMetrics API:
+                        int publicPort;
+                        HashMap<Integer, Appcommon.AppPort> ports = mMatchingEngine.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
+                        Appcommon.AppPort anAppPort = ports.get(internalPort);
+                        if (anAppPort == null) {
+                            System.out.println("Your expected server (or port) doesn't seem to be here!");
+                        }
+
+                        // Test with default network in use:
+                        publicPort = anAppPort.getPublicPort();
+                        String host = mMatchingEngine.getAppConnectionManager().getHost(mLastFindCloudlet, anAppPort);
+
+                        // Bad find cloudlet string (test.dme) if using edgebox. Override.
+                        //host = "192.168.1.172";
+                        publicPort = mMatchingEngine.getPort(); // We'll just ping DME since the AppInst isn't there.
+                        Site site = new Site(getApplicationContext(), NetTest.TestType.CONNECT, 5, host, publicPort);
+                        netTest.addSite(site);
+                        netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
+
+                        mMatchingEngine.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host),
+                                mLastLocationResult == null ? null : mLastLocationResult.getLastLocation());
+
+                        // Post with Ping Util:
+                        mMatchingEngine.getEdgeEventsConnection().testPingAndPostLatencyUpdate(host, mLastLocationResult.getLastLocation());
+
+                        // Post with Connect Util:
+                        mMatchingEngine.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(host, publicPort, mLastLocationResult.getLastLocation());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
     }
 
     @Override

@@ -8,6 +8,9 @@ import android.util.Log;
 import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import com.mobiledgex.matchingengine.edgeeventhandlers.EdgeEventIntervalHandler;
+import com.mobiledgex.matchingengine.edgeeventhandlers.EdgeEventsLatencyIntervalHandler;
+import com.mobiledgex.matchingengine.edgeeventhandlers.EdgeEventsLocationIntervalHandler;
 import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
@@ -18,9 +21,8 @@ import com.mobiledgex.matchingengine.util.MeLocation;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -57,8 +59,7 @@ public class EdgeEventsConnection {
     int portOverride;
     Network networkOverride = null;
 
-    EdgeEventsConfig eeConfig;
-    Location mLastLocationPosted = null;
+    private Location mLastLocationPosted = null;
 
     // TODO: Use Site.DEFAULT_NUM_SAMPLES ?
     final int DEFAULT_NUM_SAMPLES = 5;
@@ -68,9 +69,11 @@ public class EdgeEventsConnection {
      */
     private EventBus mEdgeEventsBus;
     private DeadEventHandler deadEventHandler = new DeadEventHandler();
-    private boolean noEventHandlersObserved = true;
+    private boolean noEventInitHandlerObserved = false;
 
     private EdgeEventsConfig mEdgeEventsConfig;
+
+    public ConcurrentLinkedQueue<EdgeEventIntervalHandler> edgeEventIntervalHandlers = new ConcurrentLinkedQueue<>();
 
     // This class is mainly here to allow a clear object to register for deadEvents subscription.
     private class DeadEventHandler {
@@ -80,18 +83,20 @@ public class EdgeEventsConnection {
          */
         @Subscribe
         void handleDeadEvent(DeadEvent deadEvent) {
-            noEventHandlersObserved = true; // No Registered event subscribers has been observed.
-            Log.d(TAG, "EventBus: Unhandled event: " + deadEvent.toString());
-
             if (deadEvent.getEvent() instanceof AppClient.ServerEdgeEvent) {
+                AppClient.ServerEdgeEvent serverEdgeEvent = (AppClient.ServerEdgeEvent)deadEvent.getEvent();
+                if (serverEdgeEvent.getEventType() == ServerEventType.EVENT_INIT_CONNECTION) {
+                    // By missing the INIT message, fire only supported subset of events only:
+                    noEventInitHandlerObserved = true;
+                }
                 AppClient.ServerEdgeEvent unhandledEvent = (AppClient.ServerEdgeEvent) deadEvent.getEvent();
                 Log.w(TAG, "EventBus: To get pushed all raw edgeEvent updates, subscribe to EventBus object type ServerEdgeEvents: " + unhandledEvent.getEventType());
                 Log.w(TAG, "EventBus: To get pushed NewCloudlet updates for your app, subscribe to EventBus object type FindCloudletEvent: " + unhandledEvent.getEventType());
+            } else {
+                Log.d(TAG, "EventBus: Non-subscribed event received over EdgeEventsConnection: " + deadEvent.toString());
             }
         }
     }
-
-    Object syncObject = new Object();
 
     /*!
      * Errors on EdgeEvents
@@ -118,7 +123,7 @@ public class EdgeEventsConnection {
         fail
     }
 
-    /**
+    /*!
      * Establish an asynchronous DME Connection for streamed EdgeEvents to the current DME edge server.
      * @param me
      */
@@ -131,7 +136,7 @@ public class EdgeEventsConnection {
         this.me = me;
 
         Log.w(TAG, "Configuring EdgeEvent Defaults");
-        eeConfig = EdgeEventsConfig.createDefaultEdgeEventsConfig();
+        mEdgeEventsConfig = EdgeEventsConfig.createDefaultEdgeEventsConfig();
 
         try {
             open();
@@ -140,6 +145,10 @@ public class EdgeEventsConnection {
         }
     }
 
+    /**
+     * Do not use.
+     * @param me
+     */
     EdgeEventsConnection(MatchingEngine me, String dmeHost, int dmePort, Network network, EdgeEventsConfig eeConfig) {
         this.me = me;
 
@@ -169,16 +178,35 @@ public class EdgeEventsConnection {
         }
     }
 
-
-
-    public EventBus getEdgeEventsBus() {
-        return mEdgeEventsBus;
-    }
     EventBus setEdgeEventsBus(EventBus eventBus) {
         mEdgeEventsBus = eventBus;
         mEdgeEventsBus.register(deadEventHandler);
         return mEdgeEventsBus;
     }
+
+    boolean isRegisteredForEvents = false;
+    private boolean eventBusRegister() {
+        if (mEdgeEventsBus != null && !isRegisteredForEvents) {
+            mEdgeEventsBus.register(this);
+            isRegisteredForEvents = true;
+        }
+        return isRegisteredForEvents;
+    }
+    private boolean eventBusUnRegister() {
+        if (mEdgeEventsBus != null && isRegisteredForEvents) {
+            mEdgeEventsBus.unregister(this);
+            isRegisteredForEvents = false;
+        }
+        return isRegisteredForEvents;
+    }
+
+    public Location getLastLocationPosted() {
+        return mLastLocationPosted;
+    }
+    public void setLastLocationPosted(Location mLastLocationPosted) {
+        this.mLastLocationPosted = mLastLocationPosted;
+    }
+
 
     private boolean validateFindCloudlet(AppClient.FindCloudletReply findCloudletReply) {
         if (findCloudletReply.getEdgeEventsCookie() == null || findCloudletReply.getEdgeEventsCookie().isEmpty()) {
@@ -210,8 +238,8 @@ public class EdgeEventsConnection {
 
         // Post to interested subscribers.
         boolean subed = false;
-        for ( int i = 0; i  < eeConfig.triggers.length; i++) {
-            if (findCloudletEvent.trigger == eeConfig.triggers[i]) {
+        for ( int i = 0; i  < mEdgeEventsConfig.triggers.length; i++) {
+            if (findCloudletEvent.trigger == mEdgeEventsConfig.triggers[i]) {
                 subed = true;
                 break;
             }
@@ -304,36 +332,31 @@ public class EdgeEventsConnection {
         receiver = new StreamObserver<AppClient.ServerEdgeEvent>() {
             @Override
             public void onNext(AppClient.ServerEdgeEvent value) {
-                // Switch on type and/or post to bus.
-                // A new FindCloudlet can arrive:
-                if (value.getEventType() == ServerEventType.EVENT_CLOUDLET_UPDATE) {
-                    // New target FindCloudlet to use. Current FindCloudlet is known to the app and ought ot be in use.
-                    if (value.hasNewCloudlet()) {
-                        handleFindCloudletServerPush(value);
-                    }
-                    if (!me.isAutoMigrateEdgeEventsConnection()) {
-                        Log.w(TAG, "autoMigrateEdgeEventsConnection is set to false. When app has migrated to new cloudlet, call MatchingEngine's switchedToNewCloudlet().");
-                    }
-                    reOpenDmeConnection = me.isAutoMigrateEdgeEventsConnection();
-                    sendTerminate();
-                }
-
                 // If nothing is subscribed, it just goes to deadEvent.
+                // Raw Events.
                 mEdgeEventsBus.post(value);
 
-                // Default handler will handle incoming messages if no subscribers are currently observed.
-                // This also preserves the DeadEvent handler for outside users.
-                if (noEventHandlersObserved) {
+                // Non-Generic Defined EventBus Events:
+                if (value.getEventType() == ServerEventType.EVENT_CLOUDLET_UPDATE) {
+                    // Fire FindCloudletEvent to same EventBus:
+                    handleFindCloudletServerPush(value);
+                }
+
+                // Default handler will handle incoming messages if no subscribers are currently observed
+                // watching for the EVENT_INIT_CONNECTION message.
+                // This is effective for the life of this EdgeEventsConnection.
+                if (noEventInitHandlerObserved) {
+                    // Internal handler, app wants default, but without observed events. These are triggers.
+
+                    // This is not the same as runEdgeEvents, which are configured events.
                     HandleDefaultEdgeEvents(value);
-                } else {
-                    // User has indicated they want to handle with custom handler. Tear down auto monitors now.
-                    stopEdgeEvents();
                 }
             }
 
             @Override
             public void onError(Throwable t) {
                 Log.w(TAG, "Encountered error in DMEConnection", t);
+                close();
             }
 
             @Override
@@ -367,6 +390,11 @@ public class EdgeEventsConnection {
                 .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
                 .build();
         send(initDmeEvent);
+
+        // Run threaded tasks that the user asked for, with the default or user supplied config.
+        if (me.mAppInitiatedRunEdgeEvents) {
+            runEdgeEvents();
+        }
     }
 
     /*!
@@ -385,8 +413,7 @@ public class EdgeEventsConnection {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } finally {
-                latencyTimer = null;
-                locationTimer = null;
+                stopEdgeEvents();
                 open = false;
                 channel = null;
             }
@@ -513,8 +540,19 @@ public class EdgeEventsConnection {
             return false;
         }
 
-        LocOuterClass.Loc loc = me.androidLocToMeLoc(location);
+        LocOuterClass.Loc loc;
+        if (location == null) {
+            location = getLocation();
+        }
+        if (location == null) {
+            Log.e(TAG, "Location supplied is null, and cannot get location from location provider.");
+            postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
+            return false;
+        }
+        loc = me.androidLocToMeLoc(location);
         if (loc == null) {
+            Log.e(TAG, "Location Loc cannot be null!");
+            postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
             return false;
         }
 
@@ -524,8 +562,11 @@ public class EdgeEventsConnection {
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        mLastLocationPosted = location;
-        return tryPost(clientEdgeEvent);
+        if (tryPost(clientEdgeEvent)) {
+            setLastLocationPosted(location);
+            return true;
+        }
+        return false;
     }
 
     /*!
@@ -554,30 +595,37 @@ public class EdgeEventsConnection {
             return false;
         }
 
-        if (location != null) {
-            loc = me.androidLocToMeLoc(location);
+        if (location == null) {
+            Log.e(TAG, "Location supplied is null, and cannot get location from location provider.");
+            postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
+            return false;
+        }
+        loc = me.androidLocToMeLoc(location);
+        if (loc == null) {
+            Log.e(TAG, "Location Loc cannot be null!");
+            postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
+            return false;
         }
 
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
-                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LATENCY_SAMPLES);
-
-        if (loc != null) {
-            clientEdgeEventBuilder.setGpsLocation(loc);
-        }
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LATENCY_SAMPLES)
+                .setGpsLocation(loc);
 
         for (int i = 0; i < site.samples.length; i++) {
-            if (site.samples[i] > 0d) {
-                LocOuterClass.Sample.Builder sampleBuilder = LocOuterClass.Sample.newBuilder()
-                        //.setLoc(loc) Location is not synchronous with measurement.
-                        // Samples are not timestamped.
-                        .setValue(site.samples[i]);
-                clientEdgeEventBuilder.addSamples(sampleBuilder.build());
-            }
+            LocOuterClass.Sample.Builder sampleBuilder = LocOuterClass.Sample.newBuilder()
+                    //.setLoc(loc) Location is not synchronous with measurement.
+                    // Samples are not timestamped.
+                    .setValue(site.samples[i]);
+            clientEdgeEventBuilder.addSamples(sampleBuilder.build());
         }
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        return tryPost(clientEdgeEvent);
+        if (tryPost(clientEdgeEvent)) {
+            setLastLocationPosted(location);
+            return true;
+        }
+        return false;
     }
 
     /*!
@@ -612,24 +660,32 @@ public class EdgeEventsConnection {
             return false;
         }
 
-        LocOuterClass.Loc loc = null;
+        LocOuterClass.Loc loc;
 
-        if (host == null || host.length() == 0) {
-            // No results to post.
+        if (location == null) {
+            location = getLocation();
+        }
+        if (location == null) {
+            Log.e(TAG, "Location supplied is null, and cannot get location from location provider.");
+            postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
+            return false;
+        }
+        loc = me.androidLocToMeLoc(location);
+        if (loc == null) {
+            Log.e(TAG, "Location Loc cannot be null!");
+            postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
             return false;
         }
 
-        if (location != null) {
-            loc = me.androidLocToMeLoc(location);
-            mLastLocationPosted = location;
+        if (host == null || host.length() == 0) {
+            // No results to post.
+            Log.e(TAG, "host cannot be null.");
+            return false;
         }
 
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
-                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LATENCY_SAMPLES);
-
-        if (loc != null) {
-            clientEdgeEventBuilder.setGpsLocation(loc);
-        }
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LATENCY_SAMPLES)
+                .setGpsLocation(loc);
 
         if (numSamples == 0) {
             numSamples = DEFAULT_NUM_SAMPLES;
@@ -641,18 +697,19 @@ public class EdgeEventsConnection {
         netTest.testSites(netTest.TestTimeoutMS);
 
         for (int i = 0; i < site.samples.length; i++) {
-            if (site.samples[i] > 0d) {
-                LocOuterClass.Sample.Builder sampleBuilder = LocOuterClass.Sample.newBuilder()
-                        //.setLoc(loc) Location is not synchronous with measurement.
-                        // Samples are not timestamped.
-                        .setValue(site.samples[i]);
-                clientEdgeEventBuilder.addSamples(sampleBuilder.build());
-            }
+            LocOuterClass.Sample.Builder sampleBuilder = LocOuterClass.Sample.newBuilder()
+                    //.setLoc(loc) Location is not synchronous with measurement.
+                    // Samples are not timestamped.
+                    .setValue(site.samples[i]);
         }
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        return tryPost(clientEdgeEvent);
+        if (tryPost(clientEdgeEvent)) {
+            setLastLocationPosted(location);
+            return true;
+        }
+        return false;
     }
 
     /*!
@@ -703,16 +760,21 @@ public class EdgeEventsConnection {
             return false;
         }
 
-        if (location != null) {
-            loc = me.androidLocToMeLoc(location);
+        if (location == null) {
+            Log.e(TAG, "Location supplied is null, and cannot get location from location provider.");
+            postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
+            return false;
+        }
+        loc = me.androidLocToMeLoc(location);
+        if (loc == null) {
+            Log.e(TAG, "Location Loc cannot be null!");
+            postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
+            return false;
         }
 
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
-                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LATENCY_SAMPLES);
-
-        if (loc != null) {
-            clientEdgeEventBuilder.setGpsLocation(loc);
-        }
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LATENCY_SAMPLES)
+                .setGpsLocation(loc);
 
         if (numSamples == 0) {
             numSamples = DEFAULT_NUM_SAMPLES;
@@ -725,18 +787,20 @@ public class EdgeEventsConnection {
         netTest.testSites(netTest.TestTimeoutMS);
 
         for (int i = 0; i < site.samples.length; i++) {
-            if (site.samples[i] > 0d) {
-                LocOuterClass.Sample.Builder sampleBuilder = LocOuterClass.Sample.newBuilder()
-                        //.setLoc(loc) Location is not synchronous with measurement.
-                        // Samples are not timestamped.
-                        .setValue(site.samples[i]);
-                clientEdgeEventBuilder.addSamples(sampleBuilder.build());
-            }
+            LocOuterClass.Sample.Builder sampleBuilder = LocOuterClass.Sample.newBuilder()
+                    //.setLoc(loc) Location is not synchronous with measurement.
+                    // Samples are not timestamped.
+                    .setValue(site.samples[i]);
+            clientEdgeEventBuilder.addSamples(sampleBuilder.build());
         }
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        return tryPost(clientEdgeEvent);
+        if (tryPost(clientEdgeEvent)) {
+            setLastLocationPosted(location);
+            return true;
+        }
+        return false;
     }
 
     private void validateStartConfig(String host, EdgeEventsConfig edgeEventsConfig) {
@@ -748,77 +812,16 @@ public class EdgeEventsConnection {
         }
     }
 
-    /*!
-     * Entry functions for default handlers.
-     */
-    public class LatencyTask extends TimerTask {
-        ClientEventsConfig ceConfig;
-        int calledCount;
-        String host;
-        int port;
-        LatencyTask(String host, int port, ClientEventsConfig clientEventsConfig) {
-            ceConfig = clientEventsConfig;
-            calledCount = 0;
-            this.host = host;
-            this.port = port;
 
-            if (host == null || host.trim().isEmpty()) {
-                throw new IllegalArgumentException("Host cannot be null!");
-            }
-        }
-
-        public void run() {
-            if (calledCount < ceConfig.maxNumberOfUpdates) {
-                if (port == 0) {
-                    testPingAndPostLatencyUpdate(host, mLastLocationPosted);
-                }
-                else {
-                    // This needs a connect test if a ping doesn't work.
-                    testConnectAndPostLatencyUpdate(host, port, mLastLocationPosted);
-                }
-            } else {
-                latencyTimer.cancel();
-            }
-        }
-    }
+    ///
+    // Auto test example code pieces.
+    ///
 
     /*!
-     * Entry functions for default handlers.
-     */
-    public class LocationTask extends TimerTask {
-        ClientEventsConfig ceConfig;
-        int calledCount;
-        String host;
-        int port;
-        LocationTask(ClientEventsConfig clientEventsConfig) {
-            ceConfig = clientEventsConfig;
-            calledCount = 0;
-
-            if (host == null || host.trim().isEmpty()) {
-                throw new IllegalArgumentException("Host cannot be null!");
-            }
-        }
-
-        public void run() {
-            if (calledCount < ceConfig.maxNumberOfUpdates) {
-                if (me.mMatchingEngineLocationAllowed) {
-                    mLastLocationPosted = getLocation();
-                } else {
-                    Log.w(TAG, "Location is currently disabled.");
-                }
-                if (mLastLocationPosted != null) {
-                    postLocationUpdate(mLastLocationPosted);
-                }
-            } else {
-                locationTimer.cancel(); // Tests done.
-            }
-        }
-    }
-    private Timer latencyTimer = new Timer();
-    private Timer locationTimer = new Timer();
-
-    /*!
-     * Fires off tasks to run EdgeEvents monitoring. EdgeEvents must be enabled.
+     * Fires off tasks to run EdgeEvents monitoring as per config. EdgeEvents must be enabled.
+     * This is separate from the normal SDK handled events, like latency requests and new cloudlet
+     * availability. THose, you should subscribe to.
+     *
      * Cancel with stopEdgeEvents.
      * \param dmeHost DME hostname.
      * \param dmePort
@@ -852,17 +855,17 @@ public class EdgeEventsConnection {
             return false;
         }
 
-        eeConfig = mEdgeEventsConfig;
-        if (eeConfig == null) {
+        if (mEdgeEventsConfig == null) {
             return false;
         }
 
         validateStartConfig(host, mEdgeEventsConfig);
 
         // Just unregister. If the config says do it, we'll register a listener.
-        mEdgeEventsBus.unregister(this);
+        eventBusUnRegister();
 
-        // Scheduled Timer tasks:
+        // Known Scheduled Timer tasks.
+        // TODO: Refactor to handle configs more generically.
         runLatencyMonitorConfig(host, publicPort);
         runLocationMonitorConfig();
 
@@ -870,86 +873,72 @@ public class EdgeEventsConnection {
         return true;
     }
 
-
-
     private void runLocationMonitorConfig() {
-        if (locationTimer != null) {
-            locationTimer.cancel();
-            locationTimer = null;
-        }
-
         if (!me.mMatchingEngineLocationAllowed) {
             Log.w(TAG, "Location disabled. setMatchignEngineLocationAllowed(true) to enable task.");
             return;
         }
 
-        if (eeConfig.locationUpdateConfig != null) {
-            ClientEventsConfig locationUpdateConfig = eeConfig.locationUpdateConfig;
-
-            locationTimer = new Timer();
+        if (mEdgeEventsConfig.locationUpdateConfig != null) {
+            ClientEventsConfig locationUpdateConfig = mEdgeEventsConfig.locationUpdateConfig;
 
             switch (locationUpdateConfig.updatePattern) {
                 case onStart:
-                    postLocationUpdate(mLastLocationPosted);
+                    eventBusUnRegister();
+                    postLocationUpdate(getLastLocationPosted());
                     break;
                 case onTrigger:
-                    mEdgeEventsBus.register(this); // Attach Subscriber for triggers.
+                    eventBusRegister(); // Attach Subscriber for triggers.
                     break;
                 case onInterval:
-                    mEdgeEventsBus.register(this); // Attach Subscriber, to handle triggers and montoriing by interval.
-                    locationTimer.schedule(new LocationTask(locationUpdateConfig),
-                            (long)(locationUpdateConfig.updateIntervalSeconds * 1000d));
+                    eventBusRegister(); // Attach Subscriber, to handle triggers and montoriing by interval.
+                    // Add to a list of known EdgeEvent Testing Handlers
+                    edgeEventIntervalHandlers.add(new EdgeEventsLocationIntervalHandler(me, locationUpdateConfig));
                     break;
             }
         }
     }
 
     private void runLatencyMonitorConfig(String host, int publicPort) {
-        if (latencyTimer != null) {
-            latencyTimer.cancel();
-            latencyTimer = null;
-        }
-
-        if (eeConfig.latencyUpdateConfig != null) {
-            ClientEventsConfig latencyUpdateConfig = eeConfig.latencyUpdateConfig;
-
-            latencyTimer = new Timer();
+        if (mEdgeEventsConfig.latencyUpdateConfig != null) {
+            ClientEventsConfig latencyUpdateConfig = mEdgeEventsConfig.latencyUpdateConfig;
 
             switch (latencyUpdateConfig.updatePattern) {
                 case onStart:
+                    eventBusUnRegister();
                     if (publicPort <= 0) {
-                        testPingAndPostLatencyUpdate(host, mLastLocationPosted);
+                        testPingAndPostLatencyUpdate(host, getLastLocationPosted());
                     } else {
-                        testConnectAndPostLatencyUpdate(host, publicPort, mLastLocationPosted);
+                        testConnectAndPostLatencyUpdate(host, publicPort, getLastLocationPosted());
                     }
                     break;
                 case onTrigger:
-                    mEdgeEventsBus.register(this); // Attach Subscriber for triggers.
+                    eventBusRegister(); // Attach Subscriber for triggers.
                     break;
                 case onInterval:
                     // Last FindCloudlet
-                    mEdgeEventsBus.register(this); // Attach Subscriber, to handle triggers and montoriing by interval.
-                    latencyTimer.schedule(new LatencyTask(host, publicPort, latencyUpdateConfig),
-                            (long)(latencyUpdateConfig.updateIntervalSeconds * 1000d));
+                    eventBusRegister(); // Attach Subscriber, to handle triggers and montoriing by interval.
+                    // Add to a list of known EdgeEvent Testing Handlers
+                    edgeEventIntervalHandlers.add(
+                            new EdgeEventsLatencyIntervalHandler(
+                                    me, host, publicPort,
+                                    mEdgeEventsConfig.latencyTestType,
+                                    latencyUpdateConfig));
                     break;
             }
         }
     }
 
     public void stopEdgeEvents() {
-        if (latencyTimer != null) {
-            latencyTimer.cancel();
+        for (EdgeEventIntervalHandler eh : edgeEventIntervalHandlers) {
+            eh.cancel();
+            edgeEventIntervalHandlers.remove(eh);
         }
-        if (locationTimer != null) {
-            locationTimer.cancel();
-        }
-        latencyTimer = null;
-        locationTimer = null;
     }
 
     // Configured Defaults:
     // This is the default EventsHandler and Monitor for onTrigger events.
-    @Subscribe
+    // It should not be subscribed, it is directly called if DeadEvents is observed.
     private boolean HandleDefaultEdgeEvents(AppClient.ServerEdgeEvent event) {
         Map<String, String> tagsMap = event.getTagsMap();
         boolean ret = true;
@@ -1004,7 +993,7 @@ public class EdgeEventsConnection {
         }
 
         // FindCloudlet need location:
-        if (mLastLocationPosted == null) {
+        if (getLastLocationPosted() == null) {
             return false;
         }
 
@@ -1051,6 +1040,13 @@ public class EdgeEventsConnection {
 
             // Post to new FindCloudletEvent Handler subscribers, if any, on the same EventBus:
             postToFindCloudletEventHandler(event);
+
+            // Policy: Migrate to new DME connection?
+            if (!me.isAutoMigrateEdgeEventsConnection()) {
+                Log.w(TAG, "autoMigrateEdgeEventsConnection is set to false. When app has migrated to new cloudlet, call MatchingEngine's switchedToNewCloudlet().");
+            }
+            reOpenDmeConnection = me.isAutoMigrateEdgeEventsConnection();
+            sendTerminate();
 
         } else {
             Log.e(TAG, "Error: Server is missing a findClooudlet!");
@@ -1146,12 +1142,12 @@ public class EdgeEventsConnection {
                         return false;
                     }
 
-                    if (eeConfig == null) {
+                    if (mEdgeEventsConfig == null) {
                         Log.e(TAG, "No Latency Config set!");
                         return false;
                     }
 
-                    if (eeConfig.latencyInternalPort == 0 || eeConfig.latencyTestType == NetTest.TestType.PING) {
+                    if (mEdgeEventsConfig.latencyInternalPort == 0 || mEdgeEventsConfig.latencyTestType == NetTest.TestType.PING) {
                         Appcommon.AppPort aPort = me.mFindCloudletReply.getPortsList().get(0);
                         // Only host matters for Ping.
                         String host = aPort.getFqdnPrefix() + me.mFindCloudletReply.getFqdn();
@@ -1160,13 +1156,13 @@ public class EdgeEventsConnection {
                     }
 
                     // have (internal) port defined, use it.
-                    int publicPort = me.getAppConnectionManager().getPublicPort(me.mFindCloudletReply, eeConfig.latencyInternalPort);
+                    int publicPort = me.getAppConnectionManager().getPublicPort(me.mFindCloudletReply, mEdgeEventsConfig.latencyInternalPort);
                     if (publicPort == 0) {
                         Log.i(TAG, "Your expected server (or port) doesn't seem to be here!");
                         return false;
                     }
                     // Test with default network in use:
-                    Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(me.mFindCloudletReply, eeConfig.latencyInternalPort);
+                    Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(me.mFindCloudletReply, mEdgeEventsConfig.latencyInternalPort);
                     String host = appPort.getFqdnPrefix() + me.mFindCloudletReply.getFqdn();
 
                     Site site = new Site(me.mContext, NetTest.TestType.CONNECT, DEFAULT_NUM_SAMPLES, host, publicPort);
@@ -1175,16 +1171,16 @@ public class EdgeEventsConnection {
                     netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
 
                     // Trigger(s):
-                    if (site.average >= eeConfig.latencyThresholdTrigger) {
+                    if (site.average >= mEdgeEventsConfig.latencyThresholdTrigger) {
                         Log.i(TAG, "Latency higher than requested");
                         doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh);
                     }
 
-                    if (mLastLocationPosted == null) {
+                    if (getLastLocationPosted() == null) {
                         return false;
                     }
 
-                    return me.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host), mLastLocationPosted);
+                    return me.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host), getLastLocationPosted());
                 } catch (Exception e) {
                     Log.e(TAG, "Exception running latency test: " + e.getMessage());
                     e.printStackTrace();
