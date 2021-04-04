@@ -19,6 +19,8 @@ import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.MeLocation;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -112,7 +114,9 @@ public class EdgeEventsConnection {
         hasNotDoneFindCloudlet,
         emptyAppPorts,
         portDoesNotExist,
-        uninitializedEdgeEventsConnection
+        uninitializedEdgeEventsConnection,
+        edgeEventsConnectionError,
+        missingDmeDnsEntry,
     }
 
     /*!
@@ -259,10 +263,25 @@ public class EdgeEventsConnection {
     }
 
     synchronized public void reconnect() throws DmeDnsException {
+        if (!isShutdown()) {
+            sendTerminate();
+        }
         if (hostOverride != null && portOverride > 0) {
-            open(hostOverride, portOverride, networkOverride, mEdgeEventsConfig);
+            try {
+                open(hostOverride, portOverride, networkOverride, mEdgeEventsConfig);
+            } catch (DmeDnsException dde){
+                Log.e(TAG, "Host : [" + hostOverride + "] does not appear to exist for reconnect(). Please check the DME host used.");
+                postErrorToEventHandler(EdgeEventsError.missingDmeDnsEntry);
+                throw dde;
+            }
         } else {
-            open(); // Default DME
+            try {
+                open();
+            } catch (DmeDnsException dde) {
+                Log.e(TAG, "Automatically generated DME Address failed to open for reconnect(). Check with MatchingEngine generateDmeHostAddress() to find current one.");
+                postErrorToEventHandler(EdgeEventsError.missingDmeDnsEntry);
+                 throw dde;
+            }
         }
 
         // We need to re-init the DME connection:
@@ -326,6 +345,12 @@ public class EdgeEventsConnection {
 
         reOpenDmeConnection = false;
 
+        try {
+            InetAddress.getAllByName(host);
+        } catch (UnknownHostException uhe) {
+            throw new DmeDnsException(("Could not find mcc-mnc.dme.mobiledgex.net DME server: " + host), uhe);
+        }
+
         this.channel = me.channelPicker(host, port, network);
         this.asyncStub = MatchEngineApiGrpc.newStub(channel);
 
@@ -356,7 +381,21 @@ public class EdgeEventsConnection {
             @Override
             public void onError(Throwable t) {
                 Log.w(TAG, "Encountered error in DMEConnection", t);
+                mEdgeEventsBus.post(EdgeEventsError.edgeEventsConnectionError);
                 close();
+                // Reopen DME connection.
+                try {
+                    if (reOpenDmeConnection) { // Conditionally reconnect to receive EdgeEvents from closer DME.
+                        reconnect();
+                    }
+                } catch (Exception e) {
+                    mEdgeEventsBus.post(
+                            AppClient.ServerEdgeEvent.newBuilder()
+                                    .setEventType(ServerEventType.EVENT_INIT_CONNECTION)
+                                    .putTags("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.")
+                                    .build()
+                    );
+                }
             }
 
             @Override
@@ -372,7 +411,7 @@ public class EdgeEventsConnection {
                     mEdgeEventsBus.post(
                             AppClient.ServerEdgeEvent.newBuilder()
                                     .setEventType(ServerEventType.EVENT_INIT_CONNECTION)
-                                    .putTags("Message", "DME Connection failed. A new client initiated FindCloudlet required for edge events stream.")
+                                    .putTags("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.")
                                     .build()
                     );
                 }
@@ -420,7 +459,7 @@ public class EdgeEventsConnection {
         }
     }
 
-    public boolean isShutdown() {
+    synchronized public boolean isShutdown() {
         if (channel == null) {
             return true;
         }
@@ -428,20 +467,12 @@ public class EdgeEventsConnection {
         return channel.isShutdown();
     }
 
-    boolean send(AppClient.ClientEdgeEvent clientEdgeEvent) {
-        if (isShutdown()) {
-            return false;
-        }
-
-        sender.onNext(clientEdgeEvent);
-        return true;
-    }
-
-    private boolean tryPost(AppClient.ClientEdgeEvent clientEdgeEvent) {
+    public boolean send(AppClient.ClientEdgeEvent clientEdgeEvent) {
         try {
             if (isShutdown()) {
                 reconnect();
             }
+
             sender.onNext(clientEdgeEvent);
         } catch (Exception e) {
             Log.e(TAG, e.getMessage() + ", cause: " + e.getCause());
@@ -451,7 +482,7 @@ public class EdgeEventsConnection {
         return true;
     }
 
-    public boolean sendTerminate() {
+    synchronized public boolean sendTerminate() {
         if (isShutdown()) {
             return false;
         }
@@ -459,7 +490,7 @@ public class EdgeEventsConnection {
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
                 .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_TERMINATE_CONNECTION);
 
-        return tryPost(clientEdgeEventBuilder.build());
+        return send(clientEdgeEventBuilder.build());
     }
 
     // Utility functions below:
@@ -562,7 +593,7 @@ public class EdgeEventsConnection {
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        if (tryPost(clientEdgeEvent)) {
+        if (send(clientEdgeEvent)) {
             setLastLocationPosted(location);
             return true;
         }
@@ -621,7 +652,7 @@ public class EdgeEventsConnection {
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        if (tryPost(clientEdgeEvent)) {
+        if (send(clientEdgeEvent)) {
             setLastLocationPosted(location);
             return true;
         }
@@ -705,7 +736,7 @@ public class EdgeEventsConnection {
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        if (tryPost(clientEdgeEvent)) {
+        if (send(clientEdgeEvent)) {
             setLastLocationPosted(location);
             return true;
         }
@@ -796,7 +827,7 @@ public class EdgeEventsConnection {
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
 
-        if (tryPost(clientEdgeEvent)) {
+        if (send(clientEdgeEvent)) {
             setLastLocationPosted(location);
             return true;
         }
@@ -828,7 +859,7 @@ public class EdgeEventsConnection {
      * \param edgeEventsConfig
      * \param network override network.
      */
-    public boolean runEdgeEvents() {
+    synchronized public boolean runEdgeEvents() {
         if (!me.isEnableEdgeEvents()) {
             Log.e(TAG, "EdgeEvents are disabled. Managed EdgeEvents disabled.");
             return false;
@@ -873,7 +904,7 @@ public class EdgeEventsConnection {
         return true;
     }
 
-    private void runLocationMonitorConfig() {
+    synchronized private void runLocationMonitorConfig() {
         if (!me.mMatchingEngineLocationAllowed) {
             Log.w(TAG, "Location disabled. setMatchignEngineLocationAllowed(true) to enable task.");
             return;
@@ -899,7 +930,7 @@ public class EdgeEventsConnection {
         }
     }
 
-    private void runLatencyMonitorConfig(String host, int publicPort) {
+    synchronized private void runLatencyMonitorConfig(String host, int publicPort) {
         if (mEdgeEventsConfig.latencyUpdateConfig != null) {
             ClientEventsConfig latencyUpdateConfig = mEdgeEventsConfig.latencyUpdateConfig;
 
@@ -929,7 +960,12 @@ public class EdgeEventsConnection {
         }
     }
 
-    public void stopEdgeEvents() {
+    synchronized public void restartEdgeEvents() throws DmeDnsException {
+        stopEdgeEvents();
+        runEdgeEvents();
+    }
+
+    synchronized public void stopEdgeEvents() {
         for (EdgeEventIntervalHandler eh : edgeEventIntervalHandlers) {
             eh.cancel();
             edgeEventIntervalHandlers.remove(eh);
@@ -1045,9 +1081,14 @@ public class EdgeEventsConnection {
             if (!me.isAutoMigrateEdgeEventsConnection()) {
                 Log.w(TAG, "autoMigrateEdgeEventsConnection is set to false. When app has migrated to new cloudlet, call MatchingEngine's switchedToNewCloudlet().");
             }
-            reOpenDmeConnection = me.isAutoMigrateEdgeEventsConnection();
-            sendTerminate();
-
+            else {
+                try {
+                    reconnect();
+                } catch (DmeDnsException dde) {
+                    postErrorToEventHandler(EdgeEventsError.missingDmeDnsEntry);
+                    return false; // Cannot reconnect.
+                }
+            }
         } else {
             Log.e(TAG, "Error: Server is missing a findClooudlet!");
             return false;

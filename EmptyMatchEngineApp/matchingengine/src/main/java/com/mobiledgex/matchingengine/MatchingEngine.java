@@ -214,12 +214,12 @@ public class MatchingEngine {
         return mEnableEdgeEvents;
     }
 
-    public void setEnableEdgeEvents(boolean enableEdgeEvents) {
+    synchronized public void setEnableEdgeEvents(boolean enableEdgeEvents) {
         this.mEnableEdgeEvents = enableEdgeEvents;
     }
 
     // Default EdgeEvents config:
-    public void setEdgeEventsConfig(EdgeEventsConfig edgeEventsConfig) {
+    synchronized public void setEdgeEventsConfig(EdgeEventsConfig edgeEventsConfig) {
         this.mEdgeEventsConfig = edgeEventsConfig;
     }
 
@@ -243,7 +243,7 @@ public class MatchingEngine {
      * If set to false, when notified of a newCLoudlet availability, call "switchedToNewFindCloudlet()
      * to indicate the app has finally migrated to the new cloudlet.
      */
-    public void setAutoMigrateEdgeEventsConnection(boolean autoMigrateEdgeEventsConnection) {
+    synchronized public void setAutoMigrateEdgeEventsConnection(boolean autoMigrateEdgeEventsConnection) {
         this.autoMigrateEdgeEventsConnection = autoMigrateEdgeEventsConnection;
     }
 
@@ -299,6 +299,25 @@ public class MatchingEngine {
         }
 
         return true;
+    }
+
+    /*!
+     * This is required, if the app needs to swap AppInst edge servers, and auto reconnect to the
+     * next DME's EdgeEventsConnection is disabled.
+     * @throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
+     */
+    synchronized public boolean restartEdgeEvents() throws DmeDnsException {
+        boolean ret = stopEdgeEvents();
+        ret = ret && startEdgeEvents(mEdgeEventsConfig); // Last known config from start.
+        return ret;
+    }
+
+    /*!
+     * Just an alias to restartEdgeEvents.
+     * @throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
+     */
+    synchronized public boolean switchedToNextCloudlet() throws DmeDnsException{
+        return restartEdgeEvents();
     }
 
     synchronized public boolean stopEdgeEvents() {
@@ -360,7 +379,7 @@ public class MatchingEngine {
      *                         resolved edge AppInst.
      * \return a connected EdgeEventsConnection instance
      */
-    EdgeEventsConnection getEdgeEventsConnection(String dmeHost, int dmePort, Network network, String edgeEventsCookie, EdgeEventsConfig edgeEventsConfig) {
+    synchronized EdgeEventsConnection getEdgeEventsConnection(String dmeHost, int dmePort, Network network, String edgeEventsCookie, EdgeEventsConfig edgeEventsConfig) {
         if (!mEnableEdgeEvents) {
             Log.d(TAG, "EdgeEvents has been disabled for this MatchingEngine. Enable to receive EdgeEvents states for your app.");
             return null;
@@ -386,7 +405,7 @@ public class MatchingEngine {
         return mEdgeEventsConnection;
     }
 
-    boolean closeEdgeEventsConnection() {
+    synchronized boolean closeEdgeEventsConnection() {
         if (mEdgeEventsConnection != null) {
             mEdgeEventsConnection.close();
             mEdgeEventsConnection = null;
@@ -401,7 +420,7 @@ public class MatchingEngine {
     /**
      * MatchingEngine contains some long lived resources.
      */
-    public void close() {
+    synchronized public void close() {
         if (getEdgeEventsConnection() != null) {
             getEdgeEventsConnection().sendTerminate();
         }
@@ -454,7 +473,7 @@ public class MatchingEngine {
      * \param allowMatchingEngineLocation (boolean)
      * \ingroup functions_dmeutils
      */
-    public static void setMatchingEngineLocationAllowed(boolean allowMatchingEngineLocation) {
+    synchronized public static void setMatchingEngineLocationAllowed(boolean allowMatchingEngineLocation) {
         mMatchingEngineLocationAllowed = allowMatchingEngineLocation;
     }
 
@@ -476,7 +495,7 @@ public class MatchingEngine {
      * \param enabled (boolean)
      * \ingroup functions_dmeutils
      */
-    public void setUseWifiOnly(boolean enabled) {
+    synchronized public void setUseWifiOnly(boolean enabled) {
         useOnlyWifi = enabled;
     }
 
@@ -508,7 +527,7 @@ public class MatchingEngine {
     /*!
      * \ingroup functions_dmeutils
      */
-    public void setAllowSwitchIfNoSubscriberInfo(boolean allowSwitchIfNoSubscriberInfo) {
+    synchronized public void setAllowSwitchIfNoSubscriberInfo(boolean allowSwitchIfNoSubscriberInfo) {
         getNetworkManager().setAllowSwitchIfNoSubscriberInfo(allowSwitchIfNoSubscriberInfo);
     }
 
