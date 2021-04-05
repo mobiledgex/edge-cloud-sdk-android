@@ -192,8 +192,10 @@ public class AppConnectionManager {
     }
 
     /*!
-     * Gets a public port from an internal port, without knowing which Port List. This works
-     * only for non-overlapping port ranges configured on the server.
+     * Gets a public port from an internal port. This is the "desiredPort" that is the App's
+     * un-mapped set of ports. The public ports is the final set of mapped ports for the App when
+     * deployed to the edge.
+     *
      * \param findCloudletReply
      * \param internalPort
      */

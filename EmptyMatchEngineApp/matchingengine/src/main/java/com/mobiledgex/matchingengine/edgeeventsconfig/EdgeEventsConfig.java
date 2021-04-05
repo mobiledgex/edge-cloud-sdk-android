@@ -54,7 +54,7 @@ public class EdgeEventsConfig {
         latencyThresholdTrigger = edgeEventsConfig.latencyThresholdTrigger;
         if (edgeEventsConfig.triggers == null) {
             triggers = new FindCloudletEventTrigger[] {
-                    FindCloudletEventTrigger.CloudletStateChanged, FindCloudletEventTrigger.LatencyTooHigh
+                    FindCloudletEventTrigger.CloudletStateChanged, FindCloudletEventTrigger.LatencyTooHigh, FindCloudletEventTrigger.CloserCloudlet
             };
         } else {
             if (edgeEventsConfig.triggers.length > 0) {

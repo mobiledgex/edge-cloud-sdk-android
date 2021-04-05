@@ -26,7 +26,7 @@ import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class EdgeEventsLatencyIntervalHandler extends EdgeEventIntervalHandler {
+public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler {
 
     public final static String TAG = "EdgeEventsLocationIntervalHandler";
     private MatchingEngine me;
@@ -36,7 +36,7 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventIntervalHandler {
     NetTest.TestType testType;
 
     public EdgeEventsLatencyIntervalHandler(MatchingEngine matchingEngine, String host, int publicPort, NetTest.TestType testType, ClientEventsConfig config) {
-        timer = new Timer();
+        super();
         me = matchingEngine;
         this.host = host;
         this.publicPort = publicPort;
@@ -52,11 +52,11 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventIntervalHandler {
             cfg.updateIntervalSeconds = 30;
         }
         timer.schedule(new EdgeEventsLatencyIntervalHandler.LatencyTask(cfg),
-                0, // inital delay
+                0, // initial delay
                 (long)(cfg.updateIntervalSeconds * 1000)); // milliseconds interval
     }
 
-    public class LatencyTask extends TimerTask {
+    private class LatencyTask extends TimerTask {
         ClientEventsConfig ceConfig;
         Location location = null;
 
@@ -68,10 +68,10 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventIntervalHandler {
         public void run() {
             if (getNumberOfTimesExecuted < ceConfig.maxNumberOfUpdates) {
                 getNumberOfTimesExecuted++;
-                if (me.isMatchingEngineLocationAllowed() && me.getEdgeEventsConnection() != null) {
+                if (me.isMatchingEngineLocationAllowed() && me.getEdgeEventsConnection() != null && !me.getEdgeEventsConnection().isShutdown()) {
                     location = me.getEdgeEventsConnection().getLocation();
                 } else {
-                    Log.w(TAG, "Location is currently disabled.");
+                    Log.w(TAG, "Location is currently not available or disabled.");
                 }
                 if (location != null) {
                     // By config:
@@ -88,7 +88,7 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventIntervalHandler {
                 }
             } else {
                 Log.i(TAG, "Timer task complete.");
-                timer.cancel(); // Tests done.
+                cancel(); // Tests done.
             }
         }
     }

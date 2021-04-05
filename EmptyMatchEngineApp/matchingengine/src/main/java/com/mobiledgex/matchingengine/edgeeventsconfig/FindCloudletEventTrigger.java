@@ -5,5 +5,6 @@ public enum FindCloudletEventTrigger {
     AppInstHealthChanged,
     CloudletMaintenanceStateChanged,
     LatencyTooHigh,
+    CloserCloudlet,
     // Todo: CpuUsageTooHigh, AutoprovUpdate, etc.
 }

@@ -22,15 +22,14 @@ import android.util.Log;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
 
-import java.util.Timer;
 import java.util.TimerTask;
 
-public class EdgeEventsLocationIntervalHandler extends EdgeEventIntervalHandler {
+public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler {
     public final static String TAG = "EdgeEventsLocationIntervalHandler";
     private MatchingEngine me;
 
     public EdgeEventsLocationIntervalHandler(MatchingEngine matchingEngine, ClientEventsConfig config) {
-        timer = new Timer();
+        super();
         me = matchingEngine;
         ClientEventsConfig cfg = new ClientEventsConfig(config);
 
@@ -42,12 +41,14 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventIntervalHandler 
 
             cfg.updateIntervalSeconds = 30;
         }
+
         timer.schedule(new LocationTask(cfg),
                 0, // inital delay
                 (long)(cfg.updateIntervalSeconds * 1000)); // milliseconds interval
     }
 
-    public class LocationTask extends TimerTask {
+    private class LocationTask extends TimerTask {
+
         ClientEventsConfig ceConfig;
         Location location = null;
 
@@ -59,17 +60,17 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventIntervalHandler 
         public void run() {
             if (getNumberOfTimesExecuted < ceConfig.maxNumberOfUpdates) {
                 getNumberOfTimesExecuted++;
-                if (me.isMatchingEngineLocationAllowed() && me.getEdgeEventsConnection() != null) {
+                if (me.isMatchingEngineLocationAllowed() && me.getEdgeEventsConnection() != null && !me.getEdgeEventsConnection().isShutdown()) {
                     location = me.getEdgeEventsConnection().getLocation();
                 } else {
-                    Log.w(TAG, "Location is currently disabled.");
+                    Log.w(TAG, "Location is currently not available or disabled.");
                 }
                 if (location != null) {
                     me.getEdgeEventsConnection().postLocationUpdate(location);
                 }
             } else {
                 Log.i(TAG, "Timer task complete.");
-                timer.cancel(); // Tests done.
+                cancel(); // Tests done.
             }
         }
     }

@@ -223,13 +223,6 @@ public class MatchingEngine {
         this.mEdgeEventsConfig = edgeEventsConfig;
     }
 
-    /*!
-     * This eventBus instance is a duplicate handler, but for the managed EventBus state machine so
-     * it doesn't interfere with DeadEvents handling.
-     */
-    private EventBus mDefaultEdgeEventsBus;
-
-
     private boolean autoMigrateEdgeEventsConnection = true;
     /*!
      * Automatically switched EdgeEventsConnection
@@ -254,6 +247,12 @@ public class MatchingEngine {
 
         return EdgeEventsConfig.createDefaultEdgeEventsConfig();
     }
+    /*!
+     * Helper util to create a useful config.
+     * \param latencyUpdateIntervalSeconds how often the edgeEvents tests latency to configured server.
+     * \param locationUpdateIntervalSeconds how often edgeEvents will send GPS to the server. Set the location, or enable location permissions in MatchingEngine to get the location to send.
+     * \param latencyThresholdTriggerMs sets the upper bound of acceptable latency, and then informs the app.
+     */
     public EdgeEventsConfig createDefaultEdgeEventsConfig(double latencyUpdateIntervalSeconds,
                                                           double locationUpdateIntervalSeconds,
                                                           double latencyThresholdTriggerMs,
@@ -264,14 +263,21 @@ public class MatchingEngine {
     /*!
      * startsEdgeEvents() as soon as a FindCloudletReply is FIND_FOUND with the EdgeEventsConfig given.
      * If you want to handle the EdgeEvents with a custom handler, call getEdgeEventsBus(),
-     * register your class, and subscribe to either these event objects:
+     * register your class, and @Subscribe to either these event objects:
      *
-     *   - FindCloudletEvent - new cloudlet found and is available for your app to migrate to when ready.
-     *   - ServerEdgeEvent - all raw events.
+     *   - FindCloudletEvent - Aew cloudlet found and is available for your app to migrate to when ready.
+     *   - ServerEdgeEvent - Optional. All raw events. Accepting raw events will disable the default EdgeEvents handler for custom app logic.
+     *
+     *   The errors on the EdgeEventsBus is useful for the app to attach a handler
+     *   - EdgeEventsError - Errors encountered during the EdgeEvents threads will be posted here for the app to handle.
      *
      * \param edgeEventsConfig a events profile on how to monitor the edgeConnection state. null to use defaults.
      */
     public boolean startEdgeEvents(EdgeEventsConfig edgeEventsConfig) {
+        if (edgeEventsConfig == null) {
+            Log.e(TAG, "EdgeEventsConfig must not be null.");
+            return false;
+        }
         return startEdgeEvents(null, 0, null, edgeEventsConfig);
     }
 
@@ -295,7 +301,7 @@ public class MatchingEngine {
             mEdgeEventsConnection = getEdgeEventsConnection(dmeHost, dmePort, network, mFindCloudletReply.getEdgeEventsCookie(), edgeEventsConfig);
             Log.i(TAG, "EdgeEventsConnection is now started.");
         } else {
-            Log.i(TAG, "EdgeEventsConnection is already running Stop, before starting a new one.");
+            Log.i(TAG, "EdgeEventsConnection is already running. Stop, before starting a new one.");
         }
 
         return true;
@@ -304,7 +310,7 @@ public class MatchingEngine {
     /*!
      * This is required, if the app needs to swap AppInst edge servers, and auto reconnect to the
      * next DME's EdgeEventsConnection is disabled.
-     * @throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
+     * \throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
      */
     synchronized public boolean restartEdgeEvents() throws DmeDnsException {
         boolean ret = stopEdgeEvents();
@@ -314,7 +320,7 @@ public class MatchingEngine {
 
     /*!
      * Just an alias to restartEdgeEvents.
-     * @throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
+     * \throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
      */
     synchronized public boolean switchedToNextCloudlet() throws DmeDnsException{
         return restartEdgeEvents();
@@ -405,24 +411,17 @@ public class MatchingEngine {
         return mEdgeEventsConnection;
     }
 
-    synchronized boolean closeEdgeEventsConnection() {
-        if (mEdgeEventsConnection != null) {
-            mEdgeEventsConnection.close();
-            mEdgeEventsConnection = null;
-            return true;
-        }
-        return false;
-    }
     public EdgeEventsConnection getEdgeEventsConnection() {
         return mEdgeEventsConnection;
     }
 
-    /**
-     * MatchingEngine contains some long lived resources.
+    /*!
+     * MatchingEngine contains some long lived resources. When done, call close() to free them
+     * cleanly.
      */
     synchronized public void close() {
         if (getEdgeEventsConnection() != null) {
-            getEdgeEventsConnection().sendTerminate();
+            getEdgeEventsConnection().close();
         }
 
         // Kill ExecutorService.
@@ -583,6 +582,9 @@ public class MatchingEngine {
         mRegisterClientRequest = registerRequest;
     }
 
+    synchronized RegisterClientReply getMatchingEngineStatus() {
+        return mRegisterClientReply;
+    }
     synchronized void setMatchEngineStatus(AppClient.RegisterClientReply status) {
         mRegisterClientReply = status;
     }
