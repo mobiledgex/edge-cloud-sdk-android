@@ -164,6 +164,7 @@ public class MatchingEngine {
     private EventBus mEdgeEventBus;
     boolean mEnableEdgeEvents = true;
     EdgeEventsConfig mEdgeEventsConfig = null; // Developer's copy.
+    boolean mAppInitiatedRunEdgeEvents = false;
 
     /*!
      * Constructor for MatchingEngine class.
@@ -260,12 +261,13 @@ public class MatchingEngine {
         return EdgeEventsConfig.createDefaultEdgeEventsConfig(latencyUpdateIntervalSeconds, locationUpdateIntervalSeconds, latencyThresholdTriggerMs, updatePattern);
     }
 
+
     /*!
      * startsEdgeEvents() as soon as a FindCloudletReply is FIND_FOUND with the EdgeEventsConfig given.
      * If you want to handle the EdgeEvents with a custom handler, call getEdgeEventsBus(),
      * register your class, and @Subscribe to either these event objects:
      *
-     *   - FindCloudletEvent - Aew cloudlet found and is available for your app to migrate to when ready.
+     *   - FindCloudletEvent - A new cloudlet found and is available for your app to migrate to when ready.
      *   - ServerEdgeEvent - Optional. All raw events. Accepting raw events will disable the default EdgeEvents handler for custom app logic.
      *
      *   The errors on the EdgeEventsBus is useful for the app to attach a handler
@@ -284,7 +286,6 @@ public class MatchingEngine {
 
     // Do not use in production. DME will likely change, this sets the initial DME connection.
     // This does not attempt to execute runEdgeEvents unless the appInitiated version is run first.
-    boolean mAppInitiatedRunEdgeEvents = false;
     synchronized public boolean startEdgeEvents(String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig) {
 
         if (edgeEventsConfig == null) {

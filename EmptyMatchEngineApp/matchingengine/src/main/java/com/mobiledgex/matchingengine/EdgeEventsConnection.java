@@ -153,7 +153,6 @@ public class EdgeEventsConnection {
         failedToClose,
         edgeEventsConnectionError,
         missingDmeDnsEntry,
-
         eventTriggeredButCurrentCloudletIsBest
     }
 

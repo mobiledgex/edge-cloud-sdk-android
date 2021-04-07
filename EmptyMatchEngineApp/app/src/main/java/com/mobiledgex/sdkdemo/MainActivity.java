@@ -242,15 +242,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     /*!
-     * This class encapsulates what an app might implement to watch for edge events. Not ever event needs to be implemented.
-     * If you just want FindCloudlet, just subscribe to FindCloudletEvents. It is send into the event-bus
-     * as is.
+     * This class encapsulates what an app might implement to watch for edge events. Not every event
+     * needs to be implemented. If you just want FindCloudlet, just @Subscribe to FindCloudletEvent.
      */
     class EdgeEventsSubscriber {
-        @Subscribe
         /*!
-         * Subscribe to error handlers. (Guava EventBus Interface)
+         * Subscribe to error handlers.
          */
+        @Subscribe
         public void onMessageEvent(EdgeEventsConnection.EdgeEventsError error) {
             Log.d(TAG, "EdgeEvents error reported, reason: " + error);
 
