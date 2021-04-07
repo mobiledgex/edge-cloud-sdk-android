@@ -70,6 +70,9 @@ public class Site
             numSamples = DEFAULT_NUM_SAMPLES;
         }
         samples = new double[numSamples];
+        for (int i = 0; i < samples.length; i++) {
+            samples[i] = -1;
+        }
     }
 
     /*!
@@ -91,6 +94,9 @@ public class Site
             numSamples = DEFAULT_NUM_SAMPLES;
         }
         samples = new double[numSamples];
+        for (int i = 0; i < samples.length; i++) {
+            samples[i] = -1;
+        }
     }
 
     /*!
