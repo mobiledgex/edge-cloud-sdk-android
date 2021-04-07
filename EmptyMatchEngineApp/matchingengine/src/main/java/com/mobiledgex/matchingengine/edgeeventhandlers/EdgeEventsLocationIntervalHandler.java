@@ -65,9 +65,7 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
                 } else {
                     Log.w(TAG, "Location is currently not available or disabled.");
                 }
-                if (location != null) {
-                    me.getEdgeEventsConnection().postLocationUpdate(location);
-                }
+                me.getEdgeEventsConnection().postLocationUpdate(location);
             } else {
                 Log.i(TAG, "Timer task complete.");
                 cancel(); // Tests done.

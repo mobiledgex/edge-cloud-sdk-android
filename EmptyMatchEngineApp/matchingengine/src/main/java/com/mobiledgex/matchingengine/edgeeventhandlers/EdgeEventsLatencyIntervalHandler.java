@@ -73,18 +73,16 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler 
                 } else {
                     Log.w(TAG, "Location is currently not available or disabled.");
                 }
-                if (location != null) {
-                    // By config:
-                    switch (testType) {
-                        case PING:
-                            me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(host, location, ceConfig.maxNumberOfUpdates);
-                            break;
-                        case CONNECT:
-                            me.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(host, publicPort, location, ceConfig.maxNumberOfUpdates);
-                            break;
-                        default:
-                            Log.e(TAG, "Unexpected test type: " + testType);
-                    }
+                // By config:
+                switch (testType) {
+                    case PING:
+                        me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(host, location, ceConfig.maxNumberOfUpdates);
+                        break;
+                    case CONNECT:
+                        me.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(host, publicPort, location, ceConfig.maxNumberOfUpdates);
+                        break;
+                    default:
+                        Log.e(TAG, "Unexpected test type: " + testType);
                 }
             } else {
                 Log.i(TAG, "Timer task complete.");

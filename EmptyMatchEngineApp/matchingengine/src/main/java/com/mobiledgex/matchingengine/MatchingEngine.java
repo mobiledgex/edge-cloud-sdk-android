@@ -278,16 +278,18 @@ public class MatchingEngine {
             Log.e(TAG, "EdgeEventsConfig must not be null.");
             return false;
         }
+        mAppInitiatedRunEdgeEvents = true;
         return startEdgeEvents(null, 0, null, edgeEventsConfig);
     }
 
-    // Do not use in production. DME will likely change.
+    // Do not use in production. DME will likely change, this sets the initial DME connection.
+    // This does not attempt to execute runEdgeEvents unless the appInitiated version is run first.
     boolean mAppInitiatedRunEdgeEvents = false;
     synchronized public boolean startEdgeEvents(String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig) {
-        mAppInitiatedRunEdgeEvents = true;
+
         if (edgeEventsConfig == null) {
-            Log.w(TAG, "Using default EdgeEventsConfig.");
-            this.mEdgeEventsConfig = EdgeEventsConfig.createDefaultEdgeEventsConfig();
+            Log.e(TAG, "Cannot start edgeEvents without a configuration");
+            return false;
         } else {
             this.mEdgeEventsConfig = edgeEventsConfig;
         }
@@ -296,9 +298,13 @@ public class MatchingEngine {
             return false; // NOT started.
         }
 
-        // Start, if not already, the edgeEvents connection:
+        // Start, if not already, the edgeEvents connection. It also starts any deferred events.
+        // Reconnecting via FindCloudlet, will also call startEdgeEvents.
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
             mEdgeEventsConnection = getEdgeEventsConnection(dmeHost, dmePort, network, mFindCloudletReply.getEdgeEventsCookie(), edgeEventsConfig);
+            if (mAppInitiatedRunEdgeEvents) {
+                mEdgeEventsConnection.runEdgeEvents();
+            }
             Log.i(TAG, "EdgeEventsConnection is now started.");
         } else {
             Log.i(TAG, "EdgeEventsConnection is already running. Stop, before starting a new one.");
@@ -333,6 +339,7 @@ public class MatchingEngine {
             return false;
         }
         mEdgeEventsConnection.close();
+        mEdgeEventsConnection = null;
         return true;
     }
 
@@ -401,12 +408,6 @@ public class MatchingEngine {
 
         // Open:
         mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, dmePort, network, edgeEventsConfig);
-
-        // Attach our EventBus instance to use
-        mEdgeEventsConnection.setEdgeEventsBus(mEdgeEventBus);
-
-        // app or sdk default, edgeEvents is enabled, so run that config, always.
-        mEdgeEventsConnection.runEdgeEvents();
 
         return mEdgeEventsConnection;
     }

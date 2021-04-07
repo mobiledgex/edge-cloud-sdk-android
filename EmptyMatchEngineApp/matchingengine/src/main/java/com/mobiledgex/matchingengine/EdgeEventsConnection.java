@@ -69,7 +69,6 @@ public class EdgeEventsConnection {
     /*!
      * A DeadEvent handler will print messages still. Outside EdgeEvents handler.
      */
-    private EventBus mEdgeEventsBus;
     private UnsubscribedEventsHandler unsubscribedEventsHandler = new UnsubscribedEventsHandler();
     private boolean noEventInitHandlerObserved = false;
 
@@ -126,8 +125,8 @@ public class EdgeEventsConnection {
                     noEventInitHandlerObserved = true;
                 }
                 AppClient.ServerEdgeEvent unhandledEvent = (AppClient.ServerEdgeEvent) deadEvent.getEvent();
-                Log.w(TAG, "EventBus: To get pushed all raw edgeEvent updates, subscribe to the Guava EventBus object type ServerEdgeEvents: " + unhandledEvent.getEventType());
-                Log.w(TAG, "EventBus: To get pushed NewCloudlet updates for your app, subscribe to the Guava EventBus object type FindCloudletEvent: " + unhandledEvent.getEventType());
+                Log.d(TAG, "EventBus: To get pushed all raw edgeEvent updates, subscribe to the Guava EventBus object type ServerEdgeEvents. Event Received: " + unhandledEvent.getEventType());
+                Log.w(TAG, "EventBus: To get pushed NewCloudlet updates for your app, subscribe to the Guava EventBus object type FindCloudletEvent.");
             } else {
                 Log.d(TAG, "EventBus: Non-subscribed event received over EdgeEventsConnection: " + deadEvent.toString());
             }
@@ -221,23 +220,17 @@ public class EdgeEventsConnection {
         }
     }
 
-    EventBus setEdgeEventsBus(EventBus eventBus) {
-        mEdgeEventsBus = eventBus;
-        mEdgeEventsBus.register(unsubscribedEventsHandler);
-        return mEdgeEventsBus;
-    }
-
     boolean isRegisteredForEvents = false;
     private boolean eventBusRegister() {
-        if (mEdgeEventsBus != null && !isRegisteredForEvents) {
-            mEdgeEventsBus.register(this);
+        if (me.getEdgeEventsBus() != null && !isRegisteredForEvents) {
+            me.getEdgeEventsBus().register(unsubscribedEventsHandler);
             isRegisteredForEvents = true;
         }
         return isRegisteredForEvents;
     }
     private boolean eventBusUnRegister() {
-        if (mEdgeEventsBus != null && isRegisteredForEvents) {
-            mEdgeEventsBus.unregister(this);
+        if (me.getEdgeEventsBus() != null && isRegisteredForEvents) {
+            me.getEdgeEventsBus().unregister(unsubscribedEventsHandler);
             isRegisteredForEvents = false;
         }
         return isRegisteredForEvents;
@@ -274,7 +267,7 @@ public class EdgeEventsConnection {
         }
 
         if (subbed) {
-            mEdgeEventsBus.post(findCloudletEvent);
+            me.getEdgeEventsBus().post(findCloudletEvent);
         }
     }
 
@@ -283,7 +276,7 @@ public class EdgeEventsConnection {
      * the subscribed event bus;
      */
     private void postErrorToEventHandler(EdgeEventsError error) {
-        mEdgeEventsBus.post(error);
+        me.getEdgeEventsBus().post(error);
     }
 
     synchronized public void reconnect() throws DmeDnsException {
@@ -383,7 +376,7 @@ public class EdgeEventsConnection {
             public void onNext(AppClient.ServerEdgeEvent value) {
                 // If nothing is subscribed, it just goes to deadEvent.
                 // Raw Events.
-                mEdgeEventsBus.post(value);
+                me.getEdgeEventsBus().post(value);
 
                 // Default handler will handle incoming messages if no subscribers are currently observed
                 // watching for the EVENT_INIT_CONNECTION message.
@@ -399,7 +392,7 @@ public class EdgeEventsConnection {
             @Override
             public void onError(Throwable t) {
                 Log.e(TAG, "Encountered error in DMEConnection: ", t);
-                mEdgeEventsBus.post(EdgeEventsError.edgeEventsConnectionError);
+                me.getEdgeEventsBus().post(EdgeEventsError.edgeEventsConnectionError);
                 // Reopen DME connection.
                 try {
                     close();
@@ -407,7 +400,7 @@ public class EdgeEventsConnection {
                         reconnect();
                     }
                 } catch (Exception e) {
-                    mEdgeEventsBus.post(
+                    me.getEdgeEventsBus().post(
                             AppClient.ServerEdgeEvent.newBuilder()
                                     .setEventType(ServerEventType.EVENT_INIT_CONNECTION)
                                     .putTags("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.")
@@ -427,7 +420,7 @@ public class EdgeEventsConnection {
                         reconnect();
                     }
                 } catch (Exception e) {
-                    mEdgeEventsBus.post(
+                    me.getEdgeEventsBus().post(
                             AppClient.ServerEdgeEvent.newBuilder()
                                     .setEventType(ServerEventType.EVENT_INIT_CONNECTION)
                                     .putTags("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.")
@@ -448,11 +441,6 @@ public class EdgeEventsConnection {
                 .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
                 .build();
         send(initDmeEvent);
-
-        // Run threaded tasks that the user asked for, with the default or user supplied config.
-        if (me.mAppInitiatedRunEdgeEvents) {
-            runEdgeEvents();
-        }
     }
 
     /*!
@@ -469,7 +457,9 @@ public class EdgeEventsConnection {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } finally {
-                mEdgeEventsBus = null;
+                hostOverride = null;
+                portOverride = 0;
+                networkOverride = null;
                 sender = null;
                 receiver = null;
                 open = false;
@@ -491,7 +481,6 @@ public class EdgeEventsConnection {
             if (isShutdown()) {
                 reconnect();
             }
-
             sender.onNext(clientEdgeEvent);
         } catch (Exception e) {
             Log.e(TAG, e.getMessage() + ", cause: " + e.getCause());
@@ -895,48 +884,53 @@ public class EdgeEventsConnection {
      * \param network override network.
      */
     synchronized public boolean runEdgeEvents() {
-        if (!me.isEnableEdgeEvents()) {
-            Log.e(TAG, "EdgeEvents are disabled. Managed EdgeEvents disabled.");
-            return false;
+        try {
+            if (!me.isEnableEdgeEvents()) {
+                Log.e(TAG, "EdgeEvents are disabled. Managed EdgeEvents disabled.");
+                return false;
+            }
+
+            // Abort if no find cloudlet yet.
+            if (me.mFindCloudletReply == null) {
+                Log.e(TAG, "The App needs to have a FindCloudlet reply of FIND_FOUND before startEdgeEvents can be used");
+                return false;
+            }
+
+            if (me.mFindCloudletReply.getPortsCount() < 1) {
+                Log.e(TAG, "The last findCloudlet does NOT have any ports! Ports Count: " + me.mFindCloudletReply.getPortsCount());
+                return false;
+            }
+            int internalPort = mEdgeEventsConfig.latencyInternalPort;
+            Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(me.mFindCloudletReply, mEdgeEventsConfig.latencyInternalPort);
+            String host = me.getAppConnectionManager().getHost(me.mFindCloudletReply, appPort);
+
+            int publicPort = me.getAppConnectionManager().getPublicPort(me.mFindCloudletReply, internalPort);
+
+            if (publicPort == 0) {
+                Log.e(TAG, "Public port doesn't seem to exist for the Latency Test InternalPort: " + internalPort);
+                return false;
+            }
+
+            if (mEdgeEventsConfig == null) {
+                return false;
+            }
+
+            validateStartConfig(host, mEdgeEventsConfig);
+
+            // Just unregister. If the config says do it, we'll register a listener.
+            eventBusUnRegister();
+
+            // Known Scheduled Timer tasks.
+            // TODO: Refactor to handle configs more generically.
+            runLatencyMonitorConfig(host, publicPort);
+            runLocationMonitorConfig();
+
+            // Launched Scheduled tasks.
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "Hit exception attempting to runEdgeEvents: " + e.getMessage());
+            throw e;
         }
-
-        // Abort if no find cloudlet yet.
-        if (me.mFindCloudletReply == null) {
-            Log.e(TAG, "The App needs to have a FindCloudlet reply of FIND_FOUND before startEdgeEvents can be used");
-            return false;
-        }
-
-        if (me.mFindCloudletReply.getPortsCount() < 1) {
-            Log.e(TAG, "The last findCloudlet does NOT have any ports! Ports Count: " + me.mFindCloudletReply.getPortsCount());
-            return false;
-        }
-        Appcommon.AppPort aPort = me.mFindCloudletReply.getPorts(0); // Get the first one.
-        String host = aPort.getFqdnPrefix() + me.mFindCloudletReply.getFqdn();
-
-        int internalPort = mEdgeEventsConfig.latencyInternalPort;
-        int publicPort = me.getAppConnectionManager().getPublicPort(me.mFindCloudletReply, internalPort);
-
-        if (publicPort == 0) {
-            Log.e(TAG, "Public port doesn't seem to exist for the Latency Test InternalPort: " + internalPort);
-            return false;
-        }
-
-        if (mEdgeEventsConfig == null) {
-            return false;
-        }
-
-        validateStartConfig(host, mEdgeEventsConfig);
-
-        // Just unregister. If the config says do it, we'll register a listener.
-        eventBusUnRegister();
-
-        // Known Scheduled Timer tasks.
-        // TODO: Refactor to handle configs more generically.
-        runLatencyMonitorConfig(host, publicPort);
-        runLocationMonitorConfig();
-
-        // Launched Scheduled tasks.
-        return true;
     }
 
     synchronized private void runLocationMonitorConfig() {
@@ -985,7 +979,7 @@ public class EdgeEventsConnection {
                     // Last FindCloudlet
                     eventBusRegister(); // Attach Subscriber, to handle triggers and montoriing by interval.
                     // Add to a list of known EdgeEvent Testing Handlers
-                    edgeEventsIntervalHandlers.add(
+                    addEdgeEventsIntervalTask(
                             new EdgeEventsLatencyIntervalHandler(
                                     me, host, publicPort,
                                     mEdgeEventsConfig.latencyTestType,
