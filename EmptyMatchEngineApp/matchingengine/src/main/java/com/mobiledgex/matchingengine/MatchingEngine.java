@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2020 MobiledgeX, Inc. All rights and licenses reserved.
+ * Copyright 2018-2021 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -100,9 +100,9 @@ import android.util.Log;
 import android.util.Pair;
 
 import com.google.common.eventbus.AsyncEventBus;
-import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.EventBus;
-import com.google.common.eventbus.Subscribe;
+import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
+import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.mel.MelMessaging;
 
@@ -133,7 +133,7 @@ public class MatchingEngine {
     private String mTokenServerURI;
     private String mTokenServerToken;
 
-    private RegisterClientRequest mRegisterClientRequest;
+    RegisterClientRequest mRegisterClientRequest;
     private RegisterClientReply mRegisterClientReply;
     FindCloudletReply mFindCloudletReply;
     private VerifyLocationReply mVerifyLocationReply;
@@ -159,9 +159,12 @@ public class MatchingEngine {
     private NetTest mNetTest;
     private boolean threadedPerformanceTest = false;
 
-    private EventBus mEdgeEventBus;
+
     private EdgeEventsConnection mEdgeEventsConnection;
-    private boolean enableEdgeEvents = true;
+    private EventBus mEdgeEventBus;
+    boolean mEnableEdgeEvents = true;
+    EdgeEventsConfig mEdgeEventsConfig = null; // Developer's copy.
+    boolean mAppInitiatedRunEdgeEvents = false;
 
     /*!
      * Constructor for MatchingEngine class.
@@ -176,8 +179,9 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-        mEdgeEventBus = new EventBus();
-        mEdgeEventBus.register(this);
+        mEnableEdgeEvents = true;
+        mEdgeEventBus = new AsyncEventBus(threadpool);
+
         if (MelMessaging.isMelEnabled()) {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
@@ -197,9 +201,9 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-        enableEdgeEvents = true;
-        mEdgeEventBus = new AsyncEventBus(executorService); // TODO: Should not be implicit.
-        mEdgeEventBus.register(this);
+        mEnableEdgeEvents = true;
+        mEdgeEventBus = new AsyncEventBus(executorService);
+
         if (MelMessaging.isMelEnabled()) {
             // Updates and sends for MEL status:
             MelMessaging.sendForMelStatus(context, getAppName(context));
@@ -208,11 +212,173 @@ public class MatchingEngine {
 
 
     public boolean isEnableEdgeEvents() {
-        return enableEdgeEvents;
+        return mEnableEdgeEvents;
     }
 
-    public void setEnableEdgeEvents(boolean enableEdgeEvents) {
-        this.enableEdgeEvents = enableEdgeEvents;
+    synchronized public void setEnableEdgeEvents(boolean enableEdgeEvents) {
+        this.mEnableEdgeEvents = enableEdgeEvents;
+    }
+
+    // Default EdgeEvents config:
+    synchronized public void setEdgeEventsConfig(EdgeEventsConfig edgeEventsConfig) {
+        this.mEdgeEventsConfig = edgeEventsConfig;
+    }
+
+    private boolean autoMigrateEdgeEventsConnection = true;
+    /*!
+     * Automatically switched EdgeEventsConnection
+     * \return boolean value whether the EdgeEventsConnection is migrated automatically.
+     */
+    public boolean isAutoMigrateEdgeEventsConnection() {
+        return autoMigrateEdgeEventsConnection;
+    }
+    /*!
+     * When you switch AppInsts between Cloudlets, the EdgeEventsConnection should also migrate.
+     * If set to false, when notified of a newCLoudlet availability, call "switchedToNewFindCloudlet()
+     * to indicate the app has finally migrated to the new cloudlet.
+     */
+    synchronized public void setAutoMigrateEdgeEventsConnection(boolean autoMigrateEdgeEventsConnection) {
+        this.autoMigrateEdgeEventsConnection = autoMigrateEdgeEventsConnection;
+    }
+
+    /*!
+     * Helper util to create a useful config.
+     */
+    public EdgeEventsConfig createDefaultEdgeEventsConfig() {
+
+        return EdgeEventsConfig.createDefaultEdgeEventsConfig();
+    }
+    /*!
+     * Helper util to create a useful config.
+     * \param latencyUpdateIntervalSeconds how often the edgeEvents tests latency to configured server.
+     * \param locationUpdateIntervalSeconds how often edgeEvents will send GPS to the server. Set the location, or enable location permissions in MatchingEngine to get the location to send.
+     * \param latencyThresholdTriggerMs sets the upper bound of acceptable latency, and then informs the app.
+     */
+    public EdgeEventsConfig createDefaultEdgeEventsConfig(double latencyUpdateIntervalSeconds,
+                                                          double locationUpdateIntervalSeconds,
+                                                          double latencyThresholdTriggerMs,
+                                                          ClientEventsConfig.UpdatePattern updatePattern) {
+        return EdgeEventsConfig.createDefaultEdgeEventsConfig(latencyUpdateIntervalSeconds, locationUpdateIntervalSeconds, latencyThresholdTriggerMs, updatePattern);
+    }
+
+
+    /*!
+     * startsEdgeEvents() as soon as a FindCloudletReply is FIND_FOUND with the EdgeEventsConfig given.
+     * If you want to handle the EdgeEvents with a custom handler, call getEdgeEventsBus(),
+     * register your class, and @Subscribe to either these event objects:
+     *
+     *   - FindCloudletEvent - A new cloudlet found and is available for your app to migrate to when ready.
+     *   - ServerEdgeEvent - Optional. All raw events. Accepting raw events will disable the default EdgeEvents handler for custom app logic.
+     *
+     *   The errors on the EdgeEventsBus is useful for the app to attach a handler
+     *   - EdgeEventsError - Errors encountered during the EdgeEvents threads will be posted here for the app to handle.
+     *
+     * \param edgeEventsConfig a events profile on how to monitor the edgeConnection state. null to use defaults.
+     */
+    public boolean startEdgeEvents(EdgeEventsConfig edgeEventsConfig) {
+        if (edgeEventsConfig == null) {
+            Log.e(TAG, "EdgeEventsConfig must not be null.");
+            return false;
+        }
+        mAppInitiatedRunEdgeEvents = true;
+        return startEdgeEvents(null, 0, null, edgeEventsConfig);
+    }
+
+    // Do not use in production. DME will likely change, this sets the initial DME connection.
+    // This does not attempt to execute runEdgeEvents unless the appInitiated version is run first.
+    synchronized public boolean startEdgeEvents(String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig) {
+
+        if (edgeEventsConfig == null) {
+            Log.e(TAG, "Cannot start edgeEvents without a configuration");
+            return false;
+        } else {
+            this.mEdgeEventsConfig = edgeEventsConfig;
+        }
+        // This is an exposed path to start/restart EdgeEvents, state check everything.
+        if (!validateEdgeEventsConfig(edgeEventsConfig)) {
+            return false; // NOT started.
+        }
+
+        // Start, if not already, the edgeEvents connection. It also starts any deferred events.
+        // Reconnecting via FindCloudlet, will also call startEdgeEvents.
+        if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
+            mEdgeEventsConnection = getEdgeEventsConnection(dmeHost, dmePort, network, mFindCloudletReply.getEdgeEventsCookie(), edgeEventsConfig);
+            if (mAppInitiatedRunEdgeEvents) {
+                mEdgeEventsConnection.runEdgeEvents();
+            }
+            Log.i(TAG, "EdgeEventsConnection is now started.");
+        } else {
+            Log.i(TAG, "EdgeEventsConnection is already running. Stop, before starting a new one.");
+        }
+
+        return true;
+    }
+
+    /*!
+     * This is required, if the app needs to swap AppInst edge servers, and auto reconnect to the
+     * next DME's EdgeEventsConnection is disabled.
+     * \throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
+     */
+    synchronized public boolean restartEdgeEvents() throws DmeDnsException {
+        boolean ret = stopEdgeEvents();
+        ret = ret && startEdgeEvents(mEdgeEventsConfig); // Last known config from start.
+        return ret;
+    }
+
+    /*!
+     * Just an alias to restartEdgeEvents.
+     * \throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
+     */
+    synchronized public boolean switchedToNextCloudlet() throws DmeDnsException{
+        return restartEdgeEvents();
+    }
+
+    synchronized public boolean stopEdgeEvents() {
+        mAppInitiatedRunEdgeEvents = false;
+        if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
+            Log.i(TAG, "EdgeEventsConnection is already stopped.");
+            return false;
+        }
+        mEdgeEventsConnection.close();
+        mEdgeEventsConnection = null;
+        return true;
+    }
+
+    /**
+     * validate prior to creating a EdgeEventsConnection outside FindCloudlet auto creation.
+     * @param edgeEventsConfig
+     * @return
+     */
+    private boolean validateEdgeEventsConfig(EdgeEventsConfig edgeEventsConfig) {
+        if (mEnableEdgeEvents == false) {
+            Log.w(TAG, "EdgeEvents is set to disabled.");
+            return false;
+        }
+
+        if (!MatchingEngine.isMatchingEngineLocationAllowed()) {
+            Log.w(TAG, "MobiledgeX Location services are disabled. Reduced functionality. EdgeEvents can only receive server push events.");
+        }
+
+        if (!mEnableEdgeEvents) {
+            Log.w(TAG, "MobiledgeX EdgeEvents are disabled. Reduced functionality.");
+            return false;
+        }
+
+        if (mFindCloudletReply == null) {
+            Log.i(TAG, "No initial find cloudlet found yet.");
+            return false;
+        }
+        if (mFindCloudletReply.getEdgeEventsCookie() == null) {
+            Log.e(TAG, "This DME edge server doesn't seem to be compatible.");
+            return false;
+        }
+
+        if (mFindCloudletReply.getStatus() != FindCloudletReply.FindStatus.FIND_FOUND) {
+            Log.e(TAG, "This app is not in known FIND_FOUND state");
+            return false;
+        }
+
+        return true;
     }
 
     /*!
@@ -227,59 +393,37 @@ public class MatchingEngine {
      *                         resolved edge AppInst.
      * \return a connected EdgeEventsConnection instance
      */
-    EdgeEventsConnection getEdgeEventsConnection(String dmeHost, int port, Network network, String edgeEventsCookie) {
-        if (!enableEdgeEvents) {
+    synchronized EdgeEventsConnection getEdgeEventsConnection(String dmeHost, int dmePort, Network network, String edgeEventsCookie, EdgeEventsConfig edgeEventsConfig) {
+        if (!mEnableEdgeEvents) {
             Log.d(TAG, "EdgeEvents has been disabled for this MatchingEngine. Enable to receive EdgeEvents states for your app.");
             return null;
         }
-        if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
-            mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, port, null);
+
+        // Clean:
+        if (mEdgeEventsConnection != null && !mEdgeEventsConnection.isShutdown()) {
+            if (edgeEventsConfig != null) {
+                mEdgeEventsConfig = edgeEventsConfig; // For future use, existing connection will keep config.
+            }
+            return mEdgeEventsConnection;
         }
 
-        // Client identifies itself with an Init message to DME EdgeEvents Connection.
-        AppClient.ClientEdgeEvent initDmeEvent = AppClient.ClientEdgeEvent.newBuilder()
-                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
-                .setSessionCookie(mSessionCookie)
-                .setEdgeEventsCookie(edgeEventsCookie)
-                .build();
-        mEdgeEventsConnection.send(initDmeEvent);
+        // Open:
+        mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, dmePort, network, edgeEventsConfig);
 
         return mEdgeEventsConnection;
-    }
-
-    // EventBus is not to be used for outgoing events. No subscription to serverEdgeEvents.
-    // Ingress from EdgeEventsConnection.
-    @Subscribe
-    private void handleClientEdgeEvent(AppClient.ServerEdgeEvent serverEdgeEvent) {
-        Log.d(TAG, "EventBus: Event: " + serverEdgeEvent.getEventType());
-    }
-
-    /**
-     * Listens to dead events, and prints them in debug builds. If they are of interest, subscribe.
-     * @param deadEvent
-     */
-    @Subscribe
-    private void handleDeadEdgeEvent(DeadEvent deadEvent) {
-        Log.d(TAG, "EventBus: Unhandled event: " + deadEvent.toString());
-
-        if (deadEvent.getEvent() instanceof AppClient.ServerEdgeEvent) {
-            AppClient.ServerEdgeEvent unhandledEvent = (AppClient.ServerEdgeEvent) deadEvent.getEvent();
-            Log.w(TAG, "EventBus: To get pushed edgeEvent updates, subscribe to ServerEdgeEvents: " + unhandledEvent.getEventType());
-        }
     }
 
     public EdgeEventsConnection getEdgeEventsConnection() {
         return mEdgeEventsConnection;
     }
 
-    /**
-     * MatchingEngine contains some long lived resources.
+    /*!
+     * MatchingEngine contains some long lived resources. When done, call close() to free them
+     * cleanly.
      */
-    public void close() {
-        mEdgeEventBus.unregister(this);
-
+    synchronized public void close() {
         if (getEdgeEventsConnection() != null) {
-            getEdgeEventsConnection().sendTerminate();
+            getEdgeEventsConnection().close();
         }
 
         // Kill ExecutorService.
@@ -307,13 +451,15 @@ public class MatchingEngine {
      * \ingroup functions_dmeutils
      */
     public EventBus getEdgeEventsBus() {
+        // This lives outside the EdgeEventsConnect, so the eventBus can be set.
         return mEdgeEventBus;
     }
 
     // Application state Bundle Key.
     public static final String MATCHING_ENGINE_LOCATION_PERMISSION = "MATCHING_ENGINE_LOCATION_PERMISSION";
-    private static boolean mMatchingEngineLocationAllowed = false;
 
+
+    static boolean mMatchingEngineLocationAllowed = false;
     /*!
      * Checks if MatchingEngineLocation is allowed
      * \return boolean
@@ -328,7 +474,7 @@ public class MatchingEngine {
      * \param allowMatchingEngineLocation (boolean)
      * \ingroup functions_dmeutils
      */
-    public static void setMatchingEngineLocationAllowed(boolean allowMatchingEngineLocation) {
+    synchronized public static void setMatchingEngineLocationAllowed(boolean allowMatchingEngineLocation) {
         mMatchingEngineLocationAllowed = allowMatchingEngineLocation;
     }
 
@@ -350,7 +496,7 @@ public class MatchingEngine {
      * \param enabled (boolean)
      * \ingroup functions_dmeutils
      */
-    public void setUseWifiOnly(boolean enabled) {
+    synchronized public void setUseWifiOnly(boolean enabled) {
         useOnlyWifi = enabled;
     }
 
@@ -382,7 +528,7 @@ public class MatchingEngine {
     /*!
      * \ingroup functions_dmeutils
      */
-    public void setAllowSwitchIfNoSubscriberInfo(boolean allowSwitchIfNoSubscriberInfo) {
+    synchronized public void setAllowSwitchIfNoSubscriberInfo(boolean allowSwitchIfNoSubscriberInfo) {
         getNetworkManager().setAllowSwitchIfNoSubscriberInfo(allowSwitchIfNoSubscriberInfo);
     }
 
@@ -434,32 +580,35 @@ public class MatchingEngine {
         return mRegisterClientRequest;
     }
 
-    void setLastRegisterClientRequest(AppClient.RegisterClientRequest registerRequest) {
+    synchronized void setLastRegisterClientRequest(AppClient.RegisterClientRequest registerRequest) {
         mRegisterClientRequest = registerRequest;
     }
 
-    void setMatchEngineStatus(AppClient.RegisterClientReply status) {
+    synchronized RegisterClientReply getMatchingEngineStatus() {
+        return mRegisterClientReply;
+    }
+    synchronized void setMatchEngineStatus(AppClient.RegisterClientReply status) {
         mRegisterClientReply = status;
     }
 
-    void setGetLocationReply(GetLocationReply locationReply) {
+    synchronized void setGetLocationReply(GetLocationReply locationReply) {
         mGetLocationReply = locationReply;
         mMatchEngineLocation = locationReply.getNetworkLocation();
     }
 
-    void setVerifyLocationReply(AppClient.VerifyLocationReply locationVerify) {
+    synchronized void setVerifyLocationReply(AppClient.VerifyLocationReply locationVerify) {
         mVerifyLocationReply = locationVerify;
     }
 
-    void setFindCloudletResponse(AppClient.FindCloudletReply reply) {
+    synchronized void setFindCloudletResponse(AppClient.FindCloudletReply reply) {
         mFindCloudletReply = reply;
     }
 
-    void setDynamicLocGroupReply(DynamicLocGroupReply reply) {
+    synchronized void setDynamicLocGroupReply(DynamicLocGroupReply reply) {
         mDynamicLocGroupReply = reply;
     }
 
-    void setAppOfficialFqdnReply(AppClient.AppOfficialFqdnReply reply) {
+    synchronized void setAppOfficialFqdnReply(AppClient.AppOfficialFqdnReply reply) {
         mAppOfficialFqdnReply = reply;
     }
 

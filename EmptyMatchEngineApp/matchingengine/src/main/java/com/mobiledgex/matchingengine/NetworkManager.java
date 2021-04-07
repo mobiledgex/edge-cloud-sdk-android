@@ -114,7 +114,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return mNetworkSwitchingEnabled;
     }
 
-    public void setNetworkSwitchingEnabled(boolean networkSwitchingEnabled) {
+    synchronized public void setNetworkSwitchingEnabled(boolean networkSwitchingEnabled) {
         this.mNetworkSwitchingEnabled = networkSwitchingEnabled;
     }
 
@@ -334,7 +334,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return mAllowSwitchIfNoSubscriberInfo;
     }
 
-    public void setAllowSwitchIfNoSubscriberInfo(boolean allowSwitchIfNoSubscriberInfo) {
+    synchronized public void setAllowSwitchIfNoSubscriberInfo(boolean allowSwitchIfNoSubscriberInfo) {
         this.mAllowSwitchIfNoSubscriberInfo = allowSwitchIfNoSubscriberInfo;
     }
 
@@ -551,7 +551,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     /*!
      * Wrapper function to get, if possible, to a Cellular Data Network connection. This isn't instant. Callback interface.
      */
-    public void requestCellularNetwork(ConnectivityManager.NetworkCallback networkCallback) {
+    synchronized public void requestCellularNetwork(ConnectivityManager.NetworkCallback networkCallback) {
         boolean isCellularData = isCurrentNetworkInternetCellularDataCapable();
         if (isCellularData) {
             return; // Nothing to do, have cellular data
@@ -565,7 +565,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         switchToNetwork(networkRequest, networkCallback);
     }
 
-    public Network getCellularNetworkBlocking(boolean bindProcess) throws InterruptedException, ExecutionException {
+    synchronized public Network getCellularNetworkBlocking(boolean bindProcess) throws InterruptedException, ExecutionException {
         if (mNetwork == null) {
             mNetwork = mConnectivityManager.getActiveNetwork();
         }
@@ -580,7 +580,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         return mNetwork;
     }
 
-    public Network getCellularNetworkOrWifiBlocking(boolean bindProcess, String currentMccMnc) throws InterruptedException, ExecutionException {
+    synchronized public Network getCellularNetworkOrWifiBlocking(boolean bindProcess, String currentMccMnc) throws InterruptedException, ExecutionException {
         if (currentMccMnc != null && !currentMccMnc.isEmpty()) {
             try {
                 mNetwork = getCellularNetworkBlocking(bindProcess);
@@ -601,7 +601,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     /*!
      * Switch entire process to a Cellular network type. This is a synchronous call.
      */
-    public Network switchToCellularInternetNetworkBlocking() throws InterruptedException, ExecutionException {
+    synchronized public Network switchToCellularInternetNetworkBlocking() throws InterruptedException, ExecutionException {
         if (mNetwork == null) {
             mNetwork = mConnectivityManager.getActiveNetwork();
         }
@@ -619,7 +619,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     /*!
      * Switch to a particular network type. Returns a Future.
      */
-    public Future<Network> switchToCellularInternetNetworkFuture() {
+    synchronized public Future<Network> switchToCellularInternetNetworkFuture() {
         NetworkRequest networkRequest = getCellularNetworkRequest();
         Future<Network> cellNetworkFuture;
 
@@ -630,7 +630,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     /*!
      * Switch to a particular network type in a blocking fashion for synchronous execution blocks.
      */
-    public Network switchToNetworkBlocking(NetworkRequest networkRequest, boolean bindProcess) throws InterruptedException, ExecutionException {
+    synchronized public Network switchToNetworkBlocking(NetworkRequest networkRequest, boolean bindProcess) throws InterruptedException, ExecutionException {
         Future<Network> networkFuture;
 
         networkFuture = mThreadPool.submit(new NetworkSwitcherCallable(networkRequest, bindProcess));
@@ -642,7 +642,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
      * \param networkRequest (NetworkRequest)
      * \param networkCallback (ConnectivityManager.NetworkCallback)
      */
-    public void switchToNetwork(NetworkRequest networkRequest, final ConnectivityManager.NetworkCallback networkCallback) {
+    synchronized public void switchToNetwork(NetworkRequest networkRequest, final ConnectivityManager.NetworkCallback networkCallback) {
         mConnectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
