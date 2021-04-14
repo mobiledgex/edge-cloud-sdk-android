@@ -302,7 +302,7 @@ public class MatchingEngine {
         // Start, if not already, the edgeEvents connection. It also starts any deferred events.
         // Reconnecting via FindCloudlet, will also call startEdgeEvents.
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
-            mEdgeEventsConnection = getEdgeEventsConnection(dmeHost, dmePort, network, mFindCloudletReply.getEdgeEventsCookie(), edgeEventsConfig);
+            mEdgeEventsConnection = getEdgeEventsConnection(dmeHost, dmePort, network, edgeEventsConfig);
             if (mAppInitiatedRunEdgeEvents) {
                 mEdgeEventsConnection.runEdgeEvents();
             }
@@ -393,7 +393,7 @@ public class MatchingEngine {
      *                         resolved edge AppInst.
      * \return a connected EdgeEventsConnection instance
      */
-    synchronized EdgeEventsConnection getEdgeEventsConnection(String dmeHost, int dmePort, Network network, String edgeEventsCookie, EdgeEventsConfig edgeEventsConfig) {
+    synchronized EdgeEventsConnection getEdgeEventsConnection(String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig) {
         if (!mEnableEdgeEvents) {
             Log.d(TAG, "EdgeEvents has been disabled for this MatchingEngine. Enable to receive EdgeEvents states for your app.");
             return null;
@@ -413,7 +413,7 @@ public class MatchingEngine {
         return mEdgeEventsConnection;
     }
 
-    public EdgeEventsConnection getEdgeEventsConnection() {
+    synchronized public EdgeEventsConnection getEdgeEventsConnection() {
         return mEdgeEventsConnection;
     }
 

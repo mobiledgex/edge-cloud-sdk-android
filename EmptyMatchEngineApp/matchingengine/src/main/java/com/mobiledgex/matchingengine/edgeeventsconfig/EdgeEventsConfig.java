@@ -48,6 +48,11 @@ public class EdgeEventsConfig {
         locationUpdateConfig = new ClientEventsConfig();
     }
 
+    /*!
+     * copy constructor.
+     *
+     * \param edgeEventsConfig an existing EdgeEvents config.
+     */
     public EdgeEventsConfig(EdgeEventsConfig edgeEventsConfig) {
         latencyInternalPort = edgeEventsConfig.latencyInternalPort; // implicit Ping only.
         latencyTestType = edgeEventsConfig.latencyTestType;
@@ -70,6 +75,9 @@ public class EdgeEventsConfig {
         locationUpdateConfig = new ClientEventsConfig(edgeEventsConfig.locationUpdateConfig);
     }
 
+    /*!
+     * \return A DefaultEdgeEvents config profile.
+     */
     public static EdgeEventsConfig createDefaultEdgeEventsConfig() {
         EdgeEventsConfig eeConfig = new EdgeEventsConfig();
         eeConfig.latencyThresholdTrigger = 50;
@@ -85,8 +93,16 @@ public class EdgeEventsConfig {
         return eeConfig;
     }
 
+    //![exampleedgeeventsconfig]
     /*!
-     * Helper util to create a useful config.
+     * Helper util method to create a useful config for EdgeEventsConfig.
+     *
+     * \param latencyUpdateIntervalSeconds time in seconds between attempts to test edge server latency.
+     * \param locationUpdateIntervalSeconds time in seconds between attempts to inform the attached DME the current client GPS location.
+     * \param latencyThresholdTriggerMs specifies the minimum acceptable tested performance, before informing client with a new EdgeEvent.
+     *
+     * \section edgeeventssubscribertemplate Example
+     * \snippet EdgeEventsConfig.java edgeeventssubscribertemplate
      */
     public static EdgeEventsConfig createDefaultEdgeEventsConfig(double latencyUpdateIntervalSeconds,
                                                                  double locationUpdateIntervalSeconds,
@@ -105,5 +121,6 @@ public class EdgeEventsConfig {
 
         return eeConfig;
     }
+    //![exampleedgeeventsconfig]
 }
 

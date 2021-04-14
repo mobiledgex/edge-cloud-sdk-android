@@ -315,6 +315,13 @@ public class EngineCallTest {
         }
     }
 
+    @Test
+    public void constructorTests() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        MatchingEngine me = new MatchingEngine(context);
+        //! [meconstructorexample]
+    }
+
     // Every call needs registration to be called first at some point.
     // Test only!
     public void registerClient(MatchingEngine me) {
