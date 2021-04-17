@@ -116,6 +116,7 @@ WARN_LOGFILE           =
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
 INPUT                  = src/main/java/com/mobiledgex/matchingengine/ \
+                       = ../app/src/main/java/com/mobiledgex/sdkdemo/ \
                          ../doxygen/src/DoxygenModules.txt \
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.c \
@@ -170,7 +171,8 @@ EXCLUDE                =
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       =
 EXCLUDE_SYMBOLS        =
-EXAMPLE_PATH           = src/AndroidTest/java/com/mobiledgex/matchingengine/
+EXAMPLE_PATH           = src/AndroidTest/java/com/mobiledgex/matchingengine/ \
+                       = ../app/src/main/java/com/mobiledgex/sdkdemo/
 EXAMPLE_PATTERNS       = *
 EXAMPLE_RECURSIVE      = NO
 IMAGE_PATH             = ../doxygen/src/dmeflow.png

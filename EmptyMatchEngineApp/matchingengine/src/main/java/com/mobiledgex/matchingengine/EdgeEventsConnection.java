@@ -6,7 +6,6 @@ import android.net.Network;
 import android.util.Log;
 
 import com.google.common.eventbus.DeadEvent;
-import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.edgeeventhandlers.EdgeEventsIntervalHandler;
 import com.mobiledgex.matchingengine.edgeeventhandlers.EdgeEventsLatencyIntervalHandler;
@@ -41,6 +40,7 @@ import static distributed_match_engine.AppClient.ServerEdgeEvent.ServerEventType
 
 /**
  * EdgeEventsConnection provides a asynchronious bi-directional connection to the server side DME.
+ * \ingroup classes
  */
 public class EdgeEventsConnection {
 
@@ -489,7 +489,7 @@ public class EdgeEventsConnection {
         return true;
     }
 
-    synchronized public boolean sendTerminate() {
+    synchronized boolean sendTerminate() {
         if (isShutdown()) {
             return false;
         }
@@ -679,9 +679,10 @@ public class EdgeEventsConnection {
      * A DME administrator of your Application may request an client application to collect performance
      * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
-     * @param host string uri of the site to test with Ping (from default network network interface)
-     * @param location
-     * @return boolean indicating whether the site results are posted or not.
+     * \param host string uri of the site to test with Ping (from default network network interface)
+     * \param location
+     * \return boolean indicating whether the site results are posted or not.
+     * \ingroup functions_edge_events_api
      */
     public boolean testPingAndPostLatencyUpdate(String host, Location location) {
         return testPingAndPostLatencyUpdate(host, location, DEFAULT_NUM_SAMPLES);
@@ -692,10 +693,11 @@ public class EdgeEventsConnection {
      * A DME administrator of your Application may request an client application to collect performance
      * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
-     * @param site
-     * @param android format location
-     * @param number of samples to test.
-     * @return boolean indicating whether the site results are posted or not.
+     * \param site
+     * \param android format location
+     * \param number of samples to test.
+     * \return boolean indicating whether the site results are posted or not.
+     * \ingroup functions_edge_events_api
      */
     public boolean testPingAndPostLatencyUpdate(String host, Location location, int numSamples) {
         if (!me.isMatchingEngineLocationAllowed()) {
@@ -769,9 +771,10 @@ public class EdgeEventsConnection {
      *
      * This utility function uses the default network path. It does not swap networks.
      *
-     * @param site
-     * @param location
-     * @return boolean indicating whether the site results are posted or not.
+     * \param site
+     * \param location
+     * \return boolean indicating whether the site results are posted or not.
+     * \ingroup functions_edge_events_api
      */
     public boolean testConnectAndPostLatencyUpdate(String host, int port, Location location) {
         return testConnectAndPostLatencyUpdate(host, port, location, DEFAULT_NUM_SAMPLES);
@@ -784,11 +787,12 @@ public class EdgeEventsConnection {
      *
      * This utility function uses the default network path. It does not swap networks.
      *
-     * @param host
-     * @param port
-     * @param android format GPS location.
-     * @param number of samples to test
-     * @return boolean indicating whether the site results are posted or not.
+     * \param host
+     * \param port
+     * \param android format GPS location.
+     * \param number of samples to test
+     * \return boolean indicating whether the site results are posted or not.
+     * \ingroup functions_edge_events_api
      */
     public boolean testConnectAndPostLatencyUpdate(String host, int port, Location location, int numSamples) {
         if (!me.isMatchingEngineLocationAllowed()) {
@@ -874,13 +878,14 @@ public class EdgeEventsConnection {
     /*!
      * Fires off tasks to run EdgeEvents monitoring as per config. EdgeEvents must be enabled.
      * This is separate from the normal SDK handled events, like latency requests and new cloudlet
-     * availability. THose, you should subscribe to.
+     * availability. Those EdgeEvents, you should subscribe to.
      *
      * Cancel with stopEdgeEvents.
      * \param dmeHost DME hostname.
      * \param dmePort
      * \param edgeEventsConfig
      * \param network override network.
+     * \ingroup functions_edge_events_api
      */
     synchronized public boolean runEdgeEvents() {
         try {

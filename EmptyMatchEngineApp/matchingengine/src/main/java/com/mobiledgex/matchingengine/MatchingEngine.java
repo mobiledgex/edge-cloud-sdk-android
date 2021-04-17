@@ -228,6 +228,8 @@ public class MatchingEngine {
     /*!
      * Automatically switched EdgeEventsConnection
      * \return boolean value whether the EdgeEventsConnection is migrated automatically.
+     * \return
+     * \ingroup functions_edge_events_api
      */
     public boolean isAutoMigrateEdgeEventsConnection() {
         return autoMigrateEdgeEventsConnection;
@@ -236,6 +238,8 @@ public class MatchingEngine {
      * When you switch AppInsts between Cloudlets, the EdgeEventsConnection should also migrate.
      * If set to false, when notified of a newCLoudlet availability, call "switchedToNewFindCloudlet()
      * to indicate the app has finally migrated to the new cloudlet.
+     * \param autoMigrateEdgeEventsConnection
+     * \ingroup functions_edge_events_api
      */
     synchronized public void setAutoMigrateEdgeEventsConnection(boolean autoMigrateEdgeEventsConnection) {
         this.autoMigrateEdgeEventsConnection = autoMigrateEdgeEventsConnection;
@@ -274,6 +278,7 @@ public class MatchingEngine {
      *   - EdgeEventsError - Errors encountered during the EdgeEvents threads will be posted here for the app to handle.
      *
      * \param edgeEventsConfig a events profile on how to monitor the edgeConnection state. null to use defaults.
+     * \ingroup functions_edge_events_api
      */
     public boolean startEdgeEvents(EdgeEventsConfig edgeEventsConfig) {
         if (edgeEventsConfig == null) {
@@ -318,6 +323,7 @@ public class MatchingEngine {
      * This is required, if the app needs to swap AppInst edge servers, and auto reconnect to the
      * next DME's EdgeEventsConnection is disabled.
      * \throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
+     * \ingroup functions_edge_events_api
      */
     synchronized public boolean restartEdgeEvents() throws DmeDnsException {
         boolean ret = stopEdgeEvents();
@@ -328,11 +334,16 @@ public class MatchingEngine {
     /*!
      * Just an alias to restartEdgeEvents.
      * \throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
+     * \ingroup functions_edge_events_api
      */
     synchronized public boolean switchedToNextCloudlet() throws DmeDnsException{
         return restartEdgeEvents();
     }
 
+    /*!
+     * Stops processsing of DME server pushed EdgeEvents.
+     * \ingroup functions_edge_events_api
+     */
     synchronized public boolean stopEdgeEvents() {
         mAppInitiatedRunEdgeEvents = false;
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
@@ -392,6 +403,7 @@ public class MatchingEngine {
      * \param edgeEventsCookie This events session cookie part of FindClooudletReply for the app's
      *                         resolved edge AppInst.
      * \return a connected EdgeEventsConnection instance
+     * \ingroup functions_dmeapis
      */
     synchronized EdgeEventsConnection getEdgeEventsConnection(String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig) {
         if (!mEnableEdgeEvents) {
@@ -420,6 +432,7 @@ public class MatchingEngine {
     /*!
      * MatchingEngine contains some long lived resources. When done, call close() to free them
      * cleanly.
+     * \ingroup functions_dmeapis
      */
     synchronized public void close() {
         if (getEdgeEventsConnection() != null) {
@@ -448,7 +461,7 @@ public class MatchingEngine {
      * to access Utility functions to help with the response.
      *
      * \return
-     * \ingroup functions_dmeutils
+     * \ingroup functions_edge_events_api
      */
     public EventBus getEdgeEventsBus() {
         // This lives outside the EdgeEventsConnect, so the eventBus can be set.

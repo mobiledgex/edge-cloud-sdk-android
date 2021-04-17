@@ -131,6 +131,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        //! [BasicExampleLocationHandler]
         mLocationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
@@ -151,6 +152,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 tv.setText(clientLocText);
             };
         };
+        //! [BasicExampleLocationHandler]
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -212,17 +214,18 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
 
         if (mMatchingEngine == null) {
-            //! [edgeeventsconfigtemplate]
+            //! [matchingengine_constructor]
             // Permissions must be available. Check permissions upon OnResume(). Create a MobiledgeX MatchingEngine instance.
             //
-            // \section edgeeventsconfigtemplate Example EdgeEvents Configuration
-            // \snippet MainActivity.java edgeeventsconfigtemplate
-            //
             mMatchingEngine = new MatchingEngine(this);
+            //! [matchingengine_constructor]
 
+            //! [EnableEdgeEvents]
             // Register the class subscribing to EdgeEvents to the EdgeEventsBus (Guava EventBus interface).
             mMatchingEngine.setEnableEdgeEvents(true); // default is true.
+            //! [EnableEdgeEvents]
 
+            //! [ExampleEdgeEventsSubscriberSetup]
             mEdgeEventsSubscriber = new EdgeEventsSubscriber();
             mMatchingEngine.getEdgeEventsBus().register(mEdgeEventsSubscriber);
 
@@ -231,9 +234,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             backgroundEdgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;
             // This is the internal port, that has not been remapped to a public port for a particular appInst.
             backgroundEdgeEventsConfig.latencyInternalPort = internalPort;
+            //! [ExampleEdgeEventsSubscriberSetup]
 
+            //! [ExampleEdgeEventsStarting]
             mMatchingEngine.startEdgeEvents(backgroundEdgeEventsConfig);
-            //! [edgeeventsconfigtemplate]
+            //! [ExampleEdgeEventsStarting]
         }
 
         if (mDoLocationUpdates) {
@@ -241,7 +246,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
     }
 
-    /*! [meconstructorexample]
+    //! [me_cleanup]
+    /*!
      * \section meconstructorexample Cleanup
      * \snipppet MainActivity.java meconstructorexample
      */
@@ -255,43 +261,41 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
         mEdgeEventsSubscriber = null;
     }
+    // [me_cleanup]
 
-    //! [edgeeventssubscribertemplate]
-    /*!
-     * This class encapsulates what an app might implement to watch for edge events. Not every event
-     * needs to be implemented. If you just want FindCloudlet, just @Subscribe to FindCloudletEvent.
-     */
+    //! [edgeevents_subscriber_template]
+    // (Guava EventBus Interface)
+    // This class encapsulates what an app might implement to watch for edge events. Not every event
+    // needs to be implemented. If you just want FindCloudlet, just @Subscribe to FindCloudletEvent.
+    //
     class EdgeEventsSubscriber {
-        /*!
-         * Subscribe to error handlers.
-         */
+        // Subscribe to error handlers!
         @Subscribe
         public void onMessageEvent(EdgeEventsConnection.EdgeEventsError error) {
             Log.d(TAG, "EdgeEvents error reported, reason: " + error);
-
-            // Check config.
+            // Check the App's EdgeEventsConfig and logs.
         }
 
-        /*!
-         * Subscribe to FindCloudletEvent updates to appInst:
-         */
+        // Subscribe to FindCloudletEvent updates to appInst. Reasons to do so include
+        // the AppInst Health and Latency spec for this application.
         @Subscribe
         public void onMessageEvent(FindCloudletEvent findCloudletEvent) {
             Log.d(TAG, "Cloudlet update, reason: " + findCloudletEvent.trigger);
 
-            // Connect to new Cloudlet in the event here.
+            // Connect to new Cloudlet in the event here, preferably in a background task.
             Log.d(TAG, "Cloudlet: " + findCloudletEvent.newCloudlet);
+            // If MatchingEngine.setAutoMigrateEdgeEventsConnection() has been set to false,
+            // let MatchingEngine know with switchedToNextCloudlet() so the new cloudlet can
+            // maintain the edge connection.
         }
 
-        /*!
-         * Subscribe to ServerEdgeEvents! (Guava EventBus Interface)
-         *
-         * Optional. If you set this event handler, the app will take ownership of raw
-         * events off the EdgeEventBus so a custom handler can be written in to fit your application
-         * use case better.
-         *
-         * To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
-         */
+        // Subscribe to ServerEdgeEvents!
+        //
+        // Optional. If you set this event handler, the app will take ownership of raw
+        // events off the EdgeEventBus so a custom handler can be written in to fit your application
+        // use case better.
+        //
+        // To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
         //@Subscribe
         public void onMessageEvent(AppClient.ServerEdgeEvent event) {
             Map<String, String> tagsMap = event.getTagsMap();
@@ -330,7 +334,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     System.out.println("Event Received: " + event.getEventType());
             }
         }
-        //! [edgeeventssubscribertemplate]
+        //! [edgeevents_subscriber_template]
 
 
         /**
