@@ -21,9 +21,6 @@
    * \defgroup functions_edge_events_api EdgeEvents API
    * \ingroup functiongroups\
 
-   * \defgroup functions_edge_events_examples EdgeEvents Example
-   * \ingroup functiongroups\
-
    * \defgroup functions_getconnection GetConnection Functions
    * \ingroup functiongroups
    * \section getconnectionworkflow GetConnection Workflow Example
@@ -68,11 +65,14 @@
    com.mobiledgex.matchingengine.MatchingEngine class.
  * This class provides functions to register the user to the Distributed Matching Engine, find the nearest application instance, and then get a connection to that application instance that is ready to be used (See diagram below for workflow).
  * Go to the sections: \link functions_dmeapis MatchingEngine APIs \endlink and \link functions_getconnection GetConnection Functions \endlink to get started.
- * \image html dmeflow.png width=800cm height=500cma
+ * \image html dmeflow.png width=800cm height=500cm
  *
  * \section how_to How To
- * First, you need a MatchingEngine instance. Since MachingEngine needs location permissions, this might be reinitialized onResme():
+ * First, you need a MatchingEngine instance. Since MachingEngine needs location permissions, this might be reinitialized onResume():
  * \snippet EngineCallTest.java meconstructorexample
+ * For privacy reasons, there is a flag the application should ask the user for permission before enabling, concerning location usage. This
+ * is in addition to normal operating system permissions:
+ * \snippet MainActivity.java matchingengine_allow_location_usage_gdpr
  *
  * Then, register, and find the first closest cloudlet. If not sure of your organization or appInst details, log in and view the app
  * details here:
@@ -91,10 +91,10 @@
  * \snippet EngineCallTest.java findcloudletexample
  *
  * If interested in dynamic edge migration, you can enable it:
- * \snippet MainActivity.java EnableEdgeEvents
+ * \snippet MainActivity.java enable_edgeevents
  *
  * Then, attach a EdgeEvents subscriber, described shortly later:
- * \snippet MainActivity.java ExampleEdgeEventsSubscriberSetup
+ * \snippet MainActivity.java edgeevents_subsscriber_setup_example
  *
  * Here is the EdgeEventsSubscriber class just mentioned. The following example code is a Guava EventBus type Subscriber to EdgeEvents.
  * onMessageEvent can be any name as the EventBus will forward it to the matching class type. The FindCloudletEvent variant is good to
@@ -103,7 +103,7 @@
  * \snippet MainActivity.java edgeevents_subscriber_template
  *
  * Once defined, you can start monitoring:
- * \snippet MainActivity.java ExampleEdgeEventsStarting
+ * \snippet MainActivity.java startedgeevents_example
  *
  * \section edgeevents_subscriber_template cleanup
  * When the app needs to quit or free resources, call close():

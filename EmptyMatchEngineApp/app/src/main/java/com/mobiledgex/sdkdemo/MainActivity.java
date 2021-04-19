@@ -119,7 +119,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         boolean matchingEngineLocationAllowed = prefs.getBoolean(getResources()
                 .getString(R.string.preference_matching_engine_location_verification),
                 false);
+        //! [matchingengine_allow_location_usage_gdpr]
         MatchingEngine.setMatchingEngineLocationAllowed(matchingEngineLocationAllowed);
+        //! [matchingengine_allow_location_usage_gdpr]
 
         // Watch allowed preference:
         prefs.registerOnSharedPreferenceChangeListener(this);
@@ -131,7 +133,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        //! [BasicExampleLocationHandler]
+        //! [basic_location_handler_example]
         mLocationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
@@ -140,9 +142,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 }
                 String clientLocText = "";
                 mLastLocationResult = locationResult;
-                // TODO: DMEConnection for events is lazy initialized.
-                if (mMatchingEngine.getEdgeEventsConnection() != null && mLastLocationResult != null) {
-                    mMatchingEngine.getEdgeEventsConnection().postLocationUpdate(mLastLocationResult.getLastLocation());
+                EdgeEventsConnection edgeEventsventsConnection = mMatchingEngine.getEdgeEventsConnection();
+                if (edgeEventsventsConnection != null && mLastLocationResult != null) {
+                    edgeEventsventsConnection.postLocationUpdate(mLastLocationResult.getLastLocation());
                 }
                 for (Location location : locationResult.getLocations()) {
                     // Update UI with client location data
@@ -152,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 tv.setText(clientLocText);
             };
         };
-        //! [BasicExampleLocationHandler]
+        //! [basic_location_handler_example]
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -216,16 +218,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         if (mMatchingEngine == null) {
             //! [matchingengine_constructor]
             // Permissions must be available. Check permissions upon OnResume(). Create a MobiledgeX MatchingEngine instance.
-            //
             mMatchingEngine = new MatchingEngine(this);
             //! [matchingengine_constructor]
 
-            //! [EnableEdgeEvents]
+            //! [enable_edgeevents]
             // Register the class subscribing to EdgeEvents to the EdgeEventsBus (Guava EventBus interface).
             mMatchingEngine.setEnableEdgeEvents(true); // default is true.
-            //! [EnableEdgeEvents]
+            //! [enable_edgeevents]
 
-            //! [ExampleEdgeEventsSubscriberSetup]
+            //! [edgeevents_subsscriber_setup_example]
             mEdgeEventsSubscriber = new EdgeEventsSubscriber();
             mMatchingEngine.getEdgeEventsBus().register(mEdgeEventsSubscriber);
 
@@ -234,11 +235,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             backgroundEdgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;
             // This is the internal port, that has not been remapped to a public port for a particular appInst.
             backgroundEdgeEventsConfig.latencyInternalPort = internalPort;
-            //! [ExampleEdgeEventsSubscriberSetup]
+            //! [edgeevents_subsscriber_setup_example]
 
-            //! [ExampleEdgeEventsStarting]
+            //! [startedgeevents_example]
             mMatchingEngine.startEdgeEvents(backgroundEdgeEventsConfig);
-            //! [ExampleEdgeEventsStarting]
+            //! [startedgeevents_example]
         }
 
         if (mDoLocationUpdates) {
@@ -248,8 +249,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     //! [me_cleanup]
     /*!
-     * \section meconstructorexample Cleanup
-     * \snipppet MainActivity.java meconstructorexample
+     * \section meconstructor_example Cleanup
+     * \snipppet MainActivity.java meconstructor_example
      */
     @Override
     public void onDestroy() {
@@ -342,8 +343,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
          */
 
         /*!
-         * \section edgeeventssubscribertemplate Example FindCloudlet Handler
-         * \snippet MainActivity.java edgeeventssubscribertemplate
+         * \section edgeevents_subscriber_template Example FindCloudlet Handler
+         * \snippet MainActivity.java edgeevents_subscriber_template
          */
         void handleFindCloudletServerPush(AppClient.ServerEdgeEvent event) {
             // In a real app:
@@ -370,8 +371,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
 
         /*!
-         * \section edgeeventssubscribertemplate Example AppInstHealthHandler
-         * \snippet MainActivity.java edgeeventssubscribertemplate
+         * \section edgeevents_subscriber_template Example AppInstHealthHandler
+         * \snippet MainActivity.java edgeevents_subscriber_template
          */
         void handleAppInstHealth(AppClient.ServerEdgeEvent event) {
             if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_APPINST_HEALTH) {
@@ -394,8 +395,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
 
         /*!
-         * \section edgeeventssubscribertemplate Example Cloudlet Maintenance Handler
-         * \snippet MainActivity.java edgeeventssubscribertemplate
+         * \section edgeevents_subscriber_template Example Cloudlet Maintenance Handler
+         * \snippet MainActivity.java edgeevents_subscriber_template
          */
         void handleCloudletMaintenance(AppClient.ServerEdgeEvent event) {
             if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_MAINTENANCE) {
@@ -412,8 +413,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
 
         /*!
-         * \section edgeeventssubscribertemplate Example Cloudlet State Handler
-         * \snippet MainActivity.java edgeeventssubscribertemplate
+         * \section edgeevents_subscriber_template Example Cloudlet State Handler
+         * \snippet MainActivity.java edgeevents_subscriber_template
          */
         void handleCloudletState(AppClient.ServerEdgeEvent event) {
             if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_STATE) {
@@ -449,7 +450,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         /*!
          * Example of a custom handler for EVENT_LATENCY_REQUEST message.
          *
-         * Alternatively, submit a custom task to the Tasks API, which uses the prevously submitted
+         * Alternatively, submit a custom task to the Tasks API, which uses the previously submitted
          * EdgeEventsConfig. See EdgeEventsConnection APIs:
          *  - addEdgeEventsIntervalTask
          *  - removeEdgeEventsIntervalTask
@@ -466,7 +467,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         // Local copy:
                         NetTest netTest = new NetTest();
 
-                        // Need an connected AppInst to test.
+                        // Need a connected AppInst that the app is aware of to test with this code.
                         if (mLastFindCloudlet == null) {
                             return;
                         }

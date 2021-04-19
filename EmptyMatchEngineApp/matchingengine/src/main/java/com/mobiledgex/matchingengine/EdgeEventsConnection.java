@@ -562,8 +562,11 @@ public class EdgeEventsConnection {
     /*!
      * Outbound Client to Server location update. If there is a closer cloudlet, this will cause a
      * Guava ServerEdgeEvent EVENT_CLOUDLET_UPDATE message to be sent to subscribers.
-     * @param location
-     * @return whether the message was posted.
+     * \param location (Android location format)
+     * \return whether the message was posted.
+     * \ingroup functions_edge_events_api
+     * \section basic_location_handler_example Example
+     * \snippet MainActivity.java basic_location_handler_example
      */
     public boolean postLocationUpdate(Location location) {
         if (!me.isMatchingEngineLocationAllowed()) {
@@ -616,9 +619,10 @@ public class EdgeEventsConnection {
      * A DME administrator of your Application may request an client application to collect performance
      * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
-     * @param site
-     * @param location
-     * @return boolean indicating whether the site results are posted or not.
+     * \param site
+     * \param location
+     * \return boolean indicating whether the site results are posted or not.
+     * \ingroup functions_edge_events_api
      */
     public boolean postLatencyUpdate(Site site, Location location) {
 

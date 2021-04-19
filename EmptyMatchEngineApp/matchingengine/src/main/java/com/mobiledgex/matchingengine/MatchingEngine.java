@@ -215,11 +215,17 @@ public class MatchingEngine {
         return mEnableEdgeEvents;
     }
 
+    /*!
+     * Enable or disable edge events API.
+     * \param enableEdgeEvents this defaults to true in the MatchingEngine.
+     * \ingroup functions_edge_events_api
+     * \section enable_edgeevents Example
+     * \snippet MainActivity.java enable_edgeevents
+     */
     synchronized public void setEnableEdgeEvents(boolean enableEdgeEvents) {
         this.mEnableEdgeEvents = enableEdgeEvents;
     }
 
-    // Default EdgeEvents config:
     synchronized public void setEdgeEventsConfig(EdgeEventsConfig edgeEventsConfig) {
         this.mEdgeEventsConfig = edgeEventsConfig;
     }
@@ -267,7 +273,9 @@ public class MatchingEngine {
 
 
     /*!
-     * startsEdgeEvents() as soon as a FindCloudletReply is FIND_FOUND with the EdgeEventsConfig given.
+     * startEdgeEvents() begins processing as soon as a FindCloudletReply is FIND_FOUND with the
+     * EdgeEventsConfig given.
+     *
      * If you want to handle the EdgeEvents with a custom handler, call getEdgeEventsBus(),
      * register your class, and @Subscribe to either these event objects:
      *
@@ -279,6 +287,8 @@ public class MatchingEngine {
      *
      * \param edgeEventsConfig a events profile on how to monitor the edgeConnection state. null to use defaults.
      * \ingroup functions_edge_events_api
+     * \section startedgeevents_example Example
+     * \snippet MainActivity.java startedgeevents_example
      */
     public boolean startEdgeEvents(EdgeEventsConfig edgeEventsConfig) {
         if (edgeEventsConfig == null) {
@@ -460,7 +470,7 @@ public class MatchingEngine {
      * If you want to send a response back to the server, call getEdgeEventsConnection()
      * to access Utility functions to help with the response.
      *
-     * \return
+     * \return The EdgeEvents bus, if any. This may be null.
      * \ingroup functions_edge_events_api
      */
     public EventBus getEdgeEventsBus() {
@@ -486,6 +496,8 @@ public class MatchingEngine {
      * Location permissions are required to find nearest cloudlet. Developer must set MatchignEngineLocationAllowed to true in order to use MatchingEngine APIs
      * \param allowMatchingEngineLocation (boolean)
      * \ingroup functions_dmeutils
+     * \section matchingengine_allow_location_usage_gdpr Example
+     * \snippet MainActivity.java matchingengine_allow_location_usage_gdpr
      */
     synchronized public static void setMatchingEngineLocationAllowed(boolean allowMatchingEngineLocation) {
         mMatchingEngineLocationAllowed = allowMatchingEngineLocation;
