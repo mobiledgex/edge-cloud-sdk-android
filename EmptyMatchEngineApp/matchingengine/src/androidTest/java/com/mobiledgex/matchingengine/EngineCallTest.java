@@ -674,12 +674,14 @@ public class EngineCallTest {
     @Test
     public void LatencyUtilEdgeEventsTest() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        Future<AppClient.FindCloudletReply> response;
+        Future<AppClient.FindCloudletReply> response1, response2;
         AppClient.FindCloudletReply findCloudletReply1 = null;
         AppClient.FindCloudletReply findCloudletReply2 = null;
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
+
+        Site site = null;
 
         // This EdgeEventsConnection test requires an EdgeEvents enabled server.
         // me.setSSLEnabled(false);
@@ -702,7 +704,6 @@ public class EngineCallTest {
 
         try {
             Location location = getTestLocation();
-
             registerClient(me);
 
             // Cannot use the older API if overriding.
@@ -711,16 +712,25 @@ public class EngineCallTest {
                     .build();
 
             if (useHostOverride) {
-                response = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
+                response2 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
+                        MatchingEngine.FindCloudletMode.PERFORMANCE);
+                response1 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
                         MatchingEngine.FindCloudletMode.PROXIMITY);
+                // start on response1
+                me.startEdgeEvents(hostOverride, portOverride, null, me.createDefaultEdgeEventsConfig());
             } else {
-                response = me.findCloudletFuture(findCloudletRequest, 10000);
+                response2 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PERFORMANCE);
+                response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
+                // start on response1
+                me.startEdgeEvents(me.createDefaultEdgeEventsConfig());
             }
-            findCloudletReply1 = response.get();
+            findCloudletReply1 = response1.get();
+            findCloudletReply2 = response2.get();
 
-            assertTrue("FindCloudlet did not succeed!",findCloudletReply1.getStatus()
+            assertTrue("FindCloudlet1 did not succeed!",findCloudletReply1.getStatus()
                     == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
-
+            assertTrue("FindCloudlet2 did not succeed!",findCloudletReply2.getStatus()
+                    == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
 
             AppPort aPort = findCloudletReply1.getPorts(0);
             String host = me.getAppConnectionManager().getHost(findCloudletReply1, aPort);
@@ -729,7 +739,7 @@ public class EngineCallTest {
             //host = "192.168.1.172";
             //port = 3000;
 
-            Site site = new Site(context, NetTest.TestType.PING, 5, host, aPort.getPublicPort());
+            site = new Site(context, NetTest.TestType.PING, 5, host, aPort.getPublicPort());
 
             NetTest netTest = new NetTest();
             netTest.addSite(site);
@@ -740,16 +750,19 @@ public class EngineCallTest {
             // We will try to receive a DME response in a reasonable amount of time.
 
             // Fire Away, unsolicited responses.
+            // Because the default is to NOT have configured EdgeEvents, you must check for nulls.
+            assertTrue("Must have configured edgeEvents in test to USE edge events functions.", me.mEdgeEventsConfig != null);
+
             me.getEdgeEventsConnection().postLatencyUpdate(site, location);
             me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(host, location);
             me.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(host, port, location);
 
-            Thread.sleep(3000); // Plenty of time.
+            Thread.sleep(5000); // Plenty of time.
 
             assertEquals("Must get 3 responses back from server.", 3, responses.size());
 
             for (AppClient.ServerEdgeEvent s : responses) {
-                assertTrue("Must have 3 non-zero averages!", s.getStatistics().getAvg() > 0f);
+                assertTrue("Must have 3 non-negative averages!", s.getStatistics().getAvg() >= 0f);
             }
 
         } catch (DmeDnsException dde) {
@@ -775,12 +788,19 @@ public class EngineCallTest {
         assertNotNull(findCloudletReply2.getCloudletLocation());
 
         NetTest netTest = me.getNetTest();
+        Site site1 = null, site2 = null;
         if (!findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn())) {
-            Site site1 = netTest.getSite(findCloudletReply1.getPorts(0).getFqdnPrefix() + findCloudletReply1.getFqdn());
-            Site site2 = netTest.getSite(findCloudletReply2.getPorts(0).getFqdnPrefix() + findCloudletReply2.getFqdn());
+            site1 = netTest.getSite(findCloudletReply1.getPorts(0).getFqdnPrefix() + findCloudletReply1.getFqdn());
+            site2 = netTest.getSite(findCloudletReply2.getPorts(0).getFqdnPrefix() + findCloudletReply2.getFqdn());
             double margin = Math.abs(site1.average-site2.average)/site2.average;
             assertTrue("Winner Not within 15% margin: " + margin, margin < .15d);
         }
+
+        // What about EdgeEvents?
+        assertNotNull(site);
+        assertNotNull(site2);
+        double margin = Math.abs(site.average-site2.average)/site2.average;
+        assertTrue("EdgeEvents Latency tests not within 15% margin of PROXIMITY: " + margin, margin < .15d);
 
         // Might also fail, since the network is not under test control:
         assertEquals("App's expected test cloudlet FQDN doesn't match.", "mobiledgexmobiledgexsdkdemo20.sdkdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net", findCloudletReply1.getFqdn());

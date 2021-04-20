@@ -639,22 +639,22 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         // For Demo app, we use the wifi dme server to continue to MobiledgeX.
                         dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
                     }
-                    //dmeHostAddress = "eu-qa." + MatchingEngine.baseDmeHost;
+                    dmeHostAddress = "wifi." + MatchingEngine.baseDmeHost;
                     mMatchingEngine.setUseWifiOnly(true);
-                    mMatchingEngine.setSSLEnabled(false);
+                    mMatchingEngine.setSSLEnabled(true);
                     //mMatchingEngine.setNetworkSwitchingEnabled(true);
                     //dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
-                    dmeHostAddress = "192.168.1.172";
+                    //dmeHostAddress = "192.168.1.172";
                     EventBus bus = mMatchingEngine.getEdgeEventsBus();
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
-                    String orgName = "DevOrg"; // Always supplied by application, and in the MobiledgeX web admin console.
+                    String orgName = "MobiledgeX-Samples"; // Always supplied by application, and in the MobiledgeX web admin console.
                     // For illustration, the matching engine can be used to programatically get the name of your application details
                     // so it can go to the correct appInst version. That AppInst on the server side must match the application
                     // version or else it won't be found and cannot be used.
-                    String appName = "Face Detection Demo"; // AppName must be added to the MobiledgeX web admin console.
-                    String appVers = "1.0"; // override the version of that known registered app.
+                    String appName = "ComputerVision"; // AppName must be added to the MobiledgeX web admin console.
+                    String appVers = "2.2"; // override the version of that known registered app.
 
                     // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
                     // like AuthToken or Tag key value pairs.

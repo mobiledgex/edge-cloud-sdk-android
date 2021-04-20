@@ -19,6 +19,7 @@ package com.mobiledgex.matchingengine.edgeeventhandlers;
 import android.location.Location;
 import android.util.Log;
 
+import com.mobiledgex.matchingengine.EdgeEventsConnection;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
 
@@ -60,12 +61,13 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
         public void run() {
             if (getNumberOfTimesExecuted < ceConfig.maxNumberOfUpdates) {
                 getNumberOfTimesExecuted++;
-                if (me.isMatchingEngineLocationAllowed() && me.getEdgeEventsConnection() != null && !me.getEdgeEventsConnection().isShutdown()) {
-                    location = me.getEdgeEventsConnection().getLocation();
+                EdgeEventsConnection edgeEventsConnection = me.getEdgeEventsConnection();
+                if (me.isMatchingEngineLocationAllowed() && edgeEventsConnection != null && !me.getEdgeEventsConnection().isShutdown()) {
+                    location = edgeEventsConnection.getLocation();
                 } else {
                     Log.w(TAG, "Location is currently not available or disabled.");
                 }
-                me.getEdgeEventsConnection().postLocationUpdate(location);
+                edgeEventsConnection.postLocationUpdate(location);
             } else {
                 Log.i(TAG, "Timer task complete.");
                 cancel(); // Tests done.

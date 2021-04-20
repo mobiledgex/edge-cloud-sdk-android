@@ -168,7 +168,7 @@ public class EdgeEventsConnection {
      * Establish an asynchronous DME Connection for streamed EdgeEvents to the current DME edge server.
      * @param me
      */
-    EdgeEventsConnection(MatchingEngine me) {
+    EdgeEventsConnection(MatchingEngine me, EdgeEventsConfig eeConfig) {
         synchronized (this) {
             hostOverride = null;
             portOverride = 0;
@@ -177,7 +177,12 @@ public class EdgeEventsConnection {
         this.me = me;
 
         Log.w(TAG, "Configuring EdgeEvent Defaults");
-        mEdgeEventsConfig = EdgeEventsConfig.createDefaultEdgeEventsConfig();
+        if (eeConfig == null) {
+            Log.w(TAG, "EdgeEventsConfig is required. Using a basic default config because there is none provided.");
+            mEdgeEventsConfig = EdgeEventsConfig.createDefaultEdgeEventsConfig();
+        } else {
+            mEdgeEventsConfig = new EdgeEventsConfig(eeConfig);
+        }
 
         try {
             open();
@@ -186,15 +191,15 @@ public class EdgeEventsConnection {
         }
     }
 
-    /**
-     * Do not use.
-     * @param me
+    /*!
+     * Do not use. Internal use only.
+     * \param me
      */
     EdgeEventsConnection(MatchingEngine me, String dmeHost, int dmePort, Network network, EdgeEventsConfig eeConfig) {
         this.me = me;
 
-        Log.w(TAG, "Configuring EdgeEvent Defaults");
         if (eeConfig == null) {
+            Log.w(TAG, "EdgeEventsConfig is required. Using a basic default config because there is none provided.");
             eeConfig = EdgeEventsConfig.createDefaultEdgeEventsConfig();
         }
 
@@ -477,6 +482,10 @@ public class EdgeEventsConnection {
 
     public boolean send(AppClient.ClientEdgeEvent clientEdgeEvent) {
         try {
+            if (!me.isEnableEdgeEvents()) {
+                Log.e(TAG, "EdgeEvents is disabled. Message is not sent.");
+                return false;
+            }
             if (isShutdown()) {
                 reconnect();
             }
@@ -544,6 +553,7 @@ public class EdgeEventsConnection {
     public Location getLocation() {
         if (!MatchingEngine.isMatchingEngineLocationAllowed()) {
             Log.e(TAG, "MobiledgeX Location services are not permitted until allowed by application.");
+            return null;
         }
 
         Location location = null;
@@ -570,10 +580,6 @@ public class EdgeEventsConnection {
      */
     public boolean postLocationUpdate(Location location) {
         if (!me.isMatchingEngineLocationAllowed()) {
-            return false;
-        }
-
-        if (location == null) {
             return false;
         }
 
@@ -630,10 +636,6 @@ public class EdgeEventsConnection {
             return false;
         }
 
-        if (isShutdown()) {
-            return false;
-        }
-
         LocOuterClass.Loc loc = null;
 
         if (site == null || (site.samples == null || site.samples.length == 0)) {
@@ -641,6 +643,9 @@ public class EdgeEventsConnection {
             return false;
         }
 
+        if (location == null) {
+            location = getLocation();
+        }
         if (location == null) {
             Log.e(TAG, "Location supplied is null, and cannot get location from location provider.");
             postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
@@ -705,10 +710,6 @@ public class EdgeEventsConnection {
      */
     public boolean testPingAndPostLatencyUpdate(String host, Location location, int numSamples) {
         if (!me.isMatchingEngineLocationAllowed()) {
-            return false;
-        }
-
-        if (isShutdown()) {
             return false;
         }
 
@@ -803,10 +804,6 @@ public class EdgeEventsConnection {
             return false;
         }
 
-        if (isShutdown()) {
-            return false;
-        }
-
         LocOuterClass.Loc loc = null;
 
         if (host == null || host.length() == 0) {
@@ -818,6 +815,9 @@ public class EdgeEventsConnection {
             return false;
         }
 
+        if (location == null) {
+            location = getLocation();
+        }
         if (location == null) {
             Log.e(TAG, "Location supplied is null, and cannot get location from location provider.");
             postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);

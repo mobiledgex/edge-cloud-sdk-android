@@ -292,8 +292,8 @@ public class MatchingEngine {
      */
     public boolean startEdgeEvents(EdgeEventsConfig edgeEventsConfig) {
         if (edgeEventsConfig == null) {
-            Log.e(TAG, "EdgeEventsConfig must not be null.");
-            return false;
+            Log.e(TAG, "EdgeEventsConfig should not be null! See createDefaultEdgeEventsConfig(). startEdgeEvents() will create a minimal un-customized basic config for initial use.");
+            edgeEventsConfig = createDefaultEdgeEventsConfig();
         }
         mAppInitiatedRunEdgeEvents = true;
         return startEdgeEvents(null, 0, null, edgeEventsConfig);
@@ -403,15 +403,14 @@ public class MatchingEngine {
     }
 
     /*!
+     * Do not use in production.
+     *
      * Gets or re-establishes a connection to the DME, and returns an EdgeEventsConnection singleton.
-     * If you want to receive events, register your class that has a @Subscribe annotation with a
-     * ServerEdgeEvent method parameter.
      *
      * \param dmeHost
      * \param port
      * \param network
-     * \param edgeEventsCookie This events session cookie part of FindClooudletReply for the app's
-     *                         resolved edge AppInst.
+     * \param edgeEventsConfig This is a required configuration for edgeEvents.
      * \return a connected EdgeEventsConnection instance
      * \ingroup functions_dmeapis
      */
@@ -419,6 +418,10 @@ public class MatchingEngine {
         if (!mEnableEdgeEvents) {
             Log.d(TAG, "EdgeEvents has been disabled for this MatchingEngine. Enable to receive EdgeEvents states for your app.");
             return null;
+        }
+
+        if (edgeEventsConfig == null) {
+            throw new IllegalArgumentException("EdgeEventsConfig is required to get an EdgeEventsConnection. You can create a default one with MatchingEngine createDefaultEdgeEventsConfig()");
         }
 
         // Clean:
@@ -430,12 +433,29 @@ public class MatchingEngine {
         }
 
         // Open:
-        mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, dmePort, network, edgeEventsConfig);
+        if (dmeHost == null || dmePort == 0) {
+            mEdgeEventsConnection = new EdgeEventsConnection(this, edgeEventsConfig);
+        } else {
+            mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, dmePort, network, edgeEventsConfig);
+        }
 
         return mEdgeEventsConnection;
     }
 
+    /*!
+     * Returns an EdgeEventsConnection singleton to call edge events util functions.
+     *
+     * \return a EdgeEventsConnection instance. May be null if not currently available.
+     * \ingroup functions_dmeapis
+     */
     synchronized public EdgeEventsConnection getEdgeEventsConnection() {
+        if (mEnableEdgeEvents == false) {
+            Log.e(TAG, "EdgeEvents has been disabled.");
+        }
+        if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
+            Log.w(TAG, "There is no current active EdgeEventsConnection, or is swapping edgeEvents connections if already started.");
+            return null;
+        }
         return mEdgeEventsConnection;
     }
 
@@ -445,9 +465,10 @@ public class MatchingEngine {
      * \ingroup functions_dmeapis
      */
     synchronized public void close() {
-        if (getEdgeEventsConnection() != null) {
-            getEdgeEventsConnection().close();
+        if (mEdgeEventsConnection != null) {
+            mEdgeEventsConnection.close();
         }
+        mEdgeEventsConnection = null;
 
         // Kill ExecutorService.
         if (!externalExecutor && threadpool != null) {
