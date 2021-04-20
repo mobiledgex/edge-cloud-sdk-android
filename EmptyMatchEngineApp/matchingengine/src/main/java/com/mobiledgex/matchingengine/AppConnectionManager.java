@@ -17,6 +17,7 @@
 
 package com.mobiledgex.matchingengine;
 
+import android.net.ConnectivityManager;
 import android.net.Network;
 import android.util.Log;
 
@@ -26,6 +27,7 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -54,6 +56,18 @@ public class AppConnectionManager {
     AppConnectionManager(NetworkManager networkManager, ExecutorService executor) {
         mNetworkManager = networkManager;
         mExecutor = executor;
+    }
+
+
+    private Network getNetwork() throws InterruptedException, ExecutionException {
+        Network net;
+        if (mNetworkManager.isNetworkSwitchingEnabled()) {
+            net = mNetworkManager.switchToCellularInternetNetworkBlocking();
+        } else {
+            net = mNetworkManager.getActiveNetwork();
+        }
+
+        return net;
     }
 
     /*!
@@ -251,28 +265,24 @@ public class AppConnectionManager {
      */
     public Future<SSLSocket> getTcpSslSocket(final AppClient.FindCloudletReply findCloudletReply,
                                       final AppPort appPort, final int portNum, final int timeoutMs) {
-        if (!mNetworkManager.isNetworkSwitchingEnabled()) {
-            return null;
-        }
-        if (!appPort.getTls()) {
-            return null;
-        }
 
         Callable<SSLSocket> sslSocketCallable = new Callable<SSLSocket>() {
             @Override
             public SSLSocket call() throws Exception {
+                if (!appPort.getTls()) {
+                    return null;
+                }
+
+                Network net = getNetwork();
+                if (net == null) {
+                    return null;
+                }
+
                 int timeout = timeoutMs < 0 ? 0 : timeoutMs;
                 int aPortNum = getPort(appPort, portNum);
 
                 AppPort foundPort = appPort; // We have the public port + offset, from given appPort.
 
-                Network net = mNetworkManager.switchToCellularInternetNetworkBlocking();
-
-                if (net == null && mNetworkManager.isNetworkSwitchingEnabled()) {
-                    return null;
-                } else {
-                    net = mNetworkManager.getActiveNetwork();
-                }
                 MobiledgeXSSLSocketFactory mobiledgexSSLSocketFactory = (MobiledgeXSSLSocketFactory)MobiledgeXSSLSocketFactory.getDefault(net);
                 if (mobiledgexSSLSocketFactory == null) {
                     return null;
@@ -313,28 +323,20 @@ public class AppConnectionManager {
      */
     public Future<Socket> getTcpSocket(final AppClient.FindCloudletReply findCloudletReply,
                                 final AppPort appPort, final int portNum, final int timeoutMs) {
-        if (!mNetworkManager.isNetworkSwitchingEnabled()) {
-            return null;
-        }
-        if (appPort.getTls()) {
-            return null;
-        }
 
         Callable<Socket> socketCallable = new Callable<Socket>() {
             @Override
             public Socket call() throws Exception {
+                Network net = getNetwork();
+                if (net == null) {
+                    return null;
+                }
+
                 int timeout = timeoutMs < 0 ? 0 : timeoutMs;
                 int publicPortNum = getPort(appPort, portNum);
 
                 AppPort foundPort = appPort; // We have the public port + offset, from given appPort.
 
-                Network net = mNetworkManager.switchToCellularInternetNetworkBlocking();
-
-                if (net == null && mNetworkManager.isNetworkSwitchingEnabled()) {
-                    return null;
-                } else {
-                    net = mNetworkManager.getActiveNetwork();
-                }
 
                 SocketFactory sf = net.getSocketFactory();
                 Socket socket = sf.createSocket();
@@ -377,19 +379,16 @@ public class AppConnectionManager {
         Callable<DatagramSocket> socketCallable = new Callable<DatagramSocket>() {
             @Override
             public DatagramSocket call() throws Exception {
+                Network net = getNetwork();
+                if (net == null) {
+                    return null;
+                }
+
                 int timeout = timeoutMs < 0 ? 0 : timeoutMs;
                 int publicPortNum = getPort(appPort, portNum);
 
                 // getPort will throw Exception if the AppPort is bad.
                 AppPort foundPort =  appPort;
-
-                Network net = mNetworkManager.switchToCellularInternetNetworkBlocking();
-
-                if (net == null && mNetworkManager.isNetworkSwitchingEnabled()) {
-                    return null;
-                } else {
-                    net = mNetworkManager.getActiveNetwork();
-                }
 
                 DatagramSocket ds = new DatagramSocket();
                 net.bindSocket(ds);
@@ -426,14 +425,11 @@ public class AppConnectionManager {
         Callable<OkHttpClient> socketCallable = new Callable<OkHttpClient>() {
             @Override
             public OkHttpClient call() throws Exception {
-
-                Network net = mNetworkManager.switchToCellularInternetNetworkBlocking();
-
-                if (net == null && mNetworkManager.isNetworkSwitchingEnabled()) {
+                Network net = getNetwork();
+                if (net == null) {
                     return null;
-                } else {
-                    net = mNetworkManager.getActiveNetwork();
                 }
+
                 MobiledgeXSSLSocketFactory mobiledgexSSLSocketFactory = (MobiledgeXSSLSocketFactory)MobiledgeXSSLSocketFactory.getDefault(net);
                 if (mobiledgexSSLSocketFactory == null) {
                     return null;

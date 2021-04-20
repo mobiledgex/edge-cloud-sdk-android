@@ -788,18 +788,20 @@ public class EngineCallTest {
         assertNotNull(findCloudletReply2.getCloudletLocation());
 
         NetTest netTest = me.getNetTest();
-        Site site1 = null, site2 = null;
+        Site site1, site2;
+
+        site1 = netTest.getSite(findCloudletReply1.getPorts(0).getFqdnPrefix() + findCloudletReply1.getFqdn());
+        site2 = netTest.getSite(findCloudletReply2.getPorts(0).getFqdnPrefix() + findCloudletReply2.getFqdn());
+
         if (!findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn())) {
-            site1 = netTest.getSite(findCloudletReply1.getPorts(0).getFqdnPrefix() + findCloudletReply1.getFqdn());
-            site2 = netTest.getSite(findCloudletReply2.getPorts(0).getFqdnPrefix() + findCloudletReply2.getFqdn());
             double margin = Math.abs(site1.average-site2.average)/site2.average;
             assertTrue("Winner Not within 15% margin: " + margin, margin < .15d);
         }
 
         // What about EdgeEvents?
         assertNotNull(site);
-        assertNotNull(site2);
-        double margin = Math.abs(site.average-site2.average)/site2.average;
+        assertNotNull(site1);
+        double margin = Math.abs(site.average-site1.average)/site1.average;
         assertTrue("EdgeEvents Latency tests not within 15% margin of PROXIMITY: " + margin, margin < .15d);
 
         // Might also fail, since the network is not under test control:
@@ -1091,7 +1093,7 @@ public class EngineCallTest {
 
             assertEquals(0, list.getVer());
             assertEquals(AppClient.AppInstListReply.AIStatus.AI_SUCCESS, list.getStatus());
-            assertEquals(1, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
+            assertEquals(3, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
             for (int i = 0; i < list.getCloudletsCount(); i++) {
                 Log.v(TAG, "Cloudlet: " + list.getCloudlets(i).toString());
             }
@@ -1887,7 +1889,7 @@ public class EngineCallTest {
             AppClient.FindCloudletReply findCloudletReply = findCloudletReplyFuture.get();
             assertTrue("Could not find an appInst: " + findCloudletReply.getStatus(), findCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
             HashMap<Integer, AppPort> appTcpPortMap = appConnectionManager.getTCPMap(findCloudletReply);
-            AppPort appPort = appTcpPortMap.get(8008);
+            AppPort appPort = appTcpPortMap.get(findCloudletReply.getPorts(0).getInternalPort());
             if (!MelMessaging.isMelEnabled()) {
                 assertTrue(appPort != null); // There should be at least one for a connection to be made.
                 Future<SSLSocket> socketFuture = me.getAppConnectionManager().getTcpSslSocket(findCloudletReply, appPort, appPort.getPublicPort(), (int)GRPC_TIMEOUT_MS);
