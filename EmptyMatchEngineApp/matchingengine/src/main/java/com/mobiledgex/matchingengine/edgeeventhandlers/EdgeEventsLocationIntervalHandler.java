@@ -62,10 +62,9 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
             if (getNumberOfTimesExecuted < ceConfig.maxNumberOfUpdates) {
                 getNumberOfTimesExecuted++;
                 EdgeEventsConnection edgeEventsConnection = me.getEdgeEventsConnection();
-                if (me.isMatchingEngineLocationAllowed() && edgeEventsConnection != null && !me.getEdgeEventsConnection().isShutdown()) {
-                    location = edgeEventsConnection.getLocation();
-                } else {
-                    Log.w(TAG, "Location is currently not available or disabled.");
+                if (edgeEventsConnection == null) {
+                    Log.w(TAG, "EdgeEventsConnection is not currently available.");
+                    return;
                 }
                 edgeEventsConnection.postLocationUpdate(location);
             } else {
