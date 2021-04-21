@@ -1,6 +1,8 @@
 var searchData=
 [
-  ['testsites_87',['testSites',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ade5ddd599bbc53eff323be2a221dd836',1,'com::mobiledgex::matchingengine::performancemetrics::NetTest']]],
-  ['testsitesonexecutor_88',['testSitesOnExecutor',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ac09d32af91a2fca7f977a8666f3636fa',1,'com::mobiledgex::matchingengine::performancemetrics::NetTest']]],
-  ['testtype_89',['TestType',['../enumcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test_1_1_test_type.html',1,'com::mobiledgex::matchingengine::performancemetrics::NetTest']]]
+  ['testconnectandpostlatencyupdate_111',['testConnectAndPostLatencyUpdate',['../group__functions__edge__events__api.html#gafb5f2561cc68d72f166b65200ab3a672',1,'com.mobiledgex.matchingengine.EdgeEventsConnection.testConnectAndPostLatencyUpdate(String host, int port, Location location)'],['../group__functions__edge__events__api.html#ga10447bc41427c02f19a27f1b7fbc4f49',1,'com.mobiledgex.matchingengine.EdgeEventsConnection.testConnectAndPostLatencyUpdate(String host, int port, Location location, int numSamples)']]],
+  ['testpingandpostlatencyupdate_112',['testPingAndPostLatencyUpdate',['../group__functions__edge__events__api.html#ga296bc158c593f147527f5ef006159611',1,'com.mobiledgex.matchingengine.EdgeEventsConnection.testPingAndPostLatencyUpdate(String host, Location location)'],['../group__functions__edge__events__api.html#gad306c27d9eb3e46e12f27fa1bce557f4',1,'com.mobiledgex.matchingengine.EdgeEventsConnection.testPingAndPostLatencyUpdate(String host, Location location, int numSamples)']]],
+  ['testsites_113',['testSites',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ade5ddd599bbc53eff323be2a221dd836',1,'com::mobiledgex::matchingengine::performancemetrics::NetTest']]],
+  ['testsitesonexecutor_114',['testSitesOnExecutor',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ac09d32af91a2fca7f977a8666f3636fa',1,'com::mobiledgex::matchingengine::performancemetrics::NetTest']]],
+  ['testtype_115',['TestType',['../enumcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test_1_1_test_type.html',1,'com::mobiledgex::matchingengine::performancemetrics::NetTest']]]
 ];
