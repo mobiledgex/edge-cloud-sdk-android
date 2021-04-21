@@ -19,6 +19,7 @@ package com.mobiledgex.matchingengine.edgeeventhandlers;
 import android.location.Location;
 import android.util.Log;
 
+import com.mobiledgex.matchingengine.EdgeEventsConnection;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
@@ -68,18 +69,18 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler 
         public void run() {
             if (getNumberOfTimesExecuted < ceConfig.maxNumberOfUpdates) {
                 getNumberOfTimesExecuted++;
-                if (me.isMatchingEngineLocationAllowed() && me.getEdgeEventsConnection() != null && !me.getEdgeEventsConnection().isShutdown()) {
-                    location = me.getEdgeEventsConnection().getLocation();
-                } else {
-                    Log.w(TAG, "Location is currently not available or disabled.");
+                EdgeEventsConnection edgeEventsConnection = me.getEdgeEventsConnection();
+                if (edgeEventsConnection == null) {
+                    Log.w(TAG, "EdgeEventsConnection is not currently available");
+                    return;
                 }
                 // By config:
                 switch (testType) {
                     case PING:
-                        me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(host, location, ceConfig.maxNumberOfUpdates);
+                        edgeEventsConnection.testPingAndPostLatencyUpdate(host, location, ceConfig.maxNumberOfUpdates);
                         break;
                     case CONNECT:
-                        me.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(host, publicPort, location, ceConfig.maxNumberOfUpdates);
+                        edgeEventsConnection.testConnectAndPostLatencyUpdate(host, publicPort, location, ceConfig.maxNumberOfUpdates);
                         break;
                     default:
                         Log.e(TAG, "Unexpected test type: " + testType);

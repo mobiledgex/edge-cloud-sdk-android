@@ -1,5 +1,6 @@
 var group__functions__dmeapis =
 [
+    [ "close", "group__functions__dmeapis.html#ga6e66e0506a2ce266e63c94b58ef04f1c", null ],
     [ "createDefaultAppInstListRequest", "group__functions__dmeapis.html#ga489996a5146c24597370cfc971273c2d", null ],
     [ "createDefaultFindCloudletRequest", "group__functions__dmeapis.html#ga8189c03b1bd38967264b00e93173d911", null ],
     [ "createDefaultQosPositionRequest", "group__functions__dmeapis.html#gae93bb72f34dc349c0d3eeef93addcd8c", null ],
@@ -17,6 +18,7 @@ var group__functions__dmeapis =
     [ "getAppInstList", "group__functions__dmeapis.html#ga67f308b56e3af652c0953f9760183482", null ],
     [ "getAppInstListFuture", "group__functions__dmeapis.html#ga2a5ab5f881504a0805eba73926e01709", null ],
     [ "getAppInstListFuture", "group__functions__dmeapis.html#gabd8f83cc97381f168b2e8572a4c55557", null ],
+    [ "getEdgeEventsConnection", "group__functions__dmeapis.html#gae538de0186cb81e4941d2b952d31ef60", null ],
     [ "getQosPositionKpi", "group__functions__dmeapis.html#ga870d927ea317deebec52dd7f31a4c458", null ],
     [ "getQosPositionKpi", "group__functions__dmeapis.html#gac227b4435fae6b0be6b8ee15c2a5b992", null ],
     [ "getQosPositionKpiFuture", "group__functions__dmeapis.html#ga81582cd0f1961885fec1ccc0e4f66be4", null ],

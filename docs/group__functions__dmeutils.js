@@ -8,6 +8,6 @@ var group__functions__dmeutils =
     [ "isRoamingDataEanbled", "group__functions__dmeutils.html#ga89348a727303055ccb230519555f4ae3", null ],
     [ "isUseWifiOnly", "group__functions__dmeutils.html#ga3e7563fefa20539a41b301a7813b9286", null ],
     [ "retrieveCellId", "group__functions__dmeutils.html#gafb5d397ccb93ffc4b49efbf134650014", null ],
-    [ "setMatchingEngineLocationAllowed", "group__functions__dmeutils.html#ga69d99fc611022254d79618ceb14030e2", null ],
-    [ "setUseWifiOnly", "group__functions__dmeutils.html#gab033a53faf254f5a78858aa10791e48f", null ]
+    [ "setMatchingEngineLocationAllowed", "group__functions__dmeutils.html#gacc00a16500910057b319f18f3cbe7090", null ],
+    [ "setUseWifiOnly", "group__functions__dmeutils.html#ga680f2c8db8f5f58572502a7cbc0df773", null ]
 ];
