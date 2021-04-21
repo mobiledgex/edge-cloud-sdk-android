@@ -215,11 +215,17 @@ public class MatchingEngine {
         return mEnableEdgeEvents;
     }
 
+    /*!
+     * Enable or disable edge events API.
+     * \param enableEdgeEvents this defaults to true in the MatchingEngine.
+     * \ingroup functions_edge_events_api
+     * \section enable_edgeevents Example
+     * \snippet MainActivity.java enable_edgeevents
+     */
     synchronized public void setEnableEdgeEvents(boolean enableEdgeEvents) {
         this.mEnableEdgeEvents = enableEdgeEvents;
     }
 
-    // Default EdgeEvents config:
     synchronized public void setEdgeEventsConfig(EdgeEventsConfig edgeEventsConfig) {
         this.mEdgeEventsConfig = edgeEventsConfig;
     }
@@ -228,6 +234,8 @@ public class MatchingEngine {
     /*!
      * Automatically switched EdgeEventsConnection
      * \return boolean value whether the EdgeEventsConnection is migrated automatically.
+     * \return
+     * \ingroup functions_edge_events_api
      */
     public boolean isAutoMigrateEdgeEventsConnection() {
         return autoMigrateEdgeEventsConnection;
@@ -236,6 +244,8 @@ public class MatchingEngine {
      * When you switch AppInsts between Cloudlets, the EdgeEventsConnection should also migrate.
      * If set to false, when notified of a newCLoudlet availability, call "switchedToNewFindCloudlet()
      * to indicate the app has finally migrated to the new cloudlet.
+     * \param autoMigrateEdgeEventsConnection
+     * \ingroup functions_edge_events_api
      */
     synchronized public void setAutoMigrateEdgeEventsConnection(boolean autoMigrateEdgeEventsConnection) {
         this.autoMigrateEdgeEventsConnection = autoMigrateEdgeEventsConnection;
@@ -263,7 +273,9 @@ public class MatchingEngine {
 
 
     /*!
-     * startsEdgeEvents() as soon as a FindCloudletReply is FIND_FOUND with the EdgeEventsConfig given.
+     * startEdgeEvents() begins processing as soon as a FindCloudletReply is FIND_FOUND with the
+     * EdgeEventsConfig given.
+     *
      * If you want to handle the EdgeEvents with a custom handler, call getEdgeEventsBus(),
      * register your class, and @Subscribe to either these event objects:
      *
@@ -274,11 +286,14 @@ public class MatchingEngine {
      *   - EdgeEventsError - Errors encountered during the EdgeEvents threads will be posted here for the app to handle.
      *
      * \param edgeEventsConfig a events profile on how to monitor the edgeConnection state. null to use defaults.
+     * \ingroup functions_edge_events_api
+     * \section startedgeevents_example Example
+     * \snippet MainActivity.java startedgeevents_example
      */
     public boolean startEdgeEvents(EdgeEventsConfig edgeEventsConfig) {
         if (edgeEventsConfig == null) {
-            Log.e(TAG, "EdgeEventsConfig must not be null.");
-            return false;
+            Log.e(TAG, "EdgeEventsConfig should not be null! See createDefaultEdgeEventsConfig(). startEdgeEvents() will create a minimal un-customized basic config for initial use.");
+            edgeEventsConfig = createDefaultEdgeEventsConfig();
         }
         mAppInitiatedRunEdgeEvents = true;
         return startEdgeEvents(null, 0, null, edgeEventsConfig);
@@ -302,7 +317,7 @@ public class MatchingEngine {
         // Start, if not already, the edgeEvents connection. It also starts any deferred events.
         // Reconnecting via FindCloudlet, will also call startEdgeEvents.
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
-            mEdgeEventsConnection = getEdgeEventsConnection(dmeHost, dmePort, network, mFindCloudletReply.getEdgeEventsCookie(), edgeEventsConfig);
+            mEdgeEventsConnection = getEdgeEventsConnection(dmeHost, dmePort, network, edgeEventsConfig);
             if (mAppInitiatedRunEdgeEvents) {
                 mEdgeEventsConnection.runEdgeEvents();
             }
@@ -318,6 +333,7 @@ public class MatchingEngine {
      * This is required, if the app needs to swap AppInst edge servers, and auto reconnect to the
      * next DME's EdgeEventsConnection is disabled.
      * \throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
+     * \ingroup functions_edge_events_api
      */
     synchronized public boolean restartEdgeEvents() throws DmeDnsException {
         boolean ret = stopEdgeEvents();
@@ -328,11 +344,16 @@ public class MatchingEngine {
     /*!
      * Just an alias to restartEdgeEvents.
      * \throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
+     * \ingroup functions_edge_events_api
      */
     synchronized public boolean switchedToNextCloudlet() throws DmeDnsException{
         return restartEdgeEvents();
     }
 
+    /*!
+     * Stops processsing of DME server pushed EdgeEvents.
+     * \ingroup functions_edge_events_api
+     */
     synchronized public boolean stopEdgeEvents() {
         mAppInitiatedRunEdgeEvents = false;
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
@@ -382,21 +403,25 @@ public class MatchingEngine {
     }
 
     /*!
+     * Do not use in production.
+     *
      * Gets or re-establishes a connection to the DME, and returns an EdgeEventsConnection singleton.
-     * If you want to receive events, register your class that has a @Subscribe annotation with a
-     * ServerEdgeEvent method parameter.
      *
      * \param dmeHost
      * \param port
      * \param network
-     * \param edgeEventsCookie This events session cookie part of FindClooudletReply for the app's
-     *                         resolved edge AppInst.
+     * \param edgeEventsConfig This is a required configuration for edgeEvents.
      * \return a connected EdgeEventsConnection instance
+     * \ingroup functions_dmeapis
      */
-    synchronized EdgeEventsConnection getEdgeEventsConnection(String dmeHost, int dmePort, Network network, String edgeEventsCookie, EdgeEventsConfig edgeEventsConfig) {
+    synchronized EdgeEventsConnection getEdgeEventsConnection(String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig) {
         if (!mEnableEdgeEvents) {
             Log.d(TAG, "EdgeEvents has been disabled for this MatchingEngine. Enable to receive EdgeEvents states for your app.");
             return null;
+        }
+
+        if (edgeEventsConfig == null) {
+            throw new IllegalArgumentException("EdgeEventsConfig is required to get an EdgeEventsConnection. You can create a default one with MatchingEngine createDefaultEdgeEventsConfig()");
         }
 
         // Clean:
@@ -408,23 +433,42 @@ public class MatchingEngine {
         }
 
         // Open:
-        mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, dmePort, network, edgeEventsConfig);
+        if (dmeHost == null || dmePort == 0) {
+            mEdgeEventsConnection = new EdgeEventsConnection(this, edgeEventsConfig);
+        } else {
+            mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, dmePort, network, edgeEventsConfig);
+        }
 
         return mEdgeEventsConnection;
     }
 
-    public EdgeEventsConnection getEdgeEventsConnection() {
+    /*!
+     * Returns an EdgeEventsConnection singleton to call edge events util functions.
+     *
+     * \return a EdgeEventsConnection instance. May be null if not currently available.
+     * \ingroup functions_dmeapis
+     */
+    synchronized public EdgeEventsConnection getEdgeEventsConnection() {
+        if (mEnableEdgeEvents == false) {
+            Log.e(TAG, "EdgeEvents has been disabled.");
+        }
+        if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
+            Log.w(TAG, "There is no current active EdgeEventsConnection, or is swapping edgeEvents connections if already started.");
+            return null;
+        }
         return mEdgeEventsConnection;
     }
 
     /*!
      * MatchingEngine contains some long lived resources. When done, call close() to free them
      * cleanly.
+     * \ingroup functions_dmeapis
      */
     synchronized public void close() {
-        if (getEdgeEventsConnection() != null) {
-            getEdgeEventsConnection().close();
+        if (mEdgeEventsConnection != null) {
+            mEdgeEventsConnection.close();
         }
+        mEdgeEventsConnection = null;
 
         // Kill ExecutorService.
         if (!externalExecutor && threadpool != null) {
@@ -447,8 +491,8 @@ public class MatchingEngine {
      * If you want to send a response back to the server, call getEdgeEventsConnection()
      * to access Utility functions to help with the response.
      *
-     * \return
-     * \ingroup functions_dmeutils
+     * \return The EdgeEvents bus, if any. This may be null.
+     * \ingroup functions_edge_events_api
      */
     public EventBus getEdgeEventsBus() {
         // This lives outside the EdgeEventsConnect, so the eventBus can be set.
@@ -473,6 +517,8 @@ public class MatchingEngine {
      * Location permissions are required to find nearest cloudlet. Developer must set MatchignEngineLocationAllowed to true in order to use MatchingEngine APIs
      * \param allowMatchingEngineLocation (boolean)
      * \ingroup functions_dmeutils
+     * \section matchingengine_allow_location_usage_gdpr Example
+     * \snippet MainActivity.java matchingengine_allow_location_usage_gdpr
      */
     synchronized public static void setMatchingEngineLocationAllowed(boolean allowMatchingEngineLocation) {
         mMatchingEngineLocationAllowed = allowMatchingEngineLocation;

@@ -6,7 +6,6 @@ import android.net.Network;
 import android.util.Log;
 
 import com.google.common.eventbus.DeadEvent;
-import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.edgeeventhandlers.EdgeEventsIntervalHandler;
 import com.mobiledgex.matchingengine.edgeeventhandlers.EdgeEventsLatencyIntervalHandler;
@@ -41,6 +40,7 @@ import static distributed_match_engine.AppClient.ServerEdgeEvent.ServerEventType
 
 /**
  * EdgeEventsConnection provides a asynchronious bi-directional connection to the server side DME.
+ * \ingroup classes
  */
 public class EdgeEventsConnection {
 
@@ -168,7 +168,7 @@ public class EdgeEventsConnection {
      * Establish an asynchronous DME Connection for streamed EdgeEvents to the current DME edge server.
      * @param me
      */
-    EdgeEventsConnection(MatchingEngine me) {
+    EdgeEventsConnection(MatchingEngine me, EdgeEventsConfig eeConfig) {
         synchronized (this) {
             hostOverride = null;
             portOverride = 0;
@@ -177,7 +177,12 @@ public class EdgeEventsConnection {
         this.me = me;
 
         Log.w(TAG, "Configuring EdgeEvent Defaults");
-        mEdgeEventsConfig = EdgeEventsConfig.createDefaultEdgeEventsConfig();
+        if (eeConfig == null) {
+            Log.w(TAG, "EdgeEventsConfig is required. Using a basic default config because there is none provided.");
+            mEdgeEventsConfig = EdgeEventsConfig.createDefaultEdgeEventsConfig();
+        } else {
+            mEdgeEventsConfig = new EdgeEventsConfig(eeConfig);
+        }
 
         try {
             open();
@@ -186,15 +191,15 @@ public class EdgeEventsConnection {
         }
     }
 
-    /**
-     * Do not use.
-     * @param me
+    /*!
+     * Do not use. Internal use only.
+     * \param me
      */
     EdgeEventsConnection(MatchingEngine me, String dmeHost, int dmePort, Network network, EdgeEventsConfig eeConfig) {
         this.me = me;
 
-        Log.w(TAG, "Configuring EdgeEvent Defaults");
         if (eeConfig == null) {
+            Log.w(TAG, "EdgeEventsConfig is required. Using a basic default config because there is none provided.");
             eeConfig = EdgeEventsConfig.createDefaultEdgeEventsConfig();
         }
 
@@ -477,6 +482,10 @@ public class EdgeEventsConnection {
 
     public boolean send(AppClient.ClientEdgeEvent clientEdgeEvent) {
         try {
+            if (!me.isEnableEdgeEvents()) {
+                Log.e(TAG, "EdgeEvents is disabled. Message is not sent.");
+                return false;
+            }
             if (isShutdown()) {
                 reconnect();
             }
@@ -489,7 +498,7 @@ public class EdgeEventsConnection {
         return true;
     }
 
-    synchronized public boolean sendTerminate() {
+    synchronized boolean sendTerminate() {
         if (isShutdown()) {
             return false;
         }
@@ -544,6 +553,7 @@ public class EdgeEventsConnection {
     public Location getLocation() {
         if (!MatchingEngine.isMatchingEngineLocationAllowed()) {
             Log.e(TAG, "MobiledgeX Location services are not permitted until allowed by application.");
+            return null;
         }
 
         Location location = null;
@@ -562,15 +572,14 @@ public class EdgeEventsConnection {
     /*!
      * Outbound Client to Server location update. If there is a closer cloudlet, this will cause a
      * Guava ServerEdgeEvent EVENT_CLOUDLET_UPDATE message to be sent to subscribers.
-     * @param location
-     * @return whether the message was posted.
+     * \param location (Android location format)
+     * \return whether the message was posted.
+     * \ingroup functions_edge_events_api
+     * \section basic_location_handler_example Example
+     * \snippet MainActivity.java basic_location_handler_example
      */
     public boolean postLocationUpdate(Location location) {
         if (!me.isMatchingEngineLocationAllowed()) {
-            return false;
-        }
-
-        if (location == null) {
             return false;
         }
 
@@ -616,17 +625,14 @@ public class EdgeEventsConnection {
      * A DME administrator of your Application may request an client application to collect performance
      * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
-     * @param site
-     * @param location
-     * @return boolean indicating whether the site results are posted or not.
+     * \param site
+     * \param location
+     * \return boolean indicating whether the site results are posted or not.
+     * \ingroup functions_edge_events_api
      */
     public boolean postLatencyUpdate(Site site, Location location) {
 
         if (!me.isMatchingEngineLocationAllowed()) {
-            return false;
-        }
-
-        if (isShutdown()) {
             return false;
         }
 
@@ -637,6 +643,9 @@ public class EdgeEventsConnection {
             return false;
         }
 
+        if (location == null) {
+            location = getLocation();
+        }
         if (location == null) {
             Log.e(TAG, "Location supplied is null, and cannot get location from location provider.");
             postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
@@ -679,9 +688,10 @@ public class EdgeEventsConnection {
      * A DME administrator of your Application may request an client application to collect performance
      * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
-     * @param host string uri of the site to test with Ping (from default network network interface)
-     * @param location
-     * @return boolean indicating whether the site results are posted or not.
+     * \param host string uri of the site to test with Ping (from default network network interface)
+     * \param location
+     * \return boolean indicating whether the site results are posted or not.
+     * \ingroup functions_edge_events_api
      */
     public boolean testPingAndPostLatencyUpdate(String host, Location location) {
         return testPingAndPostLatencyUpdate(host, location, DEFAULT_NUM_SAMPLES);
@@ -692,17 +702,14 @@ public class EdgeEventsConnection {
      * A DME administrator of your Application may request an client application to collect performance
      * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
-     * @param site
-     * @param android format location
-     * @param number of samples to test.
-     * @return boolean indicating whether the site results are posted or not.
+     * \param site
+     * \param android format location
+     * \param number of samples to test.
+     * \return boolean indicating whether the site results are posted or not.
+     * \ingroup functions_edge_events_api
      */
     public boolean testPingAndPostLatencyUpdate(String host, Location location, int numSamples) {
         if (!me.isMatchingEngineLocationAllowed()) {
-            return false;
-        }
-
-        if (isShutdown()) {
             return false;
         }
 
@@ -769,9 +776,10 @@ public class EdgeEventsConnection {
      *
      * This utility function uses the default network path. It does not swap networks.
      *
-     * @param site
-     * @param location
-     * @return boolean indicating whether the site results are posted or not.
+     * \param site
+     * \param location
+     * \return boolean indicating whether the site results are posted or not.
+     * \ingroup functions_edge_events_api
      */
     public boolean testConnectAndPostLatencyUpdate(String host, int port, Location location) {
         return testConnectAndPostLatencyUpdate(host, port, location, DEFAULT_NUM_SAMPLES);
@@ -784,18 +792,15 @@ public class EdgeEventsConnection {
      *
      * This utility function uses the default network path. It does not swap networks.
      *
-     * @param host
-     * @param port
-     * @param android format GPS location.
-     * @param number of samples to test
-     * @return boolean indicating whether the site results are posted or not.
+     * \param host
+     * \param port
+     * \param android format GPS location.
+     * \param number of samples to test
+     * \return boolean indicating whether the site results are posted or not.
+     * \ingroup functions_edge_events_api
      */
     public boolean testConnectAndPostLatencyUpdate(String host, int port, Location location, int numSamples) {
         if (!me.isMatchingEngineLocationAllowed()) {
-            return false;
-        }
-
-        if (isShutdown()) {
             return false;
         }
 
@@ -810,6 +815,9 @@ public class EdgeEventsConnection {
             return false;
         }
 
+        if (location == null) {
+            location = getLocation();
+        }
         if (location == null) {
             Log.e(TAG, "Location supplied is null, and cannot get location from location provider.");
             postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
@@ -874,13 +882,14 @@ public class EdgeEventsConnection {
     /*!
      * Fires off tasks to run EdgeEvents monitoring as per config. EdgeEvents must be enabled.
      * This is separate from the normal SDK handled events, like latency requests and new cloudlet
-     * availability. THose, you should subscribe to.
+     * availability. Those EdgeEvents, you should subscribe to.
      *
      * Cancel with stopEdgeEvents.
      * \param dmeHost DME hostname.
      * \param dmePort
      * \param edgeEventsConfig
      * \param network override network.
+     * \ingroup functions_edge_events_api
      */
     synchronized public boolean runEdgeEvents() {
         try {
