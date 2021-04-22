@@ -812,6 +812,7 @@ public class EdgeEventsConnection {
         }
 
         if (port <= 0) {
+            postErrorToEventHandler(EdgeEventsError.portDoesNotExist);
             return false;
         }
 

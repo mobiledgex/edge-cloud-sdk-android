@@ -246,8 +246,8 @@ public class EngineCallTest {
 
     public Location getTestLocation() {
         Location location = new Location("EngineCallTestLocation");
-        location.setLongitude(-122.3321);
-        location.setLatitude(47.6062);
+        location.setLongitude(-121.8919);
+        location.setLatitude(37.3353);
         return location;
     }
 
@@ -793,16 +793,25 @@ public class EngineCallTest {
         site1 = netTest.getSite(findCloudletReply1.getPorts(0).getFqdnPrefix() + findCloudletReply1.getFqdn());
         site2 = netTest.getSite(findCloudletReply2.getPorts(0).getFqdnPrefix() + findCloudletReply2.getFqdn());
 
+        // Establish a baseline (In engine tests only, this is a private copy of tested sites).
         if (!findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn())) {
             double margin = Math.abs(site1.average-site2.average)/site2.average;
             assertTrue("Winner Not within 15% margin: " + margin, margin < .15d);
         }
 
         // What about EdgeEvents?
-        assertNotNull(site);
         assertNotNull(site1);
-        double margin = Math.abs(site.average-site1.average)/site1.average;
-        assertTrue("EdgeEvents Latency tests not within 15% margin of PROXIMITY: " + margin, margin < .15d);
+
+        // Check edge event responses:
+        for (AppClient.ServerEdgeEvent evt : responses) {
+            if (evt.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_LATENCY_PROCESSED) {
+                Log.w(TAG, "Skipping over non-latency processed events...");
+                continue;
+            }
+            double average = evt.getStatistics().getAvg();
+            double margin = Math.abs(average - site1.average) / average;
+            assertTrue("EdgeEvents Latency tests not within 15% margin of PROXIMITY: " + margin, margin < .15d);
+        }
 
         // Might also fail, since the network is not under test control:
         assertEquals("App's expected test cloudlet FQDN doesn't match.", "mobiledgexmobiledgexsdkdemo20.sdkdemo-app-cluster.us-los-angeles.gcp.mobiledgex.net", findCloudletReply1.getFqdn());
@@ -1892,7 +1901,9 @@ public class EngineCallTest {
             AppPort appPort = appTcpPortMap.get(findCloudletReply.getPorts(0).getInternalPort());
             if (!MelMessaging.isMelEnabled()) {
                 assertTrue(appPort != null); // There should be at least one for a connection to be made.
-                Future<SSLSocket> socketFuture = me.getAppConnectionManager().getTcpSslSocket(findCloudletReply, appPort, appPort.getPublicPort(), (int)GRPC_TIMEOUT_MS);
+                // Allow some flexibility test AppInst:
+                assertTrue("We should have TLS transport the AppInst for this test.", appPort.getTls());
+                Future<SSLSocket> socketFuture = me.getAppConnectionManager().getTcpSslSocket(findCloudletReply, appPort, appPort.getPublicPort(), (int) GRPC_TIMEOUT_MS);
                 socket = socketFuture.get();
                 assertTrue("Socket should have been created!", socket != null);
                 assertTrue("SSL Socket must be connected!", socket.isConnected());

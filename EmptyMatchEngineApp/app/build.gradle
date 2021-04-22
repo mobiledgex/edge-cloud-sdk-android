@@ -35,10 +35,10 @@ dependencies {
     implementation 'com.google.guava:guava:29.0-android'
 
     // Use maven:
-    //implementation 'com.mobiledgex:matchingengine:2.5.0'
+    //implementation 'com.mobiledgex:matchingengine:2.6.0-2'
     //implementation 'com.mobiledgex:mel:1.0.11'
     // Dependencies of Matching Engine, if using Maven:
-    //implementation "io.grpc:grpc-stub:${grpcVersion}"
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
 
     // Common dependencies between maven and local project:
     implementation "io.grpc:grpc-okhttp:${grpcVersion}" // If using embedded OKHttp from GPRC
