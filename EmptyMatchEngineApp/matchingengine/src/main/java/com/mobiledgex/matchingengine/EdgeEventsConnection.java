@@ -236,6 +236,7 @@ public class EdgeEventsConnection {
         if (me.getEdgeEventsBus() != null && isRegisteredForEvents) {
             me.getEdgeEventsBus().unregister(unsubscribedEventsHandler);
             isRegisteredForEvents = false;
+            noEventInitHandlerObserved = false;
         }
         return isRegisteredForEvents;
     }
@@ -333,6 +334,7 @@ public class EdgeEventsConnection {
         hostOverride = host;
         portOverride = port;
         networkOverride = network;
+        eventBusRegister();
 
         // If there's a no EventBus handler (Deadhandler is called when there's no subscribers)
         // the default handler takes over for future messages, and puts warnings into the logs via
@@ -925,9 +927,6 @@ public class EdgeEventsConnection {
             }
 
             validateStartConfig(host, mEdgeEventsConfig);
-
-            // Just unregister. If the config says do it, we'll register a listener.
-            eventBusUnRegister();
 
             // Known Scheduled Timer tasks.
             // TODO: Refactor to handle configs more generically.
