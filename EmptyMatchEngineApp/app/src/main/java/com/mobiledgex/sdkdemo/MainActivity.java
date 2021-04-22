@@ -49,6 +49,7 @@ import com.mobiledgex.matchingengine.DmeDnsException;
 import com.mobiledgex.matchingengine.EdgeEventsConnection;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.NetworkRequestTimeoutException;
+import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
@@ -706,11 +707,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                 .build();
                     Log.i(TAG, "verifyRequest is " + verifyRequest);
 
-                    //bus.post()
                     // Skip the bus. Just send it:
                     location.setLatitude(40.7127837); // New York.
                     location.setLongitude(-74.0059413);
-                    //mMatchingEngine.getEdgeEventsConnection().postLocationUpdate(location);
+                    mMatchingEngine.getEdgeEventsConnection().postLocationUpdate(location);
 
                     if (false /*verifyRequest != null*/) {
                         // Location Verification (Blocking, or use verifyLocationFuture):
