@@ -458,8 +458,9 @@ public class EdgeEventsConnection {
                 sendTerminate();
                 eventBusUnRegister();
                 stopEdgeEvents();
-                channel.shutdown();
-                channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
+                if (!channel.isShutdown()) {
+                    channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
+                }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } finally {
