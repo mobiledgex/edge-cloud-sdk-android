@@ -3,6 +3,7 @@ package com.mobiledgex.matchingengine;
 
 import android.location.Location;
 import android.net.Network;
+import android.os.NetworkOnMainThreadException;
 import android.util.Log;
 
 import com.google.common.eventbus.DeadEvent;
@@ -234,8 +235,13 @@ public class EdgeEventsConnection {
     }
     private boolean eventBusUnRegister() {
         if (me.getEdgeEventsBus() != null && isRegisteredForEvents) {
-            me.getEdgeEventsBus().unregister(unsubscribedEventsHandler);
+            try {
+                me.getEdgeEventsBus().unregister(unsubscribedEventsHandler);
+            } catch (IllegalArgumentException iae) {
+                Log.e(TAG, "Already unsubscribed handler.");
+            }
             isRegisteredForEvents = false;
+            noEventInitHandlerObserved = false;
         }
         return isRegisteredForEvents;
     }
@@ -323,16 +329,24 @@ public class EdgeEventsConnection {
     }
 
     synchronized void open() throws DmeDnsException {
-        open(me.generateDmeHostAddress(), me.getPort(), null, mEdgeEventsConfig);
-        hostOverride = null;
-        portOverride = 0;
-        networkOverride = null;
+        // GenerateDmeHostAddress might actually hit a UI thread exception.
+        try {
+            open(me.generateDmeHostAddress(), me.getPort(), null, mEdgeEventsConfig);
+        } catch (NetworkOnMainThreadException nomte) {
+            Log.e(TAG, "Consider running this call from a background thread.");
+        }
+        finally {
+            hostOverride = null;
+            portOverride = 0;
+            networkOverride = null;
+        }
     }
 
     synchronized void open(String host, int port, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
         hostOverride = host;
         portOverride = port;
         networkOverride = network;
+        eventBusRegister();
 
         // If there's a no EventBus handler (Deadhandler is called when there's no subscribers)
         // the default handler takes over for future messages, and puts warnings into the logs via
@@ -456,8 +470,9 @@ public class EdgeEventsConnection {
                 sendTerminate();
                 eventBusUnRegister();
                 stopEdgeEvents();
-                channel.shutdown();
-                channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
+                if (channel != null && !channel.isShutdown()) {
+                    channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
+                }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } finally {
@@ -926,9 +941,6 @@ public class EdgeEventsConnection {
 
             validateStartConfig(host, mEdgeEventsConfig);
 
-            // Just unregister. If the config says do it, we'll register a listener.
-            eventBusUnRegister();
-
             // Known Scheduled Timer tasks.
             // TODO: Refactor to handle configs more generically.
             runLatencyMonitorConfig(host, publicPort);
@@ -1041,6 +1053,9 @@ public class EdgeEventsConnection {
             case EVENT_CLOUDLET_UPDATE:
                 Log.d(TAG,"Received: Server pushed a new FindCloudletReply to switch to: " + event);
                 ret = handleFindCloudletServerPush(event, FindCloudletEventTrigger.CloserCloudlet);
+                break;
+            case EVENT_ERROR:
+                Log.d(TAG,"Received: An edgeEvents error: " + event.getErrorMsg());
                 break;
             case EVENT_UNKNOWN:
                 Log.d(TAG,"Received UnknownEvent.");

@@ -302,12 +302,16 @@ public class MatchingEngine {
     // Do not use in production. DME will likely change, this sets the initial DME connection.
     // This does not attempt to execute runEdgeEvents unless the appInitiated version is run first.
     synchronized public boolean startEdgeEvents(String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig) {
+        if (!mEnableEdgeEvents) {
+            Log.w(TAG, "EdgeEvents has been disabled.");
+            return false;
+        }
 
         if (edgeEventsConfig == null) {
-            Log.e(TAG, "Cannot start edgeEvents without a configuration");
-            return false;
+            Log.w(TAG, "Cannot start edgeEvents without a configuration. Using Default.");
+            mEdgeEventsConfig = createDefaultEdgeEventsConfig();
         } else {
-            this.mEdgeEventsConfig = edgeEventsConfig;
+            mEdgeEventsConfig = edgeEventsConfig;
         }
         // This is an exposed path to start/restart EdgeEvents, state check everything.
         if (!validateEdgeEventsConfig(edgeEventsConfig)) {
@@ -317,7 +321,7 @@ public class MatchingEngine {
         // Start, if not already, the edgeEvents connection. It also starts any deferred events.
         // Reconnecting via FindCloudlet, will also call startEdgeEvents.
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
-            mEdgeEventsConnection = getEdgeEventsConnection(dmeHost, dmePort, network, edgeEventsConfig);
+            mEdgeEventsConnection = getEdgeEventsConnection(dmeHost, dmePort, network, mEdgeEventsConfig);
             if (mAppInitiatedRunEdgeEvents) {
                 mEdgeEventsConnection.runEdgeEvents();
             }
@@ -451,10 +455,11 @@ public class MatchingEngine {
     synchronized public EdgeEventsConnection getEdgeEventsConnection() {
         if (mEnableEdgeEvents == false) {
             Log.e(TAG, "EdgeEvents has been disabled.");
+            return null;
         }
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
             Log.w(TAG, "There is no current active EdgeEventsConnection, or is swapping edgeEvents connections if already started.");
-            return null;
+            mEdgeEventsConnection = new EdgeEventsConnection(this, mEdgeEventsConfig);
         }
         return mEdgeEventsConnection;
     }
