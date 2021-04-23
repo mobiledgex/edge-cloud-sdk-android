@@ -84,15 +84,21 @@ public class FindCloudlet implements Callable {
         return true;
     }
 
-    private AppClient.FindCloudletReply.Builder createFindCloudletReplyFromBestSite(AppClient.FindCloudletReply findCloudletReply, Site bestSite) {
-        return AppClient.FindCloudletReply.newBuilder()
-                .setVer(findCloudletReply.getVer())
-                .setStatus(findCloudletReply.getStatus())
-                .setFqdn(bestSite.appInstance.getFqdn())
-                .setCloudletLocation(bestSite.cloudlet_location)
-                .addAllPorts(bestSite.appInstance.getPortsList())
-                .setEdgeEventsCookie(findCloudletReply.getEdgeEventsCookie())
-                .putAllTags(findCloudletReply.getTagsMap());
+    private AppClient.FindCloudletReply.Builder createFindCloudletReplyFromBestSite(AppClient.AppInstListReply reply, Site bestSite) {
+        if (bestSite != null) {
+            AppClient.FindCloudletReply.Builder builder = AppClient.FindCloudletReply.newBuilder()
+                    .setVer(reply.getVer())
+                    .setStatus(AppClient.FindCloudletReply.FindStatus.FIND_FOUND)
+                    .setFqdn(bestSite.appInstance.getFqdn())
+                    .setCloudletLocation(bestSite.cloudlet_location)
+                    .addAllPorts(bestSite.appInstance.getPortsList())
+                    .setEdgeEventsCookie(bestSite.appInstance.getEdgeEventsCookie());
+            if (reply != null && reply.getTagsMap() != null) {
+                builder.putAllTags(reply.getTagsMap());
+            }
+            return builder;
+        }
+        return null;
     }
 
     // If UDP, then ICMP must respond. TODO: Allow UDP "response"?
@@ -185,32 +191,18 @@ public class FindCloudlet implements Callable {
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
             stopwatch.start();
-            fcreply = stub.withDeadlineAfter(timeout, TimeUnit.MILLISECONDS)
-                .findCloudlet(mRequest);
-
-            // Keep a copy.
-            if (fcreply != null) {
-                mMatchingEngine.setFindCloudletResponse(fcreply);
-            }
 
             if (mMode == MatchingEngine.FindCloudletMode.PROXIMITY) {
+                fcreply = stub.withDeadlineAfter(timeout, TimeUnit.MILLISECONDS)
+                    .findCloudlet(mRequest);
+                if (fcreply != null) {
+                    mMatchingEngine.setFindCloudletResponse(fcreply);
+                }
                 return fcreply;
             }
 
-            // Check timeout, fallback:
-            if (fcreply != null && stopwatch.elapsed(TimeUnit.MILLISECONDS) >= timeout) {
-                return fcreply;
-            }
-            if (fcreply.getStatus() != AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
-                return fcreply; // No AppInst was found. Just return.
-            }
+            // Remaining mode(s) is Performance:
 
-            // No result, and Timeout:
-            else if (stopwatch.elapsed(TimeUnit.MILLISECONDS) >= timeout) {
-                throw new StatusRuntimeException(Status.DEADLINE_EXCEEDED);
-            }
-
-            // Have more time for AppInstList:
             // GetAppInstList, using the same FindCloudlet Request values.
 
             AppClient.AppInstListRequest appInstListRequest = GetAppInstList.createFromFindCloudletRequest(mRequest)
@@ -226,19 +218,26 @@ public class FindCloudlet implements Callable {
 
             // Transient state handling, just return what we had before, if it fails, a new FindCloudlet is needed anyway:
             if (appInstListReply == null || appInstListReply.getStatus() != AppClient.AppInstListReply.AIStatus.AI_SUCCESS) {
-                return fcreply;
+                return AppClient.FindCloudletReply.newBuilder()
+                        .setStatus(AppClient.FindCloudletReply.FindStatus.FIND_NOTFOUND)
+                        .build();
             }
 
+            remainder = timeout - stopwatch.elapsed(TimeUnit.MILLISECONDS);
+            if (remainder <= 0) {
+                throw new StatusRuntimeException(Status.DEADLINE_EXCEEDED);
+            }
+
+            // Performance test the new list:
             NetTest netTest = mMatchingEngine.clearNetTest();
 
             insertAppInstances(netTest, network, appInstListReply);
-            rankSites(netTest, mMatchingEngine.isThreadedPerformanceTest(), timeout, stopwatch);
+            rankSites(netTest, mMatchingEngine.isThreadedPerformanceTest(), remainder, stopwatch);
 
             // Using default comparator for selecting the current best.
             Site bestSite = netTest.bestSite();
 
-            AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletReplyFromBestSite(fcreply,
-                                                                                                    bestSite)
+            AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletReplyFromBestSite(appInstListReply, bestSite)
                 .build();
             fcreply = bestFindCloudletReply;
 

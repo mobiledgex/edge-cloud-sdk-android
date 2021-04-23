@@ -1046,6 +1046,9 @@ public class EdgeEventsConnection {
                 Log.d(TAG,"Received: Server pushed a new FindCloudletReply to switch to: " + event);
                 ret = handleFindCloudletServerPush(event, FindCloudletEventTrigger.CloserCloudlet);
                 break;
+            case EVENT_ERROR:
+                Log.d(TAG,"Received: An edgeEvents error: " + event.getErrorMsg());
+                break;
             case EVENT_UNKNOWN:
                 Log.d(TAG,"Received UnknownEvent.");
                 ret = false;

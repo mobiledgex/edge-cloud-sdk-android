@@ -332,6 +332,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     System.out.println("Received: Server pushed a new FindCloudletReply to switch to: " + event);
                     handleFindCloudletServerPush(event);
                     break;
+                case EVENT_ERROR:
+                    Log.d(TAG,"Received: An edgeEvents error: " + event.getErrorMsg());
+                    break;
                 case EVENT_UNKNOWN:
                     System.out.println("Received UnknownEvent.");
                     break;
