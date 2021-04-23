@@ -722,10 +722,10 @@ public class EngineCallTest {
             assertTrue("FindCloudlet1 did not succeed!",findCloudletReply1.getStatus()
                     == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
 
-            Location edimonLoc = getTestLocation();
-            edimonLoc.setLatitude(53.5461); // Edimon
-            edimonLoc.setLongitude(-113.4938);
-            me.getEdgeEventsConnection().postLocationUpdate(edimonLoc);
+            Location edmontonLoc = getTestLocation();
+            edmontonLoc.setLatitude(53.5461); // Edmonton
+            edmontonLoc.setLongitude(-113.4938);
+            me.getEdgeEventsConnection().postLocationUpdate(edmontonLoc);
 
             Location montrealLoc = getTestLocation();
             montrealLoc.setLatitude(45.5017); // Montreal
@@ -746,7 +746,7 @@ public class EngineCallTest {
             // Default. If you need different test behavior, use the parameterized version. This might be raced against the new DME reconnect() call underneath.
             assertNotNull(me.getEdgeEventsConnection());
 
-            me.getEdgeEventsConnection().postLocationUpdate(edimonLoc);
+            me.getEdgeEventsConnection().postLocationUpdate(edmontonLoc);
             Thread.sleep(5000); // Plenty of time.
             assertTrue("No responses expected over edge event bus!", responses.isEmpty());
 

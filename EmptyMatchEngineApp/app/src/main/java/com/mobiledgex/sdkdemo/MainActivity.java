@@ -711,7 +711,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
 
                     // Skip the bus. Just send it:
-                    location.setLatitude(53.5461); // Edimon
+                    location.setLatitude(53.5461); // Edmonton
                     location.setLongitude(-113.4938);
                     mMatchingEngine.getEdgeEventsConnection().postLocationUpdate(location);
 
