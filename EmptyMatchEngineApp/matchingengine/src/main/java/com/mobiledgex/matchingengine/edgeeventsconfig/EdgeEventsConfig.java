@@ -39,8 +39,9 @@ public class EdgeEventsConfig {
         latencyInternalPort = 0; // implicit Ping only.
         latencyTestType = NetTest.TestType.CONNECT;
         latencyThresholdTrigger = 50;
+        // TODO: Should everything be supported, just assign values() for everything.
         triggers = new FindCloudletEventTrigger[] {
-                FindCloudletEventTrigger.CloudletStateChanged, FindCloudletEventTrigger.LatencyTooHigh
+                FindCloudletEventTrigger.CloserCloudlet, FindCloudletEventTrigger.CloudletStateChanged, FindCloudletEventTrigger.LatencyTooHigh
         };
 
         // Sane defaults, onTrigger, and once.

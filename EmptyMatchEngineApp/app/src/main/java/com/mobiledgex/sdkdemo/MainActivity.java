@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private AppClient.FindCloudletReply mLastFindCloudlet;
     private FusedLocationProviderClient mFusedLocationClient;
 
-    private int internalPort = 8008;
+    private int internalPort = 2016;
 
     private LocationCallback mLocationCallback;
     private LocationRequest mLocationRequest;
@@ -236,6 +236,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             backgroundEdgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;
             // This is the internal port, that has not been remapped to a public port for a particular appInst.
             backgroundEdgeEventsConfig.latencyInternalPort = internalPort;
+            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 10;
+            backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; // Patience. We have none.
+
             //! [edgeevents_subsscriber_setup_example]
 
             //! [startedgeevents_example]
@@ -282,10 +285,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         // the AppInst Health and Latency spec for this application.
         @Subscribe
         public void onMessageEvent(FindCloudletEvent findCloudletEvent) {
-            Log.d(TAG, "Cloudlet update, reason: " + findCloudletEvent.trigger);
+            Log.i(TAG, "Cloudlet update, reason: " + findCloudletEvent.trigger);
 
             // Connect to new Cloudlet in the event here, preferably in a background task.
-            Log.d(TAG, "Cloudlet: " + findCloudletEvent.newCloudlet);
+            Log.i(TAG, "Cloudlet: " + findCloudletEvent.newCloudlet);
             // If MatchingEngine.setAutoMigrateEdgeEventsConnection() has been set to false,
             // let MatchingEngine know with switchedToNextCloudlet() so the new cloudlet can
             // maintain the edge connection.
@@ -328,6 +331,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 case EVENT_CLOUDLET_UPDATE:
                     System.out.println("Received: Server pushed a new FindCloudletReply to switch to: " + event);
                     handleFindCloudletServerPush(event);
+                    break;
+                case EVENT_ERROR:
+                    Log.d(TAG,"Received: An edgeEvents error: " + event.getErrorMsg());
                     break;
                 case EVENT_UNKNOWN:
                     System.out.println("Received UnknownEvent.");
@@ -646,7 +652,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     //mMatchingEngine.setNetworkSwitchingEnabled(true);
                     //dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
                     //dmeHostAddress = "192.168.1.172";
-                    EventBus bus = mMatchingEngine.getEdgeEventsBus();
 
                     int port = mMatchingEngine.getPort(); // Keep same port.
 
@@ -654,8 +659,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     // For illustration, the matching engine can be used to programatically get the name of your application details
                     // so it can go to the correct appInst version. That AppInst on the server side must match the application
                     // version or else it won't be found and cannot be used.
-                    String appName = "ComputerVision"; // AppName must be added to the MobiledgeX web admin console.
-                    String appVers = "2.2"; // override the version of that known registered app.
+                    String appName = "sdktest"; // AppName must be added to the MobiledgeX web admin console.
+                    String appVers = "9.0"; // override the version of that known registered app.
 
                     // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
                     // like AuthToken or Tag key value pairs.
@@ -707,9 +712,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                 .build();
                     Log.i(TAG, "verifyRequest is " + verifyRequest);
 
+
                     // Skip the bus. Just send it:
-                    location.setLatitude(40.7127837); // New York.
-                    location.setLongitude(-74.0059413);
+                    location.setLatitude(53.5461); // Edmonton
+                    location.setLongitude(-113.4938);
+                    mMatchingEngine.getEdgeEventsConnection().postLocationUpdate(location);
+
+                    location.setLatitude(45.5017); // Montreal
+                    location.setLongitude(-73.5673);
                     mMatchingEngine.getEdgeEventsConnection().postLocationUpdate(location);
 
                     if (false /*verifyRequest != null*/) {
