@@ -722,17 +722,33 @@ public class EngineCallTest {
             assertTrue("FindCloudlet1 did not succeed!",findCloudletReply1.getStatus()
                     == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
 
-            // Force Location updates, which will post a response to the evvent bus (sdktest locations need to be setup properly):
-            location.setLatitude(53.5461); // Edimon
-            location.setLongitude(-113.4938);
-            me.getEdgeEventsConnection().postLocationUpdate(location);
+            Location edimonLoc = getTestLocation();
+            edimonLoc.setLatitude(53.5461); // Edimon
+            edimonLoc.setLongitude(-113.4938);
+            me.getEdgeEventsConnection().postLocationUpdate(edimonLoc);
 
-            location.setLatitude(45.5017); // Montreal
-            location.setLongitude(-73.5673);
-            me.getEdgeEventsConnection().postLocationUpdate(location);
+            Location montrealLoc = getTestLocation();
+            montrealLoc.setLatitude(45.5017); // Montreal
+            montrealLoc.setLongitude(-73.5673);
+            me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
 
             Thread.sleep(5000); // Plenty of time.
             assertTrue("No responses received over edge event bus!", !responses.isEmpty());
+
+            me.getEdgeEventsBus().unregister(er);
+
+            responses.clear();
+            // NewCloudlets may kill the event connection due to auto terminate.
+            assertTrue(me.mEnableEdgeEvents);
+            // For test reasons, you might want to ignore the reconnect() that MIGHT be in progress.
+            //assertNotNull(me.getEdgeEventsConnection(me.generateDmeHostAddress(), me.getPort(), null, me.createDefaultEdgeEventsConfig()));
+
+            // Default. If you need different test behavior, use the parameterized version. This might be raced against the new DME reconnect() call underneath.
+            assertNotNull(me.getEdgeEventsConnection());
+
+            me.getEdgeEventsConnection().postLocationUpdate(edimonLoc);
+            Thread.sleep(5000); // Plenty of time.
+            assertTrue("No responses expected over edge event bus!", responses.isEmpty());
 
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
@@ -746,7 +762,11 @@ public class EngineCallTest {
         } finally {
             me.close();
             enableMockLocation(context,false);
-            me.getEdgeEventsBus().unregister(er);
+            try {
+                me.getEdgeEventsBus().unregister(er);
+            } catch (IllegalArgumentException iae) {
+                Log.i(TAG, "Stop EdgeEvents may have already done unregister.");
+            }
         }
     }
 
@@ -888,6 +908,9 @@ public class EngineCallTest {
                 continue;
             }
             double average = evt.getStatistics().getAvg();
+            if (average == 0d) {
+                Log.e(TAG, "Check stats! Something is wrong!");
+            }
             double margin = Math.abs(average - site1.average) / average;
             assertTrue("EdgeEvents Latency tests not within 15% margin of PROXIMITY: " + margin, margin < .15d);
         }

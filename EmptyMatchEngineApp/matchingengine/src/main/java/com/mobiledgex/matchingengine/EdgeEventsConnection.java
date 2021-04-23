@@ -234,7 +234,11 @@ public class EdgeEventsConnection {
     }
     private boolean eventBusUnRegister() {
         if (me.getEdgeEventsBus() != null && isRegisteredForEvents) {
-            me.getEdgeEventsBus().unregister(unsubscribedEventsHandler);
+            try {
+                me.getEdgeEventsBus().unregister(unsubscribedEventsHandler);
+            } catch (IllegalArgumentException iae) {
+                Log.e(TAG, "Already unsubscribed handler.");
+            }
             isRegisteredForEvents = false;
             noEventInitHandlerObserved = false;
         }
