@@ -3,6 +3,7 @@ package com.mobiledgex.matchingengine;
 
 import android.location.Location;
 import android.net.Network;
+import android.os.NetworkOnMainThreadException;
 import android.util.Log;
 
 import com.google.common.eventbus.DeadEvent;
@@ -328,10 +329,17 @@ public class EdgeEventsConnection {
     }
 
     synchronized void open() throws DmeDnsException {
-        open(me.generateDmeHostAddress(), me.getPort(), null, mEdgeEventsConfig);
-        hostOverride = null;
-        portOverride = 0;
-        networkOverride = null;
+        // GenerateDmeHostAddress might actually hit a UI thread exception.
+        try {
+            open(me.generateDmeHostAddress(), me.getPort(), null, mEdgeEventsConfig);
+        } catch (NetworkOnMainThreadException nomte) {
+            Log.e(TAG, "Consider running this call from a background thread.");
+        }
+        finally {
+            hostOverride = null;
+            portOverride = 0;
+            networkOverride = null;
+        }
     }
 
     synchronized void open(String host, int port, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
