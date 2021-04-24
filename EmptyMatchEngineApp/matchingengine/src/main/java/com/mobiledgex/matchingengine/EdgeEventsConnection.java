@@ -56,6 +56,7 @@ public class EdgeEventsConnection {
     StreamObserver<AppClient.ClientEdgeEvent> sender;
     StreamObserver<AppClient.ServerEdgeEvent> receiver;
     boolean open = false;
+    boolean reconnecting = false;
     boolean reOpenDmeConnection = false;
 
     String hostOverride;
@@ -123,11 +124,11 @@ public class EdgeEventsConnection {
                 AppClient.ServerEdgeEvent serverEdgeEvent = (AppClient.ServerEdgeEvent)deadEvent.getEvent();
                 if (serverEdgeEvent.getEventType() == ServerEventType.EVENT_INIT_CONNECTION) {
                     // By missing the INIT message, fire only supported subset of events only:
+                    Log.d(TAG, "EventBus: To get pushed all raw edgeEvent updates, subscribe to the Guava EventBus object type ServerEdgeEvents. Event Received: " + serverEdgeEvent.getEventType());
                     noEventInitHandlerObserved = true;
+                } else if (serverEdgeEvent.getEventType() == ServerEventType.EVENT_CLOUDLET_UPDATE) {
+                    Log.w(TAG, "EventBus: To get pushed NewCloudlet updates for your app, subscribe to the Guava EventBus object type FindCloudletEvent.");
                 }
-                AppClient.ServerEdgeEvent unhandledEvent = (AppClient.ServerEdgeEvent) deadEvent.getEvent();
-                Log.d(TAG, "EventBus: To get pushed all raw edgeEvent updates, subscribe to the Guava EventBus object type ServerEdgeEvents. Event Received: " + unhandledEvent.getEventType());
-                Log.w(TAG, "EventBus: To get pushed NewCloudlet updates for your app, subscribe to the Guava EventBus object type FindCloudletEvent.");
             } else {
                 Log.d(TAG, "EventBus: Non-subscribed event received over EdgeEventsConnection: " + deadEvent.toString());
             }
@@ -262,6 +263,7 @@ public class EdgeEventsConnection {
     }
 
     private void postToFindCloudletEventHandler(FindCloudletEvent findCloudletEvent) {
+        Log.d(TAG, "ZZZ: postToFindCloudletEventHandler");
         if (!validateFindCloudlet(findCloudletEvent.newCloudlet)) {
             postErrorToEventHandler(EdgeEventsError.missingEdgeEventsConfig);
             return;
@@ -408,7 +410,7 @@ public class EdgeEventsConnection {
                 me.getEdgeEventsBus().post(EdgeEventsError.edgeEventsConnectionError);
                 // Reopen DME connection.
                 try {
-                    close();
+                    closeSimple();
                     if (reOpenDmeConnection) { // Conditionally reconnect to receive EdgeEvents from closer DME.
                         reconnect();
                     }
@@ -428,7 +430,7 @@ public class EdgeEventsConnection {
 
                 // Reopen DME connection.
                 try {
-                    close();
+                    closeSimple();
                     if (reOpenDmeConnection) { // Conditionally reconnect to receive EdgeEvents from closer DME.
                         reconnect();
                     }
@@ -456,13 +458,30 @@ public class EdgeEventsConnection {
     }
 
     /*!
+     * Partial kill from onComplete.
+     */
+    private synchronized void closeSimple() {
+        Log.d(TAG, "onComplete closing...");
+        hostOverride = null;
+        portOverride = 0;
+        networkOverride = null;
+        sender = null;
+        receiver = null;
+        open = false;
+        channel = null;
+        Log.d(TAG, "closed!");
+    }
+
+    /*!
      * Call this to shutdown EdgeEvents cleanly.
      */
     synchronized void close() {
+        Log.d(TAG, "close()");
         if (!isShutdown()) {
+            Log.d(TAG, "closing...");
             try {
                 sendTerminate();
-                eventBusUnRegister();
+                //eventBusUnRegister();
                 stopEdgeEvents();
                 if (channel != null && !channel.isShutdown()) {
                     channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
@@ -470,13 +489,7 @@ public class EdgeEventsConnection {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } finally {
-                hostOverride = null;
-                portOverride = 0;
-                networkOverride = null;
-                sender = null;
-                receiver = null;
-                open = false;
-                channel = null;
+                closeSimple();
             }
         }
     }
@@ -512,10 +525,14 @@ public class EdgeEventsConnection {
             return false;
         }
 
-        AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
-                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_TERMINATE_CONNECTION);
+        AppClient.ClientEdgeEvent clientEdgeEvent = AppClient.ClientEdgeEvent.newBuilder()
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_TERMINATE_CONNECTION)
+                .build();
 
-        return send(clientEdgeEventBuilder.build());
+        if (sender != null) {
+            sender.onNext(clientEdgeEvent);
+        }
+        return true;
     }
 
     // Utility functions below:
@@ -959,7 +976,6 @@ public class EdgeEventsConnection {
 
             switch (locationUpdateConfig.updatePattern) {
                 case onStart:
-                    eventBusUnRegister();
                     postLocationUpdate(getLastLocationPosted());
                     break;
                 case onTrigger:
@@ -980,7 +996,6 @@ public class EdgeEventsConnection {
 
             switch (latencyUpdateConfig.updatePattern) {
                 case onStart:
-                    eventBusUnRegister();
                     if (publicPort <= 0) {
                         testPingAndPostLatencyUpdate(host, getLastLocationPosted());
                     } else {

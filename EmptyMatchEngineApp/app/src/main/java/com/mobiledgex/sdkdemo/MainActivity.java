@@ -285,7 +285,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         // the AppInst Health and Latency spec for this application.
         @Subscribe
         public void onMessageEvent(FindCloudletEvent findCloudletEvent) {
-            Log.i(TAG, "Cloudlet update, reason: " + findCloudletEvent.trigger);
+            Log.i(TAG, "ZZZ Cloudlet update, reason: " + findCloudletEvent.trigger);
 
             // Connect to new Cloudlet in the event here, preferably in a background task.
             Log.i(TAG, "Cloudlet: " + findCloudletEvent.newCloudlet);
