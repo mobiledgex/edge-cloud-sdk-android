@@ -318,14 +318,6 @@ public class EdgeEventsConnection {
             postErrorToEventHandler(EdgeEventsError.missingSessionCookie);
             return;
         }
-
-        AppClient.ClientEdgeEvent initDmeEvent = AppClient.ClientEdgeEvent.newBuilder()
-                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
-                .setSessionCookie(me.getSessionCookie())
-                .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
-                .build();
-
-        sender.onNext(initDmeEvent);
     }
 
     synchronized void open() throws DmeDnsException {
@@ -395,6 +387,9 @@ public class EdgeEventsConnection {
                 // If nothing is subscribed, it just goes to deadEvent.
                 // Raw Events.
                 me.getEdgeEventsBus().post(value);
+                if (value.getEventType() == ServerEventType.EVENT_INIT_CONNECTION) {
+                    open = true;
+                }
 
                 // Default handler will handle incoming messages if no subscribers are currently observed
                 // watching for the EVENT_INIT_CONNECTION message.
@@ -450,7 +445,6 @@ public class EdgeEventsConnection {
 
         // No deadline, since it's streaming:
         sender = asyncStub.streamEdgeEvent(receiver);
-        open = true;
 
         // Client identifies itself with an Init message to DME EdgeEvents Connection upon opening the connection.
         AppClient.ClientEdgeEvent initDmeEvent = AppClient.ClientEdgeEvent.newBuilder()

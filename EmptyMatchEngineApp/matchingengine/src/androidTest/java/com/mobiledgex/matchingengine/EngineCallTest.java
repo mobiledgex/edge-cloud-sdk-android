@@ -689,6 +689,7 @@ public class EngineCallTest {
         class EventReceiver {
             @Subscribe
             void HandleEdgeEvent(FindCloudletEvent fce) {
+                Log.d(TAG, "ZZZ Have new Cloudlet!");
                 assertTrue("Should have a Cloudlet!", fce.newCloudlet != null);
                 assertTrue("Should be a CloserCloudlet trigger!", fce.trigger == FindCloudletEventTrigger.CloserCloudlet);
                 responses.add(fce);
