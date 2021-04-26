@@ -60,14 +60,13 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
@@ -678,21 +677,24 @@ public class EngineCallTest {
     @Test
     public void LocationUtilEdgeEventsTest() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
         Future < AppClient.FindCloudletReply > response1;
         AppClient.FindCloudletReply findCloudletReply1;
+        final CountDownLatch latch = new CountDownLatch(2);
 
         // attach an EdgeEventBus to receive the server response, if any (inline class):
         final ConcurrentLinkedQueue<FindCloudletEvent> responses = new ConcurrentLinkedQueue<>();
         class EventReceiver {
             @Subscribe
             void HandleEdgeEvent(FindCloudletEvent fce) {
-                Log.d(TAG, "ZZZ Have new Cloudlet!");
+                Log.d(TAG, "Have new Cloudlet!");
                 assertTrue("Should have a Cloudlet!", fce.newCloudlet != null);
                 assertTrue("Should be a CloserCloudlet trigger!", fce.trigger == FindCloudletEventTrigger.CloserCloudlet);
                 responses.add(fce);
+                latch.countDown();
             }
         }
         EventReceiver er = new EventReceiver();
@@ -734,12 +736,13 @@ public class EngineCallTest {
             montrealLoc.setLongitude(-73.5673);
             me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
 
-            Thread.sleep(6000);
+            // FIXME: This next one is a dummy fire to force EventBus delivery to @Subscribers of the 2nd newCloudlet.
+            me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
+
+            latch.await(20, TimeUnit.SECONDS);
 
             assertTrue("No responses received over edge event bus!", !responses.isEmpty());
-            // FIXME: In test case 2 events are logged as fired internally directly EdgeEventBus, but
-            //  don't arrive 2 times to EdgeEventBus @Subscriber
-            //assertEquals("Wrong number of responses", 2, responses.size());
+            assertEquals("Wrong number of responses", 2, responses.size());
             me.getEdgeEventsBus().unregister(er);
 
             responses.clear();
@@ -789,7 +792,7 @@ public class EngineCallTest {
         class EventReceiver {
             @Subscribe
             void HandleEdgeEvent(FindCloudletEvent fce) {
-                Log.d(TAG, "ZZZ Have new Cloudlet!");
+                Log.d(TAG, "Have new Cloudlet!");
                 assertTrue("Should have a Cloudlet!", fce.newCloudlet != null);
                 assertTrue("Should be a CloserCloudlet trigger!", fce.trigger == FindCloudletEventTrigger.CloserCloudlet);
                 responses.add(fce);

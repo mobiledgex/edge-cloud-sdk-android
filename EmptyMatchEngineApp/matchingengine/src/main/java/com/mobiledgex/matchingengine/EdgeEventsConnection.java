@@ -558,13 +558,12 @@ public class EdgeEventsConnection {
     Appcommon.DeviceInfo getDeviceInfo() {
         Appcommon.DeviceInfo.Builder deviceInfoBuilder = Appcommon.DeviceInfo.newBuilder();
         HashMap<String, String> hmap = me.getDeviceInfo();
-        if (hmap != null && hmap.size() > 0) {
+        if (hmap == null || hmap.size() == 0) {
             return null;
         }
 
         for (Map.Entry<String, String> entry : hmap.entrySet()) {
             String key;
-            String value;
             key = entry.getKey();
             if (entry.getValue() != null && entry.getValue().length() > 0) {
                 switch (key) {
