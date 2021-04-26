@@ -24,7 +24,6 @@ import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 
-import java.util.Timer;
 import java.util.TimerTask;
 
 public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler {

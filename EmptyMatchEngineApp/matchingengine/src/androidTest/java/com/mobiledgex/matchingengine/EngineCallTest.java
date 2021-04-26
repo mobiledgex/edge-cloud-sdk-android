@@ -72,7 +72,6 @@ import java.util.function.Supplier;
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
 import distributed_match_engine.Appcommon.AppPort;
-import io.grpc.Server;
 import io.grpc.StatusRuntimeException;
 
 import static junit.framework.TestCase.assertNotNull;
@@ -679,11 +678,11 @@ public class EngineCallTest {
     @Test
     public void LocationUtilEdgeEventsTest() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        Future<AppClient.FindCloudletReply> response1;
-        AppClient.FindCloudletReply findCloudletReply1;
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
+        Future < AppClient.FindCloudletReply > response1;
+        AppClient.FindCloudletReply findCloudletReply1;
 
         // attach an EdgeEventBus to receive the server response, if any (inline class):
         final ConcurrentLinkedQueue<FindCloudletEvent> responses = new ConcurrentLinkedQueue<>();
@@ -716,12 +715,13 @@ public class EngineCallTest {
             } else {
                 response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
                 // start on response1
-                //me.startEdgeEvents(me.createDefaultEdgeEventsConfig());
+                // Do not use the futures version, if not on thread. get() will deadlock thread.
+                me.startEdgeEvents(me.createDefaultEdgeEventsConfig());
             }
 
             findCloudletReply1 = response1.get();
 
-            assertTrue("FindCloudlet1 did not succeed!",findCloudletReply1.getStatus()
+            assertTrue("FindCloudlet1 did not succeed!", findCloudletReply1.getStatus()
                     == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
 
             Location edmontonLoc = getTestLocation();
@@ -736,8 +736,10 @@ public class EngineCallTest {
 
             Thread.sleep(6000);
 
-            //assertTrue("No responses received over edge event bus!", !responses.isEmpty());
-            //assertEquals("Wrong number of responses", 2, holder[0]);
+            assertTrue("No responses received over edge event bus!", !responses.isEmpty());
+            // FIXME: In test case 2 events are logged as fired internally directly EdgeEventBus, but
+            //  don't arrive 2 times to EdgeEventBus @Subscriber
+            //assertEquals("Wrong number of responses", 2, responses.size());
             me.getEdgeEventsBus().unregister(er);
 
             responses.clear();
@@ -764,7 +766,7 @@ public class EngineCallTest {
             assertFalse("FindCloudletFuture: InterruptedException!", true);
         } finally {
             me.close();
-            enableMockLocation(context,false);
+            enableMockLocation(context, false);
             try {
                 me.getEdgeEventsBus().unregister(er);
             } catch (IllegalArgumentException iae) {

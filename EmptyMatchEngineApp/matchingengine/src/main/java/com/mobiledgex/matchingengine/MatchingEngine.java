@@ -27,6 +27,7 @@ import android.net.Network;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.os.Looper;
 import android.provider.Settings;
 
 import androidx.annotation.RequiresApi;
@@ -63,10 +64,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.AppClient.RegisterClientRequest;
@@ -210,6 +214,13 @@ public class MatchingEngine {
         }
     }
 
+    public boolean warnIfUIThread() {
+        if (Looper.getMainLooper().isCurrentThread()) {
+            Log.w(TAG, "You are running a network thread on the UI Thread. This is not recommended.");
+            return true;
+        }
+        return false;
+    }
 
     public boolean isEnableEdgeEvents() {
         return mEnableEdgeEvents;
@@ -271,6 +282,26 @@ public class MatchingEngine {
         return EdgeEventsConfig.createDefaultEdgeEventsConfig(latencyUpdateIntervalSeconds, locationUpdateIntervalSeconds, latencyThresholdTriggerMs, updatePattern);
     }
 
+    /*!
+     * CompletableFuture wrapper for startEdgeEvents running on MatchingEngine ExecutorService pool.
+     * \param edgeEventsConfig the configuration for background run EdgeEvents.
+     * \ingroup functions_edge_events_api
+     * \section startedgeevents_example Example
+     */
+    synchronized public Future<Boolean> startEdgeEventsFuture(EdgeEventsConfig edgeEventsConfig) {
+        final EdgeEventsConfig config = edgeEventsConfig;
+        return CompletableFuture.supplyAsync(new Supplier<Boolean>() {
+            @Override
+            public Boolean get() {
+                try {
+                    return startEdgeEventsFuture(config).get();
+                } catch (ExecutionException | InterruptedException e) {
+                    e.printStackTrace();
+                    throw new CompletionException(e);
+                }
+            }
+        }, threadpool);
+    }
 
     /*!
      * startEdgeEvents() begins processing as soon as a FindCloudletReply is FIND_FOUND with the
@@ -290,7 +321,8 @@ public class MatchingEngine {
      * \section startedgeevents_example Example
      * \snippet MainActivity.java startedgeevents_example
      */
-    public boolean startEdgeEvents(EdgeEventsConfig edgeEventsConfig) {
+    synchronized public boolean startEdgeEvents(EdgeEventsConfig edgeEventsConfig) {
+        warnIfUIThread();
         if (edgeEventsConfig == null) {
             Log.e(TAG, "EdgeEventsConfig should not be null! See createDefaultEdgeEventsConfig(). startEdgeEvents() will create a minimal un-customized basic config for initial use.");
             edgeEventsConfig = createDefaultEdgeEventsConfig();
@@ -300,8 +332,25 @@ public class MatchingEngine {
     }
 
     // Do not use in production. DME will likely change, this sets the initial DME connection.
+    synchronized public CompletableFuture<Boolean> startEdgeEventsFuture(final String dmeHost,
+                                                                         final int dmePort,
+                                                                         final Network network,
+                                                                         final EdgeEventsConfig edgeEventsConfig) {
+        return CompletableFuture.supplyAsync(new Supplier<Boolean>() {
+            @Override
+            public Boolean get() {
+                return startEdgeEvents(dmeHost, dmePort, network, edgeEventsConfig);
+            }
+        });
+    }
+
+    // Do not use in production. DME will likely change, this sets the initial DME connection.
     // This does not attempt to execute runEdgeEvents unless the appInitiated version is run first.
-    synchronized public boolean startEdgeEvents(String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig) {
+    synchronized public boolean startEdgeEvents(String dmeHost,
+                                                int dmePort,
+                                                Network network,
+                                                EdgeEventsConfig edgeEventsConfig) {
+        warnIfUIThread();
         if (!mEnableEdgeEvents) {
             Log.w(TAG, "EdgeEvents has been disabled.");
             return false;
@@ -321,7 +370,12 @@ public class MatchingEngine {
         // Start, if not already, the edgeEvents connection. It also starts any deferred events.
         // Reconnecting via FindCloudlet, will also call startEdgeEvents.
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
-            mEdgeEventsConnection = getEdgeEventsConnection(dmeHost, dmePort, network, mEdgeEventsConfig);
+            try {
+                mEdgeEventsConnection = getEdgeEventsConnection(dmeHost, dmePort, network, mEdgeEventsConfig);
+            } catch (DmeDnsException dde) {
+                Log.e(TAG, "Exception trying to connect to DME host. Message: " + dde.getLocalizedMessage());
+                throw new CompletionException(dde);
+            }
             if (mAppInitiatedRunEdgeEvents) {
                 mEdgeEventsConnection.runEdgeEvents();
             }
@@ -334,24 +388,73 @@ public class MatchingEngine {
     }
 
     /*!
+     * CompletableFuture wrapper for restartEdgeEvents running on MatchingEngine ExecutorService pool.
+     * The background task might throw a DmeDnsException exception, and return false.
+     *
+     * \param edgeEventsConfig the configuration for background run EdgeEvents.
+     * \ingroup functions_edge_events_api
+     * \section startedgeevents_example Example
+     */
+    synchronized public Future<Boolean> restartEdgeEventsFuture() {
+        return CompletableFuture.supplyAsync(new Supplier<Boolean>() {
+            @Override
+            public Boolean get() {
+                try {
+                    return restartEdgeEvents();
+                } catch (DmeDnsException e) {
+                    Log.e(TAG, "DME Host exception. Message: " + e.getLocalizedMessage());
+                    throw new CompletionException(e);
+                }
+            }
+        }, threadpool);
+    }
+
+    /*!
      * This is required, if the app needs to swap AppInst edge servers, and auto reconnect to the
      * next DME's EdgeEventsConnection is disabled.
+     *
      * \throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
      * \ingroup functions_edge_events_api
      */
     synchronized public boolean restartEdgeEvents() throws DmeDnsException {
-        boolean ret = stopEdgeEvents();
-        ret = ret && startEdgeEvents(mEdgeEventsConfig); // Last known config from start.
-        return ret;
+        try {
+            warnIfUIThread();
+            if (mEdgeEventsConnection == null) {
+                mEdgeEventsConnection = getEdgeEventsConnection();
+                if (mEdgeEventsConnection != null) {
+                    return true; // By definition, it's connected.
+                }
+            }
+            // Same reconnect:
+            mEdgeEventsConnection.reconnect();
+            return true;
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, "Background restart failed. Check DME DNS mapping." + dde.getMessage());
+            throw dde;
+        }
     }
 
     /*!
-     * Just an alias to restartEdgeEvents.
+     * Just an alias to restartEdgeEvents. Blocking call.
      * \throws DmeDnsException if the next DME for the EdgeEventsConnection for some reason doesn't exist in DNS yet.
      * \ingroup functions_edge_events_api
      */
-    synchronized public boolean switchedToNextCloudlet() throws DmeDnsException{
+    synchronized public boolean switchedToNextCloudlet() throws DmeDnsException {
         return restartEdgeEvents();
+    }
+
+    /*!
+     * Stops processsing of DME server pushed EdgeEvents. Futures version.
+     * \return A future for stopEdgeEvents running on MatchingEngine's ExecutorService pool.
+     * \ingroup functions_edge_events_api
+     */
+    synchronized public Future<Boolean> stopEdgeEventsFuture() {
+        return CompletableFuture.supplyAsync(new Supplier<Boolean>() {
+            @Override
+            public Boolean get() {
+                return stopEdgeEvents();
+            }
+        }, threadpool);
     }
 
     /*!
@@ -359,6 +462,7 @@ public class MatchingEngine {
      * \ingroup functions_edge_events_api
      */
     synchronized public boolean stopEdgeEvents() {
+        warnIfUIThread();
         mAppInitiatedRunEdgeEvents = false;
         if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
             Log.i(TAG, "EdgeEventsConnection is already stopped.");
@@ -416,9 +520,14 @@ public class MatchingEngine {
      * \param network
      * \param edgeEventsConfig This is a required configuration for edgeEvents.
      * \return a connected EdgeEventsConnection instance
+     * \throws DmeDnsException
      * \ingroup functions_dmeapis
      */
-    synchronized EdgeEventsConnection getEdgeEventsConnection(String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig) {
+    synchronized EdgeEventsConnection getEdgeEventsConnection(String dmeHost,
+                                                              int dmePort,
+                                                              Network network,
+                                                              EdgeEventsConfig edgeEventsConfig)
+            throws DmeDnsException {
         if (!mEnableEdgeEvents) {
             Log.d(TAG, "EdgeEvents has been disabled for this MatchingEngine. Enable to receive EdgeEvents states for your app.");
             return null;
@@ -452,14 +561,31 @@ public class MatchingEngine {
      * \return a EdgeEventsConnection instance. May be null if not currently available.
      * \ingroup functions_dmeapis
      */
-    synchronized public EdgeEventsConnection getEdgeEventsConnection() {
-        if (mEnableEdgeEvents == false) {
+    synchronized public CompletableFuture<EdgeEventsConnection> getEdgeEventsConnectionFuture() {
+        return CompletableFuture.supplyAsync(new Supplier<EdgeEventsConnection>() {
+            @Override
+            public EdgeEventsConnection get() {
+                return getEdgeEventsConnection();
+            }
+        }, threadpool);
+    }
+
+    public synchronized EdgeEventsConnection getEdgeEventsConnection() {
+        warnIfUIThread();
+        if (mEnableEdgeEvents == false)
+        {
             Log.e(TAG, "EdgeEvents has been disabled.");
             return null;
         }
-        if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
+        if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown())
+        {
             Log.w(TAG, "There is no current active EdgeEventsConnection, or is swapping edgeEvents connections if already started.");
-            mEdgeEventsConnection = new EdgeEventsConnection(this, mEdgeEventsConfig);
+            try {
+                mEdgeEventsConnection = new EdgeEventsConnection(this, mEdgeEventsConfig);
+                return mEdgeEventsConnection;
+            } catch (DmeDnsException dde) {
+                throw new CompletionException(dde);
+            }
         }
         return mEdgeEventsConnection;
     }

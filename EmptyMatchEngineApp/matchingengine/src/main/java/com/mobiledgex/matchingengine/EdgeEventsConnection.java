@@ -55,9 +55,16 @@ public class EdgeEventsConnection {
 
     StreamObserver<AppClient.ClientEdgeEvent> sender;
     StreamObserver<AppClient.ServerEdgeEvent> receiver;
-    boolean open = false;
-    boolean reconnecting = false;
     boolean reOpenDmeConnection = false;
+
+    enum ChannelStatus {
+        open,
+        opening,
+        reconnecting,
+        closing,
+        closed
+    }
+    ChannelStatus channelStatus = ChannelStatus.closed;
 
     String hostOverride;
     int portOverride;
@@ -170,7 +177,7 @@ public class EdgeEventsConnection {
      * Establish an asynchronous DME Connection for streamed EdgeEvents to the current DME edge server.
      * @param me
      */
-    EdgeEventsConnection(MatchingEngine me, EdgeEventsConfig eeConfig) {
+    EdgeEventsConnection(MatchingEngine me, EdgeEventsConfig eeConfig) throws DmeDnsException {
         synchronized (this) {
             hostOverride = null;
             portOverride = 0;
@@ -190,6 +197,7 @@ public class EdgeEventsConnection {
             open();
         } catch (DmeDnsException dmedns) {
             Log.e(TAG, "There is no DME to connect to!");
+            throw dmedns;
         }
     }
 
@@ -197,7 +205,7 @@ public class EdgeEventsConnection {
      * Do not use. Internal use only.
      * \param me
      */
-    EdgeEventsConnection(MatchingEngine me, String dmeHost, int dmePort, Network network, EdgeEventsConfig eeConfig) {
+    EdgeEventsConnection(MatchingEngine me, String dmeHost, int dmePort, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
         this.me = me;
 
         if (eeConfig == null) {
@@ -223,6 +231,7 @@ public class EdgeEventsConnection {
 
         } catch (DmeDnsException dmedns) {
             Log.e(TAG, "There is no DME to connect to!");
+            throw dmedns;
         }
     }
 
@@ -263,7 +272,7 @@ public class EdgeEventsConnection {
     }
 
     private void postToFindCloudletEventHandler(FindCloudletEvent findCloudletEvent) {
-        Log.d(TAG, "ZZZ: postToFindCloudletEventHandler");
+        Log.d(TAG, "postToFindCloudletEventHandler");
         if (!validateFindCloudlet(findCloudletEvent.newCloudlet)) {
             postErrorToEventHandler(EdgeEventsError.missingEdgeEventsConfig);
             return;
@@ -292,6 +301,7 @@ public class EdgeEventsConnection {
     }
 
     synchronized public void reconnect() throws DmeDnsException {
+        channelStatus = ChannelStatus.reconnecting;
         if (!isShutdown()) {
             sendTerminate();
         }
@@ -341,6 +351,9 @@ public class EdgeEventsConnection {
         portOverride = port;
         networkOverride = network;
         eventBusRegister();
+        if (channelStatus != ChannelStatus.reconnecting) {
+            channelStatus = ChannelStatus.opening;
+        }
 
         // If there's a no EventBus handler (Deadhandler is called when there's no subscribers)
         // the default handler takes over for future messages, and puts warnings into the logs via
@@ -390,7 +403,7 @@ public class EdgeEventsConnection {
                 // Raw Events.
                 me.getEdgeEventsBus().post(value);
                 if (value.getEventType() == ServerEventType.EVENT_INIT_CONNECTION) {
-                    open = true;
+                    channelStatus = ChannelStatus.open;
                 }
 
                 // Default handler will handle incoming messages if no subscribers are currently observed
@@ -458,16 +471,18 @@ public class EdgeEventsConnection {
     }
 
     /*!
-     * Partial kill from onComplete.
+     * Partial kill from onComplete
      */
-    private synchronized void closeSimple() {
+    synchronized void closeSimple() {
         Log.d(TAG, "onComplete closing...");
         hostOverride = null;
         portOverride = 0;
         networkOverride = null;
         sender = null;
         receiver = null;
-        open = false;
+        if (channelStatus != ChannelStatus.reconnecting) {
+            channelStatus = ChannelStatus.closed;
+        }
         channel = null;
         Log.d(TAG, "closed!");
     }
@@ -477,20 +492,23 @@ public class EdgeEventsConnection {
      */
     synchronized void close() {
         Log.d(TAG, "close()");
-        if (!isShutdown()) {
-            Log.d(TAG, "closing...");
-            try {
-                sendTerminate();
-                //eventBusUnRegister();
-                stopEdgeEvents();
-                if (channel != null && !channel.isShutdown()) {
-                    channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                closeSimple();
+        channelStatus = ChannelStatus.closing;
+        try {
+            if (!isShutdown()) {
+                Log.d(TAG, "closing...");
+                    sendTerminate();
+                    eventBusUnRegister();
+                    stopEdgeEvents();
+                    if (channel != null && !channel.isShutdown()) {
+                        channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
+                    }
+
             }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            closeSimple();
+            channelStatus = ChannelStatus.closed;
         }
     }
 
