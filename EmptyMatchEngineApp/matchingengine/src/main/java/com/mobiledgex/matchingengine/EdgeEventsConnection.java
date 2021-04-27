@@ -131,7 +131,9 @@ public class EdgeEventsConnection {
                 AppClient.ServerEdgeEvent serverEdgeEvent = (AppClient.ServerEdgeEvent)deadEvent.getEvent();
                 if (serverEdgeEvent.getEventType() == ServerEventType.EVENT_INIT_CONNECTION) {
                     // By missing the INIT message, fire only supported subset of events only:
-                    Log.d(TAG, "EventBus: To get pushed all raw edgeEvent updates, subscribe to the Guava EventBus object type ServerEdgeEvents. Event Received: " + serverEdgeEvent.getEventType());
+                    if (!noEventInitHandlerObserved) {
+                        Log.d(TAG, "EventBus: To get pushed all raw edgeEvent updates, subscribe to the Guava EventBus object type ServerEdgeEvents. Event Received: " + serverEdgeEvent.getEventType());
+                    }
                     noEventInitHandlerObserved = true;
                 } else if (serverEdgeEvent.getEventType() == ServerEventType.EVENT_CLOUDLET_UPDATE) {
                     Log.w(TAG, "EventBus: To get pushed NewCloudlet updates for your app, subscribe to the Guava EventBus object type FindCloudletEvent.");
@@ -553,43 +555,6 @@ public class EdgeEventsConnection {
         return true;
     }
 
-    // Utility functions below:
-    // Why are we duplicating this? And only some?
-    Appcommon.DeviceInfo getDeviceInfo() {
-        Appcommon.DeviceInfo.Builder deviceInfoBuilder = Appcommon.DeviceInfo.newBuilder();
-        HashMap<String, String> hmap = me.getDeviceInfo();
-        if (hmap == null || hmap.size() == 0) {
-            return null;
-        }
-
-        for (Map.Entry<String, String> entry : hmap.entrySet()) {
-            String key;
-            key = entry.getKey();
-            if (entry.getValue() != null && entry.getValue().length() > 0) {
-                switch (key) {
-                    case "PhoneType":
-                        deviceInfoBuilder.setDeviceOs(entry.getValue());
-                        break;
-                    case "DataNetworkType":
-                        deviceInfoBuilder.setDataNetworkType(entry.getValue());
-                        break;
-                    case "ManufacturerCode":
-                        deviceInfoBuilder.setDeviceModel(entry.getValue());
-                        break;
-                    case "SignalStrength":
-                        try {
-                            // This is an abstract "getLevel()" for the last known radio signal update.
-                            deviceInfoBuilder.setSignalStrength(new Integer(entry.getValue()));
-                        } catch (NumberFormatException e) {
-                            Log.e(TAG, "Cannot attach signal strength. Reason: " + e.getMessage());
-                        }
-                        break;
-                }
-            }
-        }
-        return deviceInfoBuilder.build();
-    }
-
     /*!
      * Get Location. This is a blocking call.
      */
@@ -649,7 +614,7 @@ public class EdgeEventsConnection {
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
                 .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LOCATION_UPDATE)
                 .setGpsLocation(loc);
-        Appcommon.DeviceInfo deviceInfo = getDeviceInfo();
+        Appcommon.DeviceInfo deviceInfo = me.getDeviceInfoProto();
         if (deviceInfo != null) {
             clientEdgeEventBuilder.mergeDeviceInfo(deviceInfo);
         }
@@ -712,7 +677,7 @@ public class EdgeEventsConnection {
                     .setValue(site.samples[i]);
             clientEdgeEventBuilder.addSamples(sampleBuilder.build());
         }
-        Appcommon.DeviceInfo deviceInfo = getDeviceInfo();
+        Appcommon.DeviceInfo deviceInfo = me.getDeviceInfoProto();
         if (deviceInfo != null) {
             clientEdgeEventBuilder.mergeDeviceInfo(deviceInfo);
         }
@@ -782,7 +747,7 @@ public class EdgeEventsConnection {
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
                 .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LATENCY_SAMPLES)
                 .setGpsLocation(loc);
-        Appcommon.DeviceInfo deviceInfo = getDeviceInfo();
+        Appcommon.DeviceInfo deviceInfo = me.getDeviceInfoProto();
         if (deviceInfo != null) {
             clientEdgeEventBuilder.mergeDeviceInfo(deviceInfo);
         }
@@ -895,7 +860,7 @@ public class EdgeEventsConnection {
                     .setValue(site.samples[i]);
             clientEdgeEventBuilder.addSamples(sampleBuilder.build());
         }
-        Appcommon.DeviceInfo deviceInfo = getDeviceInfo();
+        Appcommon.DeviceInfo deviceInfo = me.getDeviceInfoProto();
         if (deviceInfo != null) {
             clientEdgeEventBuilder.mergeDeviceInfo(deviceInfo);
         }
@@ -969,7 +934,7 @@ public class EdgeEventsConnection {
 
             validateStartConfig(host, mEdgeEventsConfig);
 
-            // Known Scheduled Timer tasks.
+            // Known Scheduled Timer tasks:
             // TODO: Refactor to handle configs more generically.
             runLatencyMonitorConfig(host, publicPort);
             runLocationMonitorConfig();

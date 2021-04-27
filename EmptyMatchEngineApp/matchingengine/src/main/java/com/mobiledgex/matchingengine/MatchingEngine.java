@@ -92,6 +92,7 @@ import distributed_match_engine.AppClient.AppOfficialFqdnReply;
 import distributed_match_engine.AppClient.DynamicLocGroupRequest;
 import distributed_match_engine.AppClient.DynamicLocGroupReply;
 
+import distributed_match_engine.Appcommon;
 import distributed_match_engine.LocOuterClass;
 import distributed_match_engine.LocOuterClass.Loc;
 import io.grpc.ManagedChannel;
@@ -288,17 +289,12 @@ public class MatchingEngine {
      * \ingroup functions_edge_events_api
      * \section startedgeevents_example Example
      */
-    synchronized public Future<Boolean> startEdgeEventsFuture(EdgeEventsConfig edgeEventsConfig) {
+    synchronized public CompletableFuture<Boolean> startEdgeEventsFuture(EdgeEventsConfig edgeEventsConfig) {
         final EdgeEventsConfig config = edgeEventsConfig;
         return CompletableFuture.supplyAsync(new Supplier<Boolean>() {
             @Override
             public Boolean get() {
-                try {
-                    return startEdgeEventsFuture(config).get();
-                } catch (ExecutionException | InterruptedException e) {
-                    e.printStackTrace();
-                    throw new CompletionException(e);
-                }
+                return startEdgeEvents(config);
             }
         }, threadpool);
     }
@@ -377,6 +373,8 @@ public class MatchingEngine {
                 throw new CompletionException(dde);
             }
             if (mAppInitiatedRunEdgeEvents) {
+                // Stop existing events, let the app take over with it's own config.
+                mEdgeEventsConnection.stopEdgeEvents();
                 mEdgeEventsConnection.runEdgeEvents();
             }
             Log.i(TAG, "EdgeEventsConnection is now started.");
@@ -395,7 +393,7 @@ public class MatchingEngine {
      * \ingroup functions_edge_events_api
      * \section startedgeevents_example Example
      */
-    synchronized public Future<Boolean> restartEdgeEventsFuture() {
+    synchronized public CompletableFuture<Boolean> restartEdgeEventsFuture() {
         return CompletableFuture.supplyAsync(new Supplier<Boolean>() {
             @Override
             public Boolean get() {
@@ -448,7 +446,7 @@ public class MatchingEngine {
      * \return A future for stopEdgeEvents running on MatchingEngine's ExecutorService pool.
      * \ingroup functions_edge_events_api
      */
-    synchronized public Future<Boolean> stopEdgeEventsFuture() {
+    synchronized public CompletableFuture<Boolean> stopEdgeEventsFuture() {
         return CompletableFuture.supplyAsync(new Supplier<Boolean>() {
             @Override
             public Boolean get() {
@@ -878,6 +876,43 @@ public class MatchingEngine {
         return map;
     }
 
+    // Utility functions below:
+    // Why are we duplicating this? And only some?
+    Appcommon.DeviceInfo getDeviceInfoProto() {
+        Appcommon.DeviceInfo.Builder deviceInfoBuilder = Appcommon.DeviceInfo.newBuilder();
+        HashMap<String, String> hmap = getDeviceInfo();
+        if (hmap == null || hmap.size() == 0) {
+            return null;
+        }
+
+        for (Map.Entry<String, String> entry : hmap.entrySet()) {
+            String key;
+            key = entry.getKey();
+            if (entry.getValue() != null && entry.getValue().length() > 0) {
+                switch (key) {
+                    case "PhoneType":
+                        deviceInfoBuilder.setDeviceOs(entry.getValue());
+                        break;
+                    case "DataNetworkType":
+                        deviceInfoBuilder.setDataNetworkType(entry.getValue());
+                        break;
+                    case "ManufacturerCode":
+                        deviceInfoBuilder.setDeviceModel(entry.getValue());
+                        break;
+                    case "SignalStrength":
+                        try {
+                            // This is an abstract "getLevel()" for the last known radio signal update.
+                            deviceInfoBuilder.setSignalStrength(new Integer(entry.getValue()));
+                        } catch (NumberFormatException e) {
+                            Log.e(TAG, "Cannot attach signal strength. Reason: " + e.getMessage());
+                        }
+                        break;
+                }
+            }
+        }
+        return deviceInfoBuilder.build();
+    }
+
     /*!
      * Returns the carrier's mcc+mnc which is mapped to a carrier in the backend (ie. 26201 -> TDG).
      * MCC stands for Mobile Country Code and MNC stands for Mobile Network Code.
@@ -1296,11 +1331,19 @@ public class MatchingEngine {
 
         Loc aLoc = androidLocToMeLoc(location);
 
-        return FindCloudletRequest.newBuilder()
+
+
+        FindCloudletRequest.Builder builder = FindCloudletRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(getCarrierName(context))
                 .setGpsLocation(aLoc)
                 .setCellId(0);
+
+        Appcommon.DeviceInfo deviceInfo = getDeviceInfoProto();
+        if (deviceInfo != null) {
+            builder.mergeDeviceInfo(deviceInfo);
+        }
+        return builder;
     }
 
     /*!

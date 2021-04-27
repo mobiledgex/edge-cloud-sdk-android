@@ -21,8 +21,8 @@ android {
     defaultConfig {
         minSdkVersion 24
         targetSdkVersion 28
-        versionCode 7
-        versionName "2.6.0-5"
+        versionCode 8
+        versionName "2.6.0-8"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -51,6 +51,10 @@ android {
             java {
             }
         }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 

@@ -32,6 +32,7 @@ import android.util.Log;
 import android.util.Pair;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.MeLocation;
@@ -43,9 +44,16 @@ import org.junit.runner.RunWith;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
@@ -162,9 +170,10 @@ public class EdgeEventsConnectionTest {
 
             // This should not be used directly.
             EdgeEventsConnection eec = me.getEdgeEventsConnection();
+
             assertNotNull("Should have an EdgeEventsConnection after FIND_FOUND", eec);
 
-            Appcommon.DeviceInfo deviceInfo = eec.getDeviceInfo();
+            Appcommon.DeviceInfo deviceInfo = me.getDeviceInfoProto();
 
             if (isEmulator(context)) {
                 assertTrue("Should have deviceModel, depends on device: ", "".equals(deviceInfo.getDeviceModel()));
@@ -175,6 +184,76 @@ public class EdgeEventsConnectionTest {
             assertTrue("Should have deviceOS, depends on device: ", !deviceInfo.getDeviceOs().isEmpty());
             assertTrue("Should have a signal strength for last known network, depends on device: ", deviceInfo.getSignalStrength() >= 0);
         } catch (Exception e) {
+            e.printStackTrace();
+            assertTrue("Test failed.", false);
+        }
+    }
+
+    @Test
+    public void testEdgeConnectionBasicFuturesFlow() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        AppClient.FindCloudletReply findCloudletReply1;
+
+        try {
+            MatchingEngine me = new MatchingEngine(context);
+            me.setMatchingEngineLocationAllowed(true);
+            registerClient(me);
+            Location location = getTestLocation();
+            // Set orgName and location, then override the rest for testing:
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName(findCloudletCarrierOverride)
+                    .build();
+            if (useHostOverride) {
+                findCloudletReply1 = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+
+            } else {
+                findCloudletReply1 = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
+            }
+            assertEquals("Not successful findCloudlet", FIND_FOUND, findCloudletReply1.getStatus());
+
+            // Probably is false, since we didn't wait.
+            CompletableFuture<Boolean> startFuture;
+            boolean bvalue = (startFuture = me.startEdgeEventsFuture(me.createDefaultEdgeEventsConfig())).getNow(false);
+            assertFalse("Not enough time, likely fails", bvalue);
+            boolean value = me.startEdgeEventsFuture(me.createDefaultEdgeEventsConfig()).get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            assertTrue("Did not start. Completion failed!", value);
+            assertFalse("Should throw no exceptions!", startFuture.isCompletedExceptionally());
+
+            CompletableFuture<Boolean> restartFuture;
+            bvalue = (me.startEdgeEventsFuture(me.createDefaultEdgeEventsConfig())).getNow(false);
+            assertFalse("Not enough time, likely fails", bvalue);
+            boolean restarted = (restartFuture = me.restartEdgeEventsFuture()).get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            assertTrue("Should restart successfully. Completion failed!", restarted);
+            assertFalse("Should throw no exceptions!", restartFuture.isCompletedExceptionally());
+
+            CompletableFuture<Boolean> stopFuture;
+            bvalue = (me.startEdgeEventsFuture(me.createDefaultEdgeEventsConfig())).getNow(false);
+            assertFalse("Not enough time, likely fails", bvalue);
+            boolean stopped = (stopFuture = me.restartEdgeEventsFuture()).get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            assertTrue("Should stop successfully. Completion failed!", stopped);
+            assertFalse("Should throw no exceptions!", stopFuture.isCompletedExceptionally());
+
+            // Chain. This is rather ugly without lamda sugar, but generates compatible bytecode.
+            // Java Language level MUST be set to 8 (from 2017, gradle 3.0+, Android Studio 3.0+).
+            final MatchingEngine finalMe = me;
+            CompletableFuture<Boolean> chainFuture = me.startEdgeEventsFuture(me.createDefaultEdgeEventsConfig())
+                    .thenCompose( b -> me.restartEdgeEventsFuture() )
+                    .thenCompose( b -> me.stopEdgeEventsFuture() )
+                    .thenApply( b -> {System.out.println("Done!"); return true; });
+
+            try {
+                boolean chainValue = chainFuture.get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                assertEquals("Chain failure", true, chainValue);
+            } catch (CompletionException ce) {
+                assertFalse("Should not be here. Reason for failure: " + ce.getMessage(), false);
+            }
+
+            boolean exceptionallyComplete = me.restartEdgeEventsFuture().isCompletedExceptionally();
+            assertFalse("Should be a clean run.", exceptionallyComplete);
+
+            Log.i(TAG, "Test of chain done.");
+
+      } catch (Exception e) {
             e.printStackTrace();
             assertTrue("Test failed.", false);
         }
