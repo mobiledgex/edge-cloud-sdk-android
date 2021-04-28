@@ -55,7 +55,6 @@ public class EdgeEventsConnection {
 
     StreamObserver<AppClient.ClientEdgeEvent> sender;
     StreamObserver<AppClient.ServerEdgeEvent> receiver;
-    boolean reOpenDmeConnection = false;
 
     enum ChannelStatus {
         open,
@@ -69,7 +68,7 @@ public class EdgeEventsConnection {
 
     String hostOverride;
     int portOverride;
-    Network networkOverride = null;
+    Network networkOverride;
 
     private Location mLastLocationPosted = null;
 
@@ -124,7 +123,7 @@ public class EdgeEventsConnection {
     private class UnsubscribedEventsHandler {
         /**
          * Listens to dead events, and prints them as warnings. If they are of interest, subscribe.
-         * @param deadEvent
+         * @param deadEvent a polymorphic object event that had no subscribers watching when sent.
          */
         @Subscribe
         void handleDeadEvent(DeadEvent deadEvent) {
@@ -133,11 +132,11 @@ public class EdgeEventsConnection {
                 if (serverEdgeEvent.getEventType() == ServerEventType.EVENT_INIT_CONNECTION) {
                     // By missing the INIT message, fire only supported subset of events only:
                     if (!noEventInitHandlerObserved) {
-                        Log.d(TAG, "EventBus: To get pushed all raw edgeEvent updates, subscribe to the Guava EventBus object type ServerEdgeEvents. Event Received: " + serverEdgeEvent.getEventType());
+                        Log.d(TAG, "EventBus: To get all raw edgeEvent updates pushed to your app, subscribe to the Guava EventBus object type ServerEdgeEvents. Event Received: " + serverEdgeEvent.getEventType());
                     }
                     noEventInitHandlerObserved = true;
                 } else if (serverEdgeEvent.getEventType() == ServerEventType.EVENT_CLOUDLET_UPDATE) {
-                    Log.w(TAG, "EventBus: To get pushed NewCloudlet updates for your app, subscribe to the Guava EventBus object type FindCloudletEvent.");
+                    Log.w(TAG, "EventBus: To get all NewCloudlet updates pushed to your app, subscribe to the Guava EventBus object type FindCloudletEvent.");
                 }
             } else {
                 Log.d(TAG, "EventBus: Non-subscribed event received over EdgeEventsConnection: " + deadEvent.toString());
@@ -812,6 +811,7 @@ public class EdgeEventsConnection {
                     //.setLoc(loc) Location is not synchronous with measurement.
                     // Samples are not timestamped.
                     .setValue(site.samples[i]);
+            clientEdgeEventBuilder.addSamples(sampleBuilder.build());
         }
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
@@ -1045,11 +1045,6 @@ public class EdgeEventsConnection {
                     break;
             }
         }
-    }
-
-    synchronized public void restartEdgeEvents() throws DmeDnsException {
-        stopEdgeEvents();
-        runEdgeEvents();
     }
 
     synchronized public void stopEdgeEvents() {

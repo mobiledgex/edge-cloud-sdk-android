@@ -26,6 +26,8 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import android.telephony.CarrierConfigManager;
@@ -44,13 +46,11 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.DmeDnsException;
 import com.mobiledgex.matchingengine.EdgeEventsConnection;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.NetworkRequestTimeoutException;
-import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
@@ -67,13 +67,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
@@ -164,7 +162,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 }
                 TextView tv = findViewById(R.id.client_location_content);
                 tv.setText(clientLocText);
-            };
+            }
         };
         //! [basic_location_handler_example]
 
@@ -291,7 +289,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             //! [edgeevents_subsscriber_setup_example]
 
             //! [startedgeevents_example]
-            //mMatchingEngine.startEdgeEvents(backgroundEdgeEventsConfig);
+            mMatchingEngine.startEdgeEvents(backgroundEdgeEventsConfig);
             //! [startedgeevents_example]
         }
 
@@ -355,8 +353,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         // To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
         //@Subscribe
         public void onMessageEvent(AppClient.ServerEdgeEvent event) {
-            Map<String, String> tagsMap = event.getTagsMap();
-
             switch (event.getEventType()) {
                 case EVENT_INIT_CONNECTION:
                     System.out.println("Received Init response: " + event);
@@ -502,10 +498,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             }
         }
 
-        // Only the app knows with any certainty which AppPort (and internal port array)
-        // it wants to test, so this is in the application.
-        CompletableFuture latencyTestFuture = null;
-
         /*!
          * Example of a custom handler for EVENT_LATENCY_REQUEST message.
          *
@@ -518,7 +510,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_LATENCY_REQUEST) {
                 return;
             }
-            latencyTestFuture = CompletableFuture.runAsync(new Runnable() {
+            CompletableFuture<Void> latencyTestFuture = CompletableFuture.runAsync(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -576,13 +568,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     @Override
-    public void onSaveInstanceState(Bundle savedInstanceState) {
+    public void onSaveInstanceState(@NonNull Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
         savedInstanceState.putBoolean(MatchingEngine.MATCHING_ENGINE_LOCATION_PERMISSION, MatchingEngine.isMatchingEngineLocationAllowed());
     }
 
     @Override
-    public void onRestoreInstanceState(Bundle restoreInstanceState) {
+    public void onRestoreInstanceState(@NonNull Bundle restoreInstanceState) {
         super.onRestoreInstanceState(restoreInstanceState);
         if (restoreInstanceState != null) {
             MatchingEngine.setMatchingEngineLocationAllowed(restoreInstanceState.getBoolean(MatchingEngine.MATCHING_ENGINE_LOCATION_PERMISSION));
@@ -630,7 +622,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         // Run in the background and post text results to the UI thread.
         mFusedLocationClient.getLastLocation().addOnCompleteListener(new OnCompleteListener<Location>() {
             @Override
-            public void onComplete(Task<Location> task) {
+            public void onComplete(@NonNull Task<Location> task) {
                 if (task.isSuccessful() && task.getResult() != null) {
                     doEnhancedLocationUpdateInBackground(task, ctx);
                 } else {
@@ -706,7 +698,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             int port = mMatchingEngine.getPort(); // Keep same port.
 
             String orgName = "MobiledgeX-Samples"; // Always supplied by application, and in the MobiledgeX web admin console.
-            // For illustration, the matching engine can be used to programatically get the name of your application details
+            // For illustration, the matching engine can be used to programmatically get the name of your application details
             // so it can go to the correct appInst version. That AppInst on the server side must match the application
             // version or else it won't be found and cannot be used.
             String appName = "sdktest"; // AppName must be added to the MobiledgeX web admin console.

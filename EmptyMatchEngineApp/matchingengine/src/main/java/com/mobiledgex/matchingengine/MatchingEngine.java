@@ -426,8 +426,10 @@ public class MatchingEngine {
                 }
             }
             // Same reconnect:
+            mEdgeEventsConnection.stopEdgeEvents();
             mEdgeEventsConnection.reconnect();
             mEdgeEventsConnection.awaitOpen();
+            mEdgeEventsConnection.runEdgeEvents();
             return true;
         } catch (DmeDnsException dde) {
             Log.e(TAG, "Background restart failed. Check DME DNS mapping." + dde.getMessage());
@@ -529,6 +531,10 @@ public class MatchingEngine {
                                                               Network network,
                                                               EdgeEventsConfig edgeEventsConfig)
             throws DmeDnsException {
+        if (shutdown) {
+            Log.e(TAG, "MatchingEngine has been closed.");
+            return null;
+        }
         if (!mEnableEdgeEvents) {
             Log.d(TAG, "EdgeEvents has been disabled for this MatchingEngine. Enable to receive EdgeEvents states for your app.");
             return null;
@@ -574,7 +580,8 @@ public class MatchingEngine {
     public synchronized EdgeEventsConnection getEdgeEventsConnection() {
         warnIfUIThread();
         if (shutdown) {
-            Log.e(TAG, "MatchingEngine has been closed().");
+            Log.e(TAG, "MatchingEngine has been closed.");
+            return null;
         }
         if (mEnableEdgeEvents == false)
         {
