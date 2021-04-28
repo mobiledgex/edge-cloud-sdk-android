@@ -375,8 +375,8 @@ public class MatchingEngine {
             if (mAppInitiatedRunEdgeEvents) {
                 // Stop existing events, let the app take over with it's own config.
                 mEdgeEventsConnection.stopEdgeEvents();
-                mEdgeEventsConnection.runEdgeEvents();
             }
+            mEdgeEventsConnection.runEdgeEvents();
             Log.i(TAG, "EdgeEventsConnection is now started.");
         } else {
             Log.i(TAG, "EdgeEventsConnection is already running. Stop, before starting a new one.");
@@ -550,7 +550,7 @@ public class MatchingEngine {
         } else {
             mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, dmePort, network, edgeEventsConfig);
         }
-
+        mEdgeEventsConnection.awaitOpen();
         return mEdgeEventsConnection;
     }
 
@@ -581,6 +581,7 @@ public class MatchingEngine {
             Log.w(TAG, "There is no current active EdgeEventsConnection, or is swapping edgeEvents connections if already started.");
             try {
                 mEdgeEventsConnection = new EdgeEventsConnection(this, mEdgeEventsConfig);
+                mEdgeEventsConnection.awaitOpen();
                 return mEdgeEventsConnection;
             } catch (DmeDnsException dde) {
                 throw new CompletionException(dde);

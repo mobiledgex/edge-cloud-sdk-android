@@ -242,12 +242,12 @@ public class EdgeEventsConnection {
         }
     }
 
-    synchronized public boolean awaitOpen() {
+    synchronized boolean awaitOpen() {
         try {
-            if (channelStatus == ChannelStatus.open) {
+            if (channelStatus == ChannelStatus.open || openBarrier.getNumberWaiting() == 0) {
                 return true;
             }
-            openBarrier.await(10, TimeUnit.MILLISECONDS);
+            openBarrier.await(10, TimeUnit.SECONDS);
             return true;
         } catch (BrokenBarrierException e) {
             e.printStackTrace();
