@@ -17,47 +17,40 @@
 
 package com.mobiledgex.matchingengine;
 
-import android.app.UiAutomation;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.location.Location;
-import android.net.Network;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Looper;
 import androidx.test.platform.app.InstrumentationRegistry;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
+
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.util.Pair;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
-import com.mobiledgex.matchingengine.performancemetrics.NetTest;
-import com.mobiledgex.matchingengine.performancemetrics.Site;
-import com.mobiledgex.matchingengine.util.MeLocation;
+import com.google.common.eventbus.Subscribe;
+import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
+import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEventTrigger;
 
+import junit.framework.TestCase;
+
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
-import io.grpc.StatusRuntimeException;
 
 import static distributed_match_engine.AppClient.FindCloudletReply.FindStatus.FIND_FOUND;
 import static junit.framework.Assert.assertTrue;
@@ -86,12 +79,53 @@ public class EdgeEventsConnectionTest {
     public boolean useWifiOnly = true; // This also disables network switching, since the android default is WiFi.
 
 
+    class EventReceiver {
+        ConcurrentLinkedQueue<FindCloudletEvent> responses;
+        CountDownLatch latch;
+
+        public EventReceiver() {
+            responses = new ConcurrentLinkedQueue<>();
+        }
+
+        public CountDownLatch setLatch(int count) {
+            return latch = new CountDownLatch(count);
+        }
+
+        @Subscribe
+        void HandleEdgeEvent(FindCloudletEvent fce) {
+            Log.d(TAG, "Have new Cloudlet! " + fce.newCloudlet);
+            Assert.assertTrue("Should have a Cloudlet!", fce.newCloudlet != null);
+            Assert.assertTrue("Should be a CloserCloudlet trigger!", fce.trigger == FindCloudletEventTrigger.CloserCloudlet);
+            responses.add(fce);
+            if (latch == null) {
+                return;
+            }
+            latch.countDown();
+        }
+    }
 
     @Before
     public void LooperEnsure() {
         // SubscriberManager needs a thread. Start one:
         if (Looper.myLooper() == null)
             Looper.prepare();
+    }
+
+    Location edmontonLoc, montrealLoc;
+    Location [] toggleLocations;
+    int locationIndex = 0;
+
+    @Before
+    public void locationGetTogglerSetup() {
+        edmontonLoc = getTestLocation();
+        edmontonLoc.setLatitude(53.5461); // Edmonton
+        edmontonLoc.setLongitude(-113.4938);
+
+        montrealLoc = getTestLocation();
+        montrealLoc.setLatitude(45.5017); // Montreal
+        montrealLoc.setLongitude(-73.5673);
+
+        toggleLocations = new Location[] {edmontonLoc, montrealLoc};
     }
 
     public Location getTestLocation() {
@@ -256,6 +290,184 @@ public class EdgeEventsConnectionTest {
       } catch (Exception e) {
             e.printStackTrace();
             assertTrue("Test failed.", false);
+        }
+    }
+
+    @Test
+    public void LocationUtilEdgeEventsTest() {
+        LooperEnsure();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+        EventReceiver er = new EventReceiver();
+        me.getEdgeEventsBus().register(er); // Resettable latch.
+
+        Future < AppClient.FindCloudletReply > response1;
+        AppClient.FindCloudletReply findCloudletReply1;
+
+        try {
+            Location location = getTestLocation();
+            registerClient(me);
+
+            // Cannot use the older API if overriding.
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(me.mContext, edmontonLoc)
+                    .setCarrierName(findCloudletCarrierOverride)
+                    .build();
+
+            if (useHostOverride) {
+                response1 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
+                        MatchingEngine.FindCloudletMode.PROXIMITY);
+                // start on response1
+                me.startEdgeEvents(hostOverride, portOverride, null, me.createDefaultEdgeEventsConfig());
+            } else {
+                response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
+                // start on response1
+                // Do not use the futures version, if not on thread. get() will deadlock thread.
+                me.startEdgeEvents(me.createDefaultEdgeEventsConfig());
+            }
+
+            findCloudletReply1 = response1.get();
+
+            Assert.assertTrue("FindCloudlet1 did not succeed!", findCloudletReply1.getStatus()
+                    == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
+
+            // Let's give the server a bit of time to reply with first Init.
+            Thread.sleep(4000);
+
+            me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
+            er.setLatch(1);
+            er.latch.await(4, TimeUnit.SECONDS);
+
+            me.getEdgeEventsConnection().postLocationUpdate(edmontonLoc);
+            er.setLatch(1);
+            er.latch.await(4, TimeUnit.SECONDS);
+
+            me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
+            er.setLatch(1);
+            er.latch.await(4, TimeUnit.SECONDS);
+
+            Assert.assertTrue("No responses received over edge event bus!", !er.responses.isEmpty());
+            assertEquals("Wrong number of responses", 3, er.responses.size());
+            me.getEdgeEventsBus().unregister(er);
+
+            er.responses.clear();
+            // NewCloudlets may kill the event connection due to auto terminate.
+            Assert.assertTrue(me.mEnableEdgeEvents);
+
+            // Default. If you need different test behavior, use the parameterized version. This might be raced against the new DME reconnect() call underneath.
+            EdgeEventsConnection edgeEventsConnection = me.getEdgeEventsConnection();
+
+            TestCase.assertNotNull(edgeEventsConnection);
+
+            edgeEventsConnection.postLocationUpdate(edmontonLoc);
+            Thread.sleep(5000); // Plenty of time.
+            Assert.assertTrue("No responses expected over edge event bus!", er.responses.isEmpty());
+
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertFalse("FindCloudletFuture: DmeDnsException", true);
+        } catch (ExecutionException ee) {
+            Log.e(TAG, Log.getStackTraceString(ee));
+            assertFalse("FindCloudletFuture: ExecutionExecution!", true);
+        } catch (InterruptedException ie) {
+            Log.e(TAG, Log.getStackTraceString(ie));
+            assertFalse("FindCloudletFuture: InterruptedException!", true);
+        } finally {
+            me.close();
+        }
+    }
+
+    @Test
+    public void LocationUtilEdgeEventsTestNoAutoMigration() {
+        LooperEnsure();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+        EventReceiver er = new EventReceiver();
+        me.getEdgeEventsBus().register(er); // Resettable latch.
+
+        Future < AppClient.FindCloudletReply > response1;
+        AppClient.FindCloudletReply findCloudletReply1;
+
+        try {
+            Location location = getTestLocation();
+            registerClient(me);
+
+            // Cannot use the older API if overriding.
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(me.mContext, edmontonLoc)
+                    .setCarrierName(findCloudletCarrierOverride)
+                    .build();
+
+            if (useHostOverride) {
+                response1 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
+                        MatchingEngine.FindCloudletMode.PROXIMITY);
+                // start on response1
+                me.startEdgeEvents(hostOverride, portOverride, null, me.createDefaultEdgeEventsConfig());
+            } else {
+                response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
+                // start on response1
+                // Do not use the futures version, if not on thread. get() will deadlock thread.
+                me.startEdgeEvents(me.createDefaultEdgeEventsConfig());
+            }
+
+            findCloudletReply1 = response1.get();
+
+            Assert.assertTrue("FindCloudlet1 did not succeed!", findCloudletReply1.getStatus()
+                    == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
+
+            Log.w(TAG, "Setting test to NOT autoMigrate DME connection");
+            me.setAutoMigrateEdgeEventsConnection(false);
+
+            // Let's give the server a bit of time to reply with first Init.
+            Thread.sleep(4000);
+
+            me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
+            er.setLatch(1);
+            er.latch.await(4, TimeUnit.SECONDS);
+            me.switchedToNextCloudlet(); // This is just an alias to the blocking version of restartEdgeEvents()/restartEdgeEventsFuture.
+
+            me.getEdgeEventsConnection().postLocationUpdate(edmontonLoc);
+            er.setLatch(1);
+            er.latch.await(4, TimeUnit.SECONDS);
+            me.switchedToNextCloudlet();
+
+            me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
+            er.setLatch(1);
+            er.latch.await(4, TimeUnit.SECONDS);
+            me.switchedToNextCloudlet();
+
+            Assert.assertTrue("No responses received over edge event bus!", !er.responses.isEmpty());
+            assertEquals("Wrong number of responses", 3, er.responses.size());
+            me.getEdgeEventsBus().unregister(er);
+
+            er.responses.clear();
+            // NewCloudlets may kill the event connection due to auto terminate.
+            Assert.assertTrue(me.mEnableEdgeEvents);
+
+            // Default. If you need different test behavior, use the parameterized version. This might be raced against the new DME reconnect() call underneath.
+            EdgeEventsConnection edgeEventsConnection = me.getEdgeEventsConnection();
+
+            TestCase.assertNotNull(edgeEventsConnection);
+
+            edgeEventsConnection.postLocationUpdate(edmontonLoc);
+            Thread.sleep(5000); // Plenty of time.
+            Assert.assertTrue("No responses expected over edge event bus!", er.responses.isEmpty());
+
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertFalse("FindCloudletFuture: DmeDnsException", true);
+        } catch (ExecutionException ee) {
+            Log.e(TAG, Log.getStackTraceString(ee));
+            assertFalse("FindCloudletFuture: ExecutionExecution!", true);
+        } catch (InterruptedException ie) {
+            Log.e(TAG, Log.getStackTraceString(ie));
+            assertFalse("FindCloudletFuture: InterruptedException!", true);
+        } finally {
+            me.close();
         }
     }
 }

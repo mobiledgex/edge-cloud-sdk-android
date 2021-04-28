@@ -23,10 +23,14 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
@@ -65,6 +69,7 @@ public class EdgeEventsConnection {
         closed
     }
     ChannelStatus channelStatus = ChannelStatus.closed;
+    CyclicBarrier openBarrier = new CyclicBarrier(2); // One other party.
 
     String hostOverride;
     int portOverride;
@@ -237,6 +242,22 @@ public class EdgeEventsConnection {
         }
     }
 
+    synchronized public boolean awaitOpen() {
+        try {
+            if (channelStatus == ChannelStatus.open) {
+                return true;
+            }
+            openBarrier.await(10, TimeUnit.MILLISECONDS);
+            return true;
+        } catch (BrokenBarrierException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            return false;
+        }
+    }
+
     boolean isRegisteredForEvents = false;
     private boolean eventBusRegister() {
         if (me.getEdgeEventsBus() != null && !isRegisteredForEvents) {
@@ -303,6 +324,7 @@ public class EdgeEventsConnection {
     }
 
     synchronized public void reconnect() throws DmeDnsException {
+        Log.d(TAG, "Reconnecting...");
         channelStatus = ChannelStatus.reconnecting;
         if (!isShutdown()) {
             sendTerminate();
@@ -331,6 +353,20 @@ public class EdgeEventsConnection {
             Log.e(TAG, "State Error: Missing sessions to reconnect.");
             postErrorToEventHandler(EdgeEventsError.missingSessionCookie);
             return;
+        }
+    }
+
+    synchronized private void notifyOpenAwaiter() {
+        if (openBarrier.getParties() == 1) {
+            // somebody is waiting for this state, and two to tango.
+            try {
+                openBarrier.await();
+                openBarrier.reset();
+            } catch (BrokenBarrierException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -387,8 +423,6 @@ public class EdgeEventsConnection {
             networkOverride = network;
         }
 
-        reOpenDmeConnection = false;
-
         try {
             InetAddress.getAllByName(host);
         } catch (UnknownHostException uhe) {
@@ -406,6 +440,7 @@ public class EdgeEventsConnection {
                 me.getEdgeEventsBus().post(value);
                 if (value.getEventType() == ServerEventType.EVENT_INIT_CONNECTION) {
                     channelStatus = ChannelStatus.open;
+                    notifyOpenAwaiter();
                 }
 
                 // Default handler will handle incoming messages if no subscribers are currently observed
@@ -426,16 +461,9 @@ public class EdgeEventsConnection {
                 // Reopen DME connection.
                 try {
                     closeSimple();
-                    if (reOpenDmeConnection) { // Conditionally reconnect to receive EdgeEvents from closer DME.
-                        reconnect();
-                    }
+                    reconnect();
                 } catch (Exception e) {
-                    me.getEdgeEventsBus().post(
-                            AppClient.ServerEdgeEvent.newBuilder()
-                                    .setEventType(ServerEventType.EVENT_INIT_CONNECTION)
-                                    .putTags("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.")
-                                    .build()
-                    );
+                    Log.e("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
                 }
             }
 
@@ -446,16 +474,9 @@ public class EdgeEventsConnection {
                 // Reopen DME connection.
                 try {
                     closeSimple();
-                    if (reOpenDmeConnection) { // Conditionally reconnect to receive EdgeEvents from closer DME.
-                        reconnect();
-                    }
+                    reconnect();
                 } catch (Exception e) {
-                    me.getEdgeEventsBus().post(
-                            AppClient.ServerEdgeEvent.newBuilder()
-                                    .setEventType(ServerEventType.EVENT_INIT_CONNECTION)
-                                    .putTags("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.")
-                                    .build()
-                    );
+                    Log.e("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
                 }
             }
         };
@@ -476,7 +497,7 @@ public class EdgeEventsConnection {
      * Partial kill from onComplete
      */
     synchronized void closeSimple() {
-        Log.d(TAG, "onComplete closing...");
+        Log.d(TAG, "stream closing...");
         hostOverride = null;
         portOverride = 0;
         networkOverride = null;
@@ -486,7 +507,7 @@ public class EdgeEventsConnection {
             channelStatus = ChannelStatus.closed;
         }
         channel = null;
-        Log.d(TAG, "closed!");
+        Log.d(TAG, "stream closed!");
     }
 
     /*!
@@ -524,14 +545,17 @@ public class EdgeEventsConnection {
 
     public boolean send(AppClient.ClientEdgeEvent clientEdgeEvent) {
         try {
+            Log.d(TAG, "Received this event to post to server: " + clientEdgeEvent);
             if (!me.isEnableEdgeEvents()) {
                 Log.e(TAG, "EdgeEvents is disabled. Message is not sent.");
                 return false;
             }
             if (isShutdown()) {
+                Log.d(TAG, "Reconnecting to post: Channel status: " + channelStatus);
                 reconnect();
             }
             sender.onNext(clientEdgeEvent);
+            Log.d(TAG, "Posted!");
         } catch (Exception e) {
             Log.e(TAG, e.getMessage() + ", cause: " + e.getCause());
             e.printStackTrace();

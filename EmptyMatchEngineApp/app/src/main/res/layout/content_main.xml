@@ -19,6 +19,21 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <Button
+        android:id="@+id/btnLocationEdmonton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Edmonton"
+        app:layout_constraintLeft_toLeftOf="@id/client_location_content"
+        app:layout_constraintBottom_toTopOf="@id/client_location_content"/>
+    <Button
+        android:id="@+id/btnLocatioMontreal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Montreal"
+        app:layout_constraintLeft_toRightOf="@id/btnLocationEdmonton"
+        app:layout_constraintBottom_toTopOf="@id/client_location_content"/>
+
     <TextView
         android:id="@+id/mobiledgex_verified_location_content"
         android:layout_width="wrap_content"

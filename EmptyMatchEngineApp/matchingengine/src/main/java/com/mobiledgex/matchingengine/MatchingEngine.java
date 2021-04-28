@@ -217,7 +217,7 @@ public class MatchingEngine {
 
     public boolean warnIfUIThread() {
         if (Looper.getMainLooper().isCurrentThread()) {
-            Log.w(TAG, "You are running a network thread on the UI Thread. This is not recommended.");
+            Log.w(TAG, "The call is running a network activity on the UI Thread. Consider using a CompletableFuture.");
             return true;
         }
         return false;
@@ -425,6 +425,7 @@ public class MatchingEngine {
             }
             // Same reconnect:
             mEdgeEventsConnection.reconnect();
+            mEdgeEventsConnection.awaitOpen();
             return true;
         } catch (DmeDnsException dde) {
             Log.e(TAG, "Background restart failed. Check DME DNS mapping." + dde.getMessage());
