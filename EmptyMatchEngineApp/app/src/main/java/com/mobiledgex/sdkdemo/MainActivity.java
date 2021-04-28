@@ -26,6 +26,8 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import android.telephony.CarrierConfigManager;
@@ -34,6 +36,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -43,13 +46,11 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.DmeDnsException;
 import com.mobiledgex.matchingengine.EdgeEventsConnection;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.NetworkRequestTimeoutException;
-import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
@@ -66,7 +67,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import distributed_match_engine.AppClient;
@@ -77,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private static final String TAG = "MainActivity";
 
     private String someText = null;
+    private AppCompatActivity ctx = this;
 
     private RequestPermissions mRpUtil;
     private MatchingEngine mMatchingEngine;
@@ -143,17 +148,22 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 }
                 String clientLocText = "";
                 mLastLocationResult = locationResult;
-                EdgeEventsConnection edgeEventsventsConnection = mMatchingEngine.getEdgeEventsConnection();
-                if (edgeEventsventsConnection != null && mLastLocationResult != null) {
-                    edgeEventsventsConnection.postLocationUpdate(mLastLocationResult.getLastLocation());
-                }
+                // Post into edgeEvents updater:
+                mMatchingEngine.getEdgeEventsConnectionFuture()
+                        .thenApply(connection -> {
+                            if (connection != null) {
+                                connection.postLocationUpdate(locationResult.getLastLocation());
+                            }
+                            return null;
+                        });
+
                 for (Location location : locationResult.getLocations()) {
                     // Update UI with client location data
                     clientLocText += "[" + location.toString() + "]";
                 }
                 TextView tv = findViewById(R.id.client_location_content);
                 tv.setText(clientLocText);
-            };
+            }
         };
         //! [basic_location_handler_example]
 
@@ -164,6 +174,44 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 doEnhancedLocationVerification();
             }
         });
+
+        // Some test buttons (that run on the UI thread, but should really be on a background thread or completableFuture).
+        Button edmontonButton = findViewById(R.id.btnLocationEdmonton);
+        edmontonButton.setOnClickListener(new  View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Location edmontonLoc = new Location("Button");
+                edmontonLoc.setLatitude(53.5461); // Edmonton
+                edmontonLoc.setLongitude(-113.4938);
+                // Post location update:
+                mMatchingEngine.getEdgeEventsConnectionFuture()
+                        .thenApply(connection -> {
+                            if (connection != null) {
+                                connection.postLocationUpdate(edmontonLoc);
+                            }
+                            return null;
+                        });
+            };
+
+        });
+        Button montrealButton = findViewById(R.id.btnLocatioMontreal);
+        montrealButton.setOnClickListener(new  View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Location montrealLoc = new Location("Button");
+                montrealLoc.setLatitude(45.5017); // Montreal
+                montrealLoc.setLongitude(-73.5673);
+                // Post into matching engine:
+                mMatchingEngine.getEdgeEventsConnectionFuture()
+                        .thenApply(connection -> {
+                            if (connection != null) {
+                                connection.postLocationUpdate(montrealLoc);
+                            }
+                            return null;
+                        });
+            }
+        });
+
 
         Toolbar myToolbar = findViewById(R.id.toolbar);
         setSupportActionBar(myToolbar);
@@ -265,9 +313,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             mMatchingEngine = null;
         }
         mEdgeEventsSubscriber = null;
+        ctx = null;
     }
     // [me_cleanup]
 
+
+    CountDownLatch latch;
     //! [edgeevents_subscriber_template]
     // (Guava EventBus Interface)
     // This class encapsulates what an app might implement to watch for edge events. Not every event
@@ -278,6 +329,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         @Subscribe
         public void onMessageEvent(EdgeEventsConnection.EdgeEventsError error) {
             Log.d(TAG, "EdgeEvents error reported, reason: " + error);
+
+            someText = error.toString();
+            updateText(ctx, someText);
             // Check the App's EdgeEventsConfig and logs.
         }
 
@@ -289,6 +343,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
             // Connect to new Cloudlet in the event here, preferably in a background task.
             Log.i(TAG, "Cloudlet: " + findCloudletEvent.newCloudlet);
+
+            someText = findCloudletEvent.newCloudlet.toString();
+            updateText(ctx, someText);
+
+            latch.countDown(); // Just one for "reasons".
             // If MatchingEngine.setAutoMigrateEdgeEventsConnection() has been set to false,
             // let MatchingEngine know with switchedToNextCloudlet() so the new cloudlet can
             // maintain the edge connection.
@@ -301,10 +360,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         // use case better.
         //
         // To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
-        //@Subscribe
+        @Subscribe
         public void onMessageEvent(AppClient.ServerEdgeEvent event) {
-            Map<String, String> tagsMap = event.getTagsMap();
-
+            someText = event.toString();
+            updateText(ctx, someText);
             switch (event.getEventType()) {
                 case EVENT_INIT_CONNECTION:
                     System.out.println("Received Init response: " + event);
@@ -450,10 +509,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             }
         }
 
-        // Only the app knows with any certainty which AppPort (and internal port array)
-        // it wants to test, so this is in the application.
-        CompletableFuture latencyTestFuture = null;
-
         /*!
          * Example of a custom handler for EVENT_LATENCY_REQUEST message.
          *
@@ -466,7 +521,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_LATENCY_REQUEST) {
                 return;
             }
-            latencyTestFuture = CompletableFuture.runAsync(new Runnable() {
+            CompletableFuture<Void> latencyTestFuture = CompletableFuture.runAsync(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -524,13 +579,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     @Override
-    public void onSaveInstanceState(Bundle savedInstanceState) {
+    public void onSaveInstanceState(@NonNull Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
         savedInstanceState.putBoolean(MatchingEngine.MATCHING_ENGINE_LOCATION_PERMISSION, MatchingEngine.isMatchingEngineLocationAllowed());
     }
 
     @Override
-    public void onRestoreInstanceState(Bundle restoreInstanceState) {
+    public void onRestoreInstanceState(@NonNull Bundle restoreInstanceState) {
         super.onRestoreInstanceState(restoreInstanceState);
         if (restoreInstanceState != null) {
             MatchingEngine.setMatchingEngineLocationAllowed(restoreInstanceState.getBoolean(MatchingEngine.MATCHING_ENGINE_LOCATION_PERMISSION));
@@ -578,7 +633,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         // Run in the background and post text results to the UI thread.
         mFusedLocationClient.getLastLocation().addOnCompleteListener(new OnCompleteListener<Location>() {
             @Override
-            public void onComplete(Task<Location> task) {
+            public void onComplete(@NonNull Task<Location> task) {
                 if (task.isSuccessful() && task.getResult() != null) {
                     doEnhancedLocationUpdateInBackground(task, ctx);
                 } else {
@@ -592,293 +647,272 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         });
     }
 
-    private void doEnhancedLocationUpdateInBackground(final Task<Location> aTask, final AppCompatActivity ctx) {
-        CompletableFuture<Void> future = CompletableFuture.runAsync(new Runnable() {
-            @Override
-            public void run() {
-            Location location = aTask.getResult();
-                if (location == null) {
-                    Log.e(TAG, "Mising location. Cannot update.");
-                    return;
+    private void runFlow(Task<Location> locationTask, AppCompatActivity ctx) {
+        latch = new CountDownLatch(1);
+        Location location = locationTask.getResult();
+        if (location == null) {
+            Log.e(TAG, "Mising location. Cannot update.");
+            return;
+        }
+        // Location found. Create a request:
+        try {
+            someText = "";
+            // Switch entire process over to cellular for application use.
+            //mMatchingEngine.getNetworkManager().switchToCellularInternetNetworkBlocking();
+            //String adId = mMatchingEngine.GetHashedAdvertisingID(ctx);
+
+            // If no carrierName, or active Subscription networks, the app should use the public cloud instead.
+            List<SubscriptionInfo> subList = mMatchingEngine.getActiveSubscriptionInfoList();
+            if (subList != null && subList.size() > 0) {
+                for (SubscriptionInfo info: subList) {
+                    CharSequence carrierName = info.getCarrierName();
+                    if (carrierName != null && carrierName.equals("Android")) {
+                        someText += "Emulator Active Subscription Network: " + info.toString() + "\n";
+                    } else {
+                        someText += "Active Subscription network: " + info.toString() + "\n";
+                    }
                 }
-                // Location found. Create a request:
-                try {
-                    someText = "";
-                    // Switch entire process over to cellular for application use.
-                    //mMatchingEngine.getNetworkManager().switchToCellularInternetNetworkBlocking();
-                    //String adId = mMatchingEngine.GetHashedAdvertisingID(ctx);
+                //mMatchingEngine.setNetworkSwitchingEnabled(true);
+            } else {
+                // This example will continue to execute anyway, as Demo DME may still be reachable to discover nearby edge cloudlets.
+                someText += "No active cellular networks: app should use public cloud instead of the edgecloudlet at this time.\n";
+            }
 
-                    // If no carrierName, or active Subscription networks, the app should use the public cloud instead.
-                    List<SubscriptionInfo> subList = mMatchingEngine.getActiveSubscriptionInfoList();
-                    if (subList != null && subList.size() > 0) {
-                        for (SubscriptionInfo info: subList) {
-                            CharSequence carrierName = info.getCarrierName();
-                            if (carrierName != null && carrierName.equals("Android")) {
-                                someText += "Emulator Active Subscription Network: " + info.toString() + "\n";
-                            } else {
-                                someText += "Active Subscription network: " + info.toString() + "\n";
-                            }
-                        }
-                        //mMatchingEngine.setNetworkSwitchingEnabled(true);
-                    } else {
-                        // This example will continue to execute anyway, as Demo DME may still be reachable to discover nearby edge cloudlets.
-                        someText += "No active cellular networks: app should use public cloud instead of the edgecloudlet at this time.\n";
-                    }
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ctx);
+            boolean locationVerificationAllowed = prefs.getBoolean(getResources().getString(R.string.preference_matching_engine_location_verification), false);
 
-                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ctx);
-                    boolean locationVerificationAllowed = prefs.getBoolean(getResources().getString(R.string.preference_matching_engine_location_verification), false);
+            //String carrierName = mMatchingEngine.getCarrierName(ctx); // Regular use case
+            String carrierName = "TELUS";                                         // Override carrierName
+            if (carrierName == null) {
+                someText += "No carrier Info!\n";
+            }
 
-                    //String carrierName = mMatchingEngine.getCarrierName(ctx); // Regular use case
-                    String carrierName = "TELUS";                                         // Override carrierName
-                    if (carrierName == null) {
-                        someText += "No carrier Info!\n";
-                    }
+            // It's possible the Generated DME DNS host doesn't exist yet for your SIM.
+            String dmeHostAddress;
+            try {
+                dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+                someText += "(e)SIM card based DME address: " + dmeHostAddress + "\n";
+            } catch (DmeDnsException dde){
+                someText += dde.getMessage();
+                // Here, being unable to register to the Edge infrastructure, app should
+                // fall back to public cloud server. Edge is not available.
+                // For Demo app, we use the wifi dme server to continue to MobiledgeX.
+                dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
+            }
+            dmeHostAddress = "wifi." + MatchingEngine.baseDmeHost;
+            mMatchingEngine.setUseWifiOnly(true);
+            mMatchingEngine.setSSLEnabled(true);
+            //mMatchingEngine.setNetworkSwitchingEnabled(true);
+            //dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+            //dmeHostAddress = "192.168.1.172";
 
-                    // It's possible the Generated DME DNS host doesn't exist yet for your SIM.
-                    String dmeHostAddress;
-                    try {
-                        dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
-                        someText += "(e)SIM card based DME address: " + dmeHostAddress + "\n";
-                    } catch (DmeDnsException dde){
-                        someText += dde.getMessage();
-                        // Here, being unable to register to the Edge infrastructure, app should
-                        // fall back to public cloud server. Edge is not available.
-                        // For Demo app, we use the wifi dme server to continue to MobiledgeX.
-                        dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
-                    }
-                    dmeHostAddress = "wifi." + MatchingEngine.baseDmeHost;
-                    mMatchingEngine.setUseWifiOnly(true);
-                    mMatchingEngine.setSSLEnabled(true);
-                    //mMatchingEngine.setNetworkSwitchingEnabled(true);
-                    //dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
-                    //dmeHostAddress = "192.168.1.172";
+            int port = mMatchingEngine.getPort(); // Keep same port.
 
-                    int port = mMatchingEngine.getPort(); // Keep same port.
+            String orgName = "MobiledgeX-Samples"; // Always supplied by application, and in the MobiledgeX web admin console.
+            // For illustration, the matching engine can be used to programmatically get the name of your application details
+            // so it can go to the correct appInst version. That AppInst on the server side must match the application
+            // version or else it won't be found and cannot be used.
+            String appName = "sdktest"; // AppName must be added to the MobiledgeX web admin console.
+            String appVers = "9.0"; // override the version of that known registered app.
 
-                    String orgName = "MobiledgeX-Samples"; // Always supplied by application, and in the MobiledgeX web admin console.
-                    // For illustration, the matching engine can be used to programatically get the name of your application details
-                    // so it can go to the correct appInst version. That AppInst on the server side must match the application
-                    // version or else it won't be found and cannot be used.
-                    String appName = "sdktest"; // AppName must be added to the MobiledgeX web admin console.
-                    String appVers = "9.0"; // override the version of that known registered app.
+            // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
+            // like AuthToken or Tag key value pairs.
+            AppClient.RegisterClientRequest registerClientRequest =
+                    mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName)
+                            //.setCarrierName("telus")
+                            .setAppName(appName)
+                            .setAppVers(appVers)
+                            .build();
+            Log.i(TAG, "registerclient request is " + registerClientRequest);
 
-                    // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
-                    // like AuthToken or Tag key value pairs.
-                    AppClient.RegisterClientRequest registerClientRequest =
-                            mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName)
-                                    //.setCarrierName("telus")
-                                    .setAppName(appName)
-                                    .setAppVers(appVers)
-                                    .build();
-                    Log.i(TAG, "registerclient request is " + registerClientRequest);
-
-                    // This exercises a threadpool that can have a dependent call depth larger than 1
-                    AppClient.RegisterClientReply registerClientReply;
-                    Future<AppClient.RegisterClientReply> registerClientReplyFuture =
-                            mMatchingEngine.registerClientFuture(registerClientRequest,
-                                    dmeHostAddress, port, 10000);
-                    registerClientReply = registerClientReplyFuture.get();
-
-                    Log.i(TAG, "RegisterReply status is " + registerClientReply.getStatus());
-
-                    if (registerClientReply.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {
-                        someText += "Registration Failed. Error: " + registerClientReply.getStatus();
-                        return;
-                    }
-
-                    // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
-                    // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
-                    AppClient.FindCloudletRequest findCloudletRequest =
-                            mMatchingEngine.createDefaultFindCloudletRequest(ctx, location)
-                                .setCarrierName("")
-                                .build();
-                    AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
+            // This exercises a threadpool that can have a dependent call depth larger than 1
+            AppClient.RegisterClientReply registerClientReply;
+            Future<AppClient.RegisterClientReply> registerClientReplyFuture =
+                    mMatchingEngine.registerClientFuture(registerClientRequest,
                             dmeHostAddress, port, 10000);
-                    Log.i(TAG, "closest Cloudlet is " + closestCloudlet);
-                    mLastFindCloudlet = closestCloudlet;
+            registerClientReply = registerClientReplyFuture.get();
 
-                    if (closestCloudlet.getStatus() != AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
-                        someText += "Cloudlet not found!";
-                        return;
+            Log.i(TAG, "RegisterReply status is " + registerClientReply.getStatus());
+
+            if (registerClientReply.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {
+                someText += "Registration Failed. Error: " + registerClientReply.getStatus();
+                return;
+            }
+
+            // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
+            // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
+            AppClient.FindCloudletRequest findCloudletRequest =
+                    mMatchingEngine.createDefaultFindCloudletRequest(ctx, location) // location)
+                            .setCarrierName("")
+                            .build();
+            AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
+                    dmeHostAddress, port, 10000);
+            Log.i(TAG, "closest Cloudlet is " + closestCloudlet);
+            mLastFindCloudlet = closestCloudlet;
+
+            if (closestCloudlet.getStatus() != AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
+                someText += "Cloudlet not found!";
+                return;
+            }
+
+            // This is a legal point to keep posting edgeEvents updates, as the EdgeEventBus
+            // should now be initalized, unless disabled.
+
+            registerClientReplyFuture =
+                    mMatchingEngine.registerClientFuture(registerClientRequest,
+                            dmeHostAddress, port, 10000);
+            registerClientReply = registerClientReplyFuture.get();
+            Log.i(TAG, "Register status: " + registerClientReply.getStatus());
+            AppClient.VerifyLocationRequest verifyRequest =
+                    mMatchingEngine.createDefaultVerifyLocationRequest(ctx, location)
+                            .build();
+            Log.i(TAG, "verifyRequest is " + verifyRequest);
+
+            if (verifyRequest != null) {
+                // Location Verification (Blocking, or use verifyLocationFuture):
+                AppClient.VerifyLocationReply verifiedLocation =
+                        mMatchingEngine.verifyLocation(verifyRequest, dmeHostAddress, port, 10000);
+                Log.i(TAG, "VerifyLocationReply is " + verifiedLocation);
+
+                someText += "[Location Verified: Tower: " + verifiedLocation.getTowerStatus() +
+                        ", GPS LocationStatus: " + verifiedLocation.getGpsLocationStatus() +
+                        ", Location Accuracy: " + verifiedLocation.getGpsLocationAccuracyKm() + " ]\n";
+                List<distributed_match_engine.Appcommon.AppPort> ports = closestCloudlet.getPortsList();
+                String portListStr = "";
+                boolean first = true;
+                String appPortFormat = "{Protocol: %d, Container Port: %d, External Port: %d, Path Prefix: '%s'}";
+                for (Appcommon.AppPort aPort : ports) {
+                    if (!first) {
+                        portListStr += ", ";
+
                     }
+                    portListStr += String.format(Locale.getDefault(), appPortFormat,
+                            aPort.getProto().getNumber(),
+                            aPort.getInternalPort(),
+                            aPort.getPublicPort(),
+                            aPort.getEndPort());
 
-                    registerClientReplyFuture =
-                            mMatchingEngine.registerClientFuture(registerClientRequest,
-                                    dmeHostAddress, port, 10000);
-                    registerClientReply = registerClientReplyFuture.get();
-                    Log.i(TAG, "Register status: " + registerClientReply.getStatus());
-                    AppClient.VerifyLocationRequest verifyRequest =
-                            mMatchingEngine.createDefaultVerifyLocationRequest(ctx, location)
+                    //String l7Url = mMatchingEngine.getAppConnectionManager().createUrl(closestCloudlet, aPort, aPort.getPublicPort(), "http", null);
+
+                    String host = aPort.getFqdnPrefix() + closestCloudlet.getFqdn();
+                    int knownPort = 8008;
+                    int serverPort = aPort.getPublicPort() == 0 ? knownPort : aPort.getPublicPort();
+
+                    OkHttpClient client = new OkHttpClient(); //mMatchingEngine.getAppConnectionManager().getHttpClient(10000).get();
+
+                    // Our example server might not like random connections to non-existing /test.
+                    String api = serverPort == knownPort ? "/test" : "";
+                    Response response = null;
+                    try {
+                        Request request = new Request.Builder()
+                                .url("http://" + host + ":" + serverPort + api)
                                 .build();
-                    Log.i(TAG, "verifyRequest is " + verifyRequest);
-
-
-                    // Skip the bus. Just send it:
-                    location.setLatitude(53.5461); // Edmonton
-                    location.setLongitude(-113.4938);
-                    mMatchingEngine.getEdgeEventsConnection().postLocationUpdate(location);
-
-                    location.setLatitude(45.5017); // Montreal
-                    location.setLongitude(-73.5673);
-                    mMatchingEngine.getEdgeEventsConnection().postLocationUpdate(location);
-
-                    if (false /*verifyRequest != null*/) {
-                        // Location Verification (Blocking, or use verifyLocationFuture):
-                        AppClient.VerifyLocationReply verifiedLocation =
-                                mMatchingEngine.verifyLocation(verifyRequest, dmeHostAddress, port, 10000);
-                        Log.i(TAG, "VerifyLocationReply is " + verifiedLocation);
-
-                        someText += "[Location Verified: Tower: " + verifiedLocation.getTowerStatus() +
-                                ", GPS LocationStatus: " + verifiedLocation.getGpsLocationStatus() +
-                                ", Location Accuracy: " + verifiedLocation.getGpsLocationAccuracyKm() + " ]\n";
-                        List<distributed_match_engine.Appcommon.AppPort> ports = closestCloudlet.getPortsList();
-                        String portListStr = "";
-                        boolean first = true;
-                        String appPortFormat = "{Protocol: %d, Container Port: %d, External Port: %d, Path Prefix: '%s'}";
-                        for (Appcommon.AppPort aPort : ports) {
-                            if (!first) {
-                                portListStr += ", ";
-
-                            }
-                            portListStr += String.format(Locale.getDefault(), appPortFormat,
-                                aPort.getProto().getNumber(),
-                                aPort.getInternalPort(),
-                                aPort.getPublicPort(),
-                                aPort.getEndPort());
-
-                            //String l7Url = mMatchingEngine.getAppConnectionManager().createUrl(closestCloudlet, aPort, aPort.getPublicPort(), "http", null);
-
-                            String host = aPort.getFqdnPrefix() + closestCloudlet.getFqdn();
-                            int knownPort = 8008;
-                            int serverPort = aPort.getPublicPort() == 0 ? knownPort : aPort.getPublicPort();
-
-                            OkHttpClient client = new OkHttpClient(); //mMatchingEngine.getAppConnectionManager().getHttpClient(10000).get();
-
-                            // Our example server might not like random connections to non-existing /test.
-                            String api = serverPort == knownPort ? "/test" : "";
-                            Response response = null;
-                            try {
-                                Request request = new Request.Builder()
-                                        .url("http://" + host + ":" + serverPort + api)
-                                        .build();
-                                response = client.newCall(request).execute();
-                                someText += "[Test Server response: " + response.toString() + "]";
-                            } catch (IOException | IllegalStateException e) {
-                                someText += "[Error connecting to host: " + host + ", port: " + serverPort + ", api: " + api + ", Reason: " + e.getMessage() + "]";
-                            } finally {
-                                if (response != null) {
-                                    response.body().close();
-                                }
-                            }
-
-                            // Test from a particular network path. Here, the active one is Celluar since we switched the whole process over earlier.
-                            Site site = new Site(mMatchingEngine.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, host, serverPort);
-                            netTest.addSite(site);
-                        }
-
-                        someText += "[Cloudlet App Ports: [" + portListStr + "]\n";
-
-                        String appInstListText = "";
-                        AppClient.AppInstListRequest appInstListRequest =
-                                mMatchingEngine.createDefaultAppInstListRequest(ctx, location).build();
-
-                        AppClient.AppInstListReply appInstListReply = mMatchingEngine.getAppInstList(
-                                appInstListRequest, dmeHostAddress, port, 10000);
-
-                        for (AppClient.CloudletLocation cloudletLocation : appInstListReply.getCloudletsList()) {
-                            String location_carrierName = cloudletLocation.getCarrierName();
-                            String location_cloudletName = cloudletLocation.getCloudletName();
-                            double location_distance = cloudletLocation.getDistance();
-
-                            appInstListText += "[CloudletLocation: CarrierName: " + location_carrierName;
-                            appInstListText += ", CloudletName: " + location_cloudletName;
-                            appInstListText += ", Distance: " + location_distance;
-                            appInstListText += " , AppInstances: [";
-                            for (AppClient.Appinstance appinstance : cloudletLocation.getAppinstancesList()) {
-                                appInstListText += "Name: " + appinstance.getAppName()
-                                                + ", Version: " + appinstance.getAppVers()
-                                                + ", FQDN: " + appinstance.getFqdn()
-                                                + ", Ports: " + appinstance.getPortsList().toString();
-
-                            }
-                            appInstListText += "]]";
-                        }
-                        if (!appInstListText.isEmpty()) {
-                            someText += appInstListText;
-                        }
-                    } else {
-                        someText = "Cannot create request object.\n";
-                        if (!locationVerificationAllowed) {
-                            someText += " Reason: Enhanced location is disabled.\n";
+                        response = client.newCall(request).execute();
+                        someText += "[Test Server response: " + response.toString() + "]";
+                    } catch (IOException | IllegalStateException e) {
+                        someText += "[Error connecting to host: " + host + ", port: " + serverPort + ", api: " + api + ", Reason: " + e.getMessage() + "]";
+                    } finally {
+                        if (response != null) {
+                            response.body().close();
                         }
                     }
 
-                    someText += "[Is WiFi Enabled: " + mMatchingEngine.isWiFiEnabled(ctx) + "]\n";
+                    // Test from a particular network path. Here, the active one is Celluar since we switched the whole process over earlier.
+                    Site site = new Site(mMatchingEngine.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, host, serverPort);
+                    netTest.addSite(site);
+                }
 
-                    if (android.os.Build.VERSION.SDK_INT >= 28) {
-                        someText += "[Is Roaming Data Enabled: " + mMatchingEngine.isRoamingData() + "]\n";
-                    } else {
-                        someText += "[Roaming Data status unknown.]\n";
+                someText += "[Cloudlet App Ports: [" + portListStr + "]\n";
+
+                String appInstListText = "";
+                AppClient.AppInstListRequest appInstListRequest =
+                        mMatchingEngine.createDefaultAppInstListRequest(ctx, location).build();
+
+                AppClient.AppInstListReply appInstListReply = mMatchingEngine.getAppInstList(
+                        appInstListRequest, dmeHostAddress, port, 10000);
+
+                for (AppClient.CloudletLocation cloudletLocation : appInstListReply.getCloudletsList()) {
+                    String location_carrierName = cloudletLocation.getCarrierName();
+                    String location_cloudletName = cloudletLocation.getCloudletName();
+                    double location_distance = cloudletLocation.getDistance();
+
+                    appInstListText += "[CloudletLocation: CarrierName: " + location_carrierName;
+                    appInstListText += ", CloudletName: " + location_cloudletName;
+                    appInstListText += ", Distance: " + location_distance;
+                    appInstListText += " , AppInstances: [";
+                    for (AppClient.Appinstance appinstance : cloudletLocation.getAppinstancesList()) {
+                        appInstListText += "Name: " + appinstance.getAppName()
+                                + ", Version: " + appinstance.getAppVers()
+                                + ", FQDN: " + appinstance.getFqdn()
+                                + ", Ports: " + appinstance.getPortsList().toString();
+
                     }
-
-                    CarrierConfigManager carrierConfigManager = ctx.getSystemService(CarrierConfigManager.class);
-                    someText += "[Enabling WiFi Calling could disable Cellular Data if on a Roaming Network!\nWiFi Calling  Support Status: "
-                            + mMatchingEngine.isWiFiCallingSupported(carrierConfigManager) + "]\n";
-
-
-                    // Background thread. Post update to the UI thread:
-                    ctx.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                            tv.setText(someText);
-                        }
-                    });
-
-                    // Set network back to last default one, if desired:
-                    mMatchingEngine.getNetworkManager().resetNetworkToDefault();
-                } catch (/*DmeDnsException |*/ ExecutionException | StatusRuntimeException e) {
-                    Log.e(TAG, e.getMessage());
-                    Log.e(TAG, Log.getStackTraceString(e));
-                    if (e.getCause() instanceof NetworkRequestTimeoutException) {
-                        String causeMessage = e.getCause().getMessage();
-                        someText = "Network connection failed: " + causeMessage;
-                        Log.e(TAG, someText);
-                        // Handle network error with failover logic. MobiledgeX MatchingEngine requests over cellular is needed to talk to the DME.
-                        ctx.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                            TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                            tv.setText(someText);
-                            }
-                        });
-                    }
-                } catch (InterruptedException | IllegalArgumentException | Resources.NotFoundException | PackageManager.NameNotFoundException e) {
-                    MelMessaging.getCookie("MobiledgeX SDK Demo"); // Import MEL messaging.
-                    someText += "Exception failure: " + e.getMessage();
-                    ctx.runOnUiThread(new Runnable() {
-                      @Override
-                      public void run() {
-                          TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                          tv.setText(someText);
-                      }
-                    });
-                    Log.e(TAG, Log.getStackTraceString(e));
-                } catch (Exception e) {
-                    someText += "Exception failure: " + e.getMessage() + ": ";
-                    e.printStackTrace();
-                } finally {
-                    ctx.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                            if (tv != null) {
-                                tv.setText(someText);
-                            }
-                        }
-                    });
+                    appInstListText += "]]";
+                }
+                if (!appInstListText.isEmpty()) {
+                    someText += appInstListText;
+                }
+            } else {
+                someText = "Cannot create request object.\n";
+                if (!locationVerificationAllowed) {
+                    someText += " Reason: Enhanced location is disabled.\n";
                 }
             }
+
+            someText += "[Is WiFi Enabled: " + mMatchingEngine.isWiFiEnabled(ctx) + "]\n";
+
+            if (android.os.Build.VERSION.SDK_INT >= 28) {
+                someText += "[Is Roaming Data Enabled: " + mMatchingEngine.isRoamingData() + "]\n";
+            } else {
+                someText += "[Roaming Data status unknown.]\n";
+            }
+
+            CarrierConfigManager carrierConfigManager = ctx.getSystemService(CarrierConfigManager.class);
+            someText += "[Enabling WiFi Calling could disable Cellular Data if on a Roaming Network!\nWiFi Calling  Support Status: "
+                    + mMatchingEngine.isWiFiCallingSupported(carrierConfigManager) + "]\n";
+
+
+            // Background thread. Post update to the UI thread:
+            updateText(ctx, someText);
+
+            // Set network back to last default one, if desired:
+            mMatchingEngine.getNetworkManager().resetNetworkToDefault();
+        } catch (/*DmeDnsException |*/ ExecutionException | StatusRuntimeException e) {
+            Log.e(TAG, e.getMessage());
+            Log.e(TAG, Log.getStackTraceString(e));
+            if (e.getCause() instanceof NetworkRequestTimeoutException) {
+                String causeMessage = e.getCause().getMessage();
+                someText = "Network connection failed: " + causeMessage;
+                Log.e(TAG, someText);
+                // Handle network error with failover logic. MobiledgeX MatchingEngine requests over cellular is needed to talk to the DME.
+                updateText(ctx, someText);
+            }
+        } catch (InterruptedException | IllegalArgumentException | Resources.NotFoundException | PackageManager.NameNotFoundException e) {
+            MelMessaging.getCookie("MobiledgeX SDK Demo"); // Import MEL messaging.
+            someText += "Exception failure: " + e.getMessage();
+            updateText(ctx, someText);
+            Log.e(TAG, Log.getStackTraceString(e));
+        } catch (Exception e) {
+            someText += "Exception failure: " + e.getMessage() + ": ";
+            updateText(ctx, someText);
+            e.printStackTrace();
+        } finally {
+            updateText(ctx, someText);
+        }
+    }
+
+    private void updateText(AppCompatActivity ctx, String text) {
+        if (ctx == null) {
+            return;
+        }
+        ctx.runOnUiThread(() -> {
+            TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+            tv.setText(text);
         });
+    }
+
+    private void doEnhancedLocationUpdateInBackground(final Task<Location> locationTask, final AppCompatActivity ctx) {
+        ExecutorService service = Executors.newCachedThreadPool();
+        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> runFlow(locationTask, ctx), service);
     }
 }
