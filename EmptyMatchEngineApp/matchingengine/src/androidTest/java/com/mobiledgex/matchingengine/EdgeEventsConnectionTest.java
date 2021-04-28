@@ -201,7 +201,6 @@ public class EdgeEventsConnectionTest {
                     .build();
             if (useHostOverride) {
                 findCloudletReply1 = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-
             } else {
                 findCloudletReply1 = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
             }
@@ -578,6 +577,7 @@ public class EdgeEventsConnectionTest {
             for (AppClient.ServerEdgeEvent s : responses) {
                 Assert.assertTrue("Must have non-negative averages!", s.getStatistics().getAvg() >= 0f);
             }
+
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             fail("FindCloudletFuture: DmeDnsException");

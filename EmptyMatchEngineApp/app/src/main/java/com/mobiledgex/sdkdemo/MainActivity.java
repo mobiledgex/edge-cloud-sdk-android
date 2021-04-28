@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private static final String TAG = "MainActivity";
 
     private String someText = null;
+    private AppCompatActivity ctx = this;
 
     private RequestPermissions mRpUtil;
     private MatchingEngine mMatchingEngine;
@@ -312,6 +313,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             mMatchingEngine = null;
         }
         mEdgeEventsSubscriber = null;
+        ctx = null;
     }
     // [me_cleanup]
 
@@ -327,6 +329,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         @Subscribe
         public void onMessageEvent(EdgeEventsConnection.EdgeEventsError error) {
             Log.d(TAG, "EdgeEvents error reported, reason: " + error);
+
+            someText = error.toString();
+            updateText(ctx, someText);
             // Check the App's EdgeEventsConfig and logs.
         }
 
@@ -338,6 +343,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
             // Connect to new Cloudlet in the event here, preferably in a background task.
             Log.i(TAG, "Cloudlet: " + findCloudletEvent.newCloudlet);
+
+            someText = findCloudletEvent.newCloudlet.toString();
+            updateText(ctx, someText);
+
             latch.countDown(); // Just one for "reasons".
             // If MatchingEngine.setAutoMigrateEdgeEventsConnection() has been set to false,
             // let MatchingEngine know with switchedToNextCloudlet() so the new cloudlet can
@@ -351,8 +360,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         // use case better.
         //
         // To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
-        //@Subscribe
+        @Subscribe
         public void onMessageEvent(AppClient.ServerEdgeEvent event) {
+            someText = event.toString();
+            updateText(ctx, someText);
             switch (event.getEventType()) {
                 case EVENT_INIT_CONNECTION:
                     System.out.println("Received Init response: " + event);
@@ -757,7 +768,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             .build();
             Log.i(TAG, "verifyRequest is " + verifyRequest);
 
-            if (false /*verifyRequest != null*/) {
+            if (verifyRequest != null) {
                 // Location Verification (Blocking, or use verifyLocationFuture):
                 AppClient.VerifyLocationReply verifiedLocation =
                         mMatchingEngine.verifyLocation(verifyRequest, dmeHostAddress, port, 10000);
@@ -862,13 +873,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
 
             // Background thread. Post update to the UI thread:
-            ctx.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                    tv.setText(someText);
-                }
-            });
+            updateText(ctx, someText);
 
             // Set network back to last default one, if desired:
             mMatchingEngine.getNetworkManager().resetNetworkToDefault();
@@ -880,48 +885,34 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 someText = "Network connection failed: " + causeMessage;
                 Log.e(TAG, someText);
                 // Handle network error with failover logic. MobiledgeX MatchingEngine requests over cellular is needed to talk to the DME.
-                ctx.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                        tv.setText(someText);
-                    }
-                });
+                updateText(ctx, someText);
             }
         } catch (InterruptedException | IllegalArgumentException | Resources.NotFoundException | PackageManager.NameNotFoundException e) {
             MelMessaging.getCookie("MobiledgeX SDK Demo"); // Import MEL messaging.
             someText += "Exception failure: " + e.getMessage();
-            ctx.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                    tv.setText(someText);
-                }
-            });
+            updateText(ctx, someText);
             Log.e(TAG, Log.getStackTraceString(e));
         } catch (Exception e) {
             someText += "Exception failure: " + e.getMessage() + ": ";
+            updateText(ctx, someText);
             e.printStackTrace();
         } finally {
-            ctx.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                    if (tv != null) {
-                        tv.setText(someText);
-                    }
-                }
-            });
+            updateText(ctx, someText);
         }
+    }
+
+    private void updateText(AppCompatActivity ctx, String text) {
+        if (ctx == null) {
+            return;
+        }
+        ctx.runOnUiThread(() -> {
+            TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+            tv.setText(text);
+        });
     }
 
     private void doEnhancedLocationUpdateInBackground(final Task<Location> locationTask, final AppCompatActivity ctx) {
         ExecutorService service = Executors.newCachedThreadPool();
-        CompletableFuture<Void> future = CompletableFuture.runAsync(new Runnable() {
-            @Override
-            public void run() {
-                runFlow(locationTask, ctx);
-            }
-        }, service);
+        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> runFlow(locationTask, ctx), service);
     }
 }
