@@ -151,6 +151,8 @@ public class MatchingEngine {
     private boolean isSSLEnabled = true;
     private boolean useOnlyWifi = false;
 
+    private boolean shutdown = false;
+
     /*!
      * Two modes to call FindCloudlet. First is Proximity (default) which finds the nearest cloudlet based on gps location with application instance
      * Second is Performance. This mode will test all cloudlets with application instance deployed to find cloudlet with lowest latency. This mode takes longer to finish because of latency test.
@@ -420,7 +422,7 @@ public class MatchingEngine {
             if (mEdgeEventsConnection == null) {
                 mEdgeEventsConnection = getEdgeEventsConnection();
                 if (mEdgeEventsConnection != null) {
-                    return true; // By definition, it's connected.
+                    return true;
                 }
             }
             // Same reconnect:
@@ -571,6 +573,9 @@ public class MatchingEngine {
 
     public synchronized EdgeEventsConnection getEdgeEventsConnection() {
         warnIfUIThread();
+        if (shutdown) {
+            Log.e(TAG, "MatchingEngine has been closed().");
+        }
         if (mEnableEdgeEvents == false)
         {
             Log.e(TAG, "EdgeEvents has been disabled.");
@@ -600,6 +605,7 @@ public class MatchingEngine {
             mEdgeEventsConnection.close();
         }
         mEdgeEventsConnection = null;
+        mEdgeEventBus = null;
 
         // Kill ExecutorService.
         if (!externalExecutor && threadpool != null) {
@@ -613,6 +619,7 @@ public class MatchingEngine {
         mContext = null;
         mNetworkManager = null;
         mAppConnectionManager = null;
+        shutdown = true;
     }
 
     /*!

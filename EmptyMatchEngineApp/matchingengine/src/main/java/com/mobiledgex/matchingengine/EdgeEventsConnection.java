@@ -21,16 +21,12 @@ import com.mobiledgex.matchingengine.util.MeLocation;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
 import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
@@ -326,9 +322,8 @@ public class EdgeEventsConnection {
     synchronized public void reconnect() throws DmeDnsException {
         Log.d(TAG, "Reconnecting...");
         channelStatus = ChannelStatus.reconnecting;
-        if (!isShutdown()) {
-            sendTerminate();
-        }
+        close();
+
         if (hostOverride != null && portOverride > 0) {
             try {
                 open(hostOverride, portOverride, networkOverride, mEdgeEventsConfig);
@@ -456,12 +451,17 @@ public class EdgeEventsConnection {
 
             @Override
             public void onError(Throwable t) {
-                Log.e(TAG, "Encountered error in DMEConnection: ", t);
-                me.getEdgeEventsBus().post(EdgeEventsError.edgeEventsConnectionError);
+                // Shutdown invocation will also land here.
+                Log.w(TAG, "Encountered error in DMEConnection: ", t);
+                if (me.getEdgeEventsBus() != null) {
+                    me.getEdgeEventsBus().post(EdgeEventsError.edgeEventsConnectionError);
+                }
                 // Reopen DME connection.
                 try {
-                    closeSimple();
-                    reconnect();
+                    closeInternal();
+                    if (channelStatus != ChannelStatus.closing && channelStatus != ChannelStatus.closed) {
+                        reconnect();
+                    }
                 } catch (Exception e) {
                     Log.e("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
                 }
@@ -473,8 +473,10 @@ public class EdgeEventsConnection {
 
                 // Reopen DME connection.
                 try {
-                    closeSimple();
-                    reconnect();
+                    closeInternal();
+                    if (channelStatus != ChannelStatus.closing && channelStatus != ChannelStatus.closed) {
+                        reconnect();
+                    }
                 } catch (Exception e) {
                     Log.e("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
                 }
@@ -494,17 +496,25 @@ public class EdgeEventsConnection {
     }
 
     /*!
-     * Partial kill from onComplete
+     * Peer connection clear from onComplete, onError.
      */
-    synchronized void closeSimple() {
+    synchronized void closeInternal() {
         Log.d(TAG, "stream closing...");
+        sender = null;
+        receiver = null;
+
         hostOverride = null;
         portOverride = 0;
         networkOverride = null;
-        sender = null;
-        receiver = null;
-        if (channelStatus != ChannelStatus.reconnecting) {
-            channelStatus = ChannelStatus.closed;
+
+        if (channel != null && !isShutdown()) {
+            try {
+                Log.d(TAG, "Awaiting termination...");
+                channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
+                Log.d(TAG, "Done awaiting.");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         channel = null;
         Log.d(TAG, "stream closed!");
@@ -515,23 +525,24 @@ public class EdgeEventsConnection {
      */
     synchronized void close() {
         Log.d(TAG, "close()");
-        channelStatus = ChannelStatus.closing;
+        if (channelStatus != ChannelStatus.reconnecting) {
+            channelStatus = ChannelStatus.closing;
+        }
+
         try {
             if (!isShutdown()) {
                 Log.d(TAG, "closing...");
-                    sendTerminate();
-                    eventBusUnRegister();
-                    stopEdgeEvents();
-                    if (channel != null && !channel.isShutdown()) {
-                        channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
-                    }
-
+                sendTerminate();
+                eventBusUnRegister();
+                stopEdgeEvents();
+                closeInternal();
             }
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            closeSimple();
-            channelStatus = ChannelStatus.closed;
+            if (channelStatus != ChannelStatus.reconnecting) {
+                channelStatus = ChannelStatus.closed;
+            }
         }
     }
 
@@ -550,12 +561,17 @@ public class EdgeEventsConnection {
                 Log.e(TAG, "EdgeEvents is disabled. Message is not sent.");
                 return false;
             }
-            if (isShutdown()) {
+            if (isShutdown() && channelStatus != ChannelStatus.closing && channelStatus != ChannelStatus.closed) {
                 Log.d(TAG, "Reconnecting to post: Channel status: " + channelStatus);
                 reconnect();
             }
-            sender.onNext(clientEdgeEvent);
-            Log.d(TAG, "Posted!");
+            if (sender != null) {
+                sender.onNext(clientEdgeEvent);
+                Log.d(TAG, "Posted!");
+            }
+            else {
+                Log.d(TAG, "NOT Posted!");
+            }
         } catch (Exception e) {
             Log.e(TAG, e.getMessage() + ", cause: " + e.getCause());
             e.printStackTrace();
@@ -575,6 +591,12 @@ public class EdgeEventsConnection {
 
         if (sender != null) {
             sender.onNext(clientEdgeEvent);
+        }
+        channel.shutdown();
+        try {
+            channel.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
         return true;
     }
@@ -1150,6 +1172,8 @@ public class EdgeEventsConnection {
             }
             else {
                 try {
+                    channelStatus = ChannelStatus.reconnecting;
+                    close();
                     reconnect();
                 } catch (DmeDnsException dde) {
                     postErrorToEventHandler(EdgeEventsError.missingDmeDnsEntry);

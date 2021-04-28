@@ -49,8 +49,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -190,8 +188,9 @@ public class EdgeEventsConnectionTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         AppClient.FindCloudletReply findCloudletReply1;
 
+        MatchingEngine me = null;
         try {
-            MatchingEngine me = new MatchingEngine(context);
+            me = new MatchingEngine(context);
             me.setMatchingEngineLocationAllowed(true);
             registerClient(me);
             Location location = getTestLocation();
@@ -225,6 +224,10 @@ public class EdgeEventsConnectionTest {
         } catch (Exception e) {
             e.printStackTrace();
             assertTrue("Test failed.", false);
+        } finally {
+            if (me != null) {
+                me.close();
+            }
         }
     }
 
@@ -233,8 +236,9 @@ public class EdgeEventsConnectionTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         AppClient.FindCloudletReply findCloudletReply1;
 
+        MatchingEngine me = null;
         try {
-            MatchingEngine me = new MatchingEngine(context);
+            me = new MatchingEngine(context);
             me.setMatchingEngineLocationAllowed(true);
             registerClient(me);
             Location location = getTestLocation();
@@ -259,16 +263,12 @@ public class EdgeEventsConnectionTest {
             assertFalse("Should throw no exceptions!", startFuture.isCompletedExceptionally());
 
             CompletableFuture<Boolean> restartFuture;
-            bvalue = (me.startEdgeEventsFuture(me.createDefaultEdgeEventsConfig())).getNow(false);
-            assertFalse("Not enough time, likely fails", bvalue);
             boolean restarted = (restartFuture = me.restartEdgeEventsFuture()).get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             assertTrue("Should restart successfully. Completion failed!", restarted);
             assertFalse("Should throw no exceptions!", restartFuture.isCompletedExceptionally());
 
             CompletableFuture<Boolean> stopFuture;
-            bvalue = (me.startEdgeEventsFuture(me.createDefaultEdgeEventsConfig())).getNow(false);
-            assertFalse("Not enough time, likely fails", bvalue);
-            boolean stopped = (stopFuture = me.restartEdgeEventsFuture()).get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            boolean stopped = (stopFuture = me.stopEdgeEventsFuture()).get(GRPC_TIMEOUT_MS * 5, TimeUnit.MILLISECONDS);
             assertTrue("Should stop successfully. Completion failed!", stopped);
             assertFalse("Should throw no exceptions!", stopFuture.isCompletedExceptionally());
 
@@ -277,12 +277,18 @@ public class EdgeEventsConnectionTest {
             // TODO: Better return value handling, instead of just exceptions.
             final MatchingEngine finalMe = me;
             CompletableFuture<Boolean> chainFuture = me.startEdgeEventsFuture(me.createDefaultEdgeEventsConfig())
-                    .thenCompose( b -> me.restartEdgeEventsFuture() )
-                    .thenCompose( b -> me.stopEdgeEventsFuture() )
-                    .thenApply( b -> {System.out.println("Done!"); return b; });
+                    .thenCompose( b -> finalMe.restartEdgeEventsFuture() )
+                    .thenCompose( b ->  finalMe.stopEdgeEventsFuture() )
+                    .thenApply( b -> {System.out.println("Done!"); return b; })
+                    .exceptionally( ee -> {
+                        Log.e(TAG, ee.getLocalizedMessage());
+                        ee.printStackTrace();
+                        return false;
+                    });
 
             try {
-                boolean chainValue = chainFuture.get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                // 4 "pseudo" timeouts plus GRPC await close.
+                boolean chainValue = chainFuture.get(GRPC_TIMEOUT_MS * 4, TimeUnit.MILLISECONDS);
                 assertEquals("Chain failure", true, chainValue);
             } catch (CompletionException ce) {
                 assertFalse("Should not be here. Reason for failure: " + ce.getMessage(), false);
@@ -292,12 +298,18 @@ public class EdgeEventsConnectionTest {
             assertFalse("Should be a clean run.", exceptionallyComplete);
 
             Log.i(TAG, "Test of chain done.");
-
-      } catch (Exception e) {
+        } catch (Exception e) {
+            Log.e(TAG, "Exception: " + e.getLocalizedMessage());
             e.printStackTrace();
             assertTrue("Test failed.", false);
+        } finally {
+            if (me != null) {
+                me.close();
+            }
         }
     }
+
+    // FIXME: Need Mock location to force location changes for Location EdgeEventsConfig.
 
     @Test
     public void LocationUtilEdgeEventsTest() {
@@ -341,18 +353,19 @@ public class EdgeEventsConnectionTest {
 
             me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
             er.setLatch(1);
-            er.latch.await(4, TimeUnit.SECONDS);
+            er.latch.await(20, TimeUnit.SECONDS);
+            assertEquals("Wrong number of responses", 1, er.responses.size());
 
             me.getEdgeEventsConnection().postLocationUpdate(edmontonLoc);
             er.setLatch(1);
-            er.latch.await(4, TimeUnit.SECONDS);
+            er.latch.await(20, TimeUnit.SECONDS);
+            assertEquals("Wrong number of responses", 2, er.responses.size());
 
             me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
             er.setLatch(1);
-            er.latch.await(4, TimeUnit.SECONDS);
-
-            Assert.assertTrue("No responses received over edge event bus!", !er.responses.isEmpty());
+            er.latch.await(20, TimeUnit.SECONDS);
             assertEquals("Wrong number of responses", 3, er.responses.size());
+
             me.getEdgeEventsBus().unregister(er);
 
             er.responses.clear();
@@ -403,8 +416,10 @@ public class EdgeEventsConnectionTest {
             Location location = getTestLocation();
             registerClient(me);
 
+            me.setAutoMigrateEdgeEventsConnection(false);
+
             // Cannot use the older API if overriding.
-            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(me.mContext, edmontonLoc)
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, edmontonLoc)
                     .setCarrierName(findCloudletCarrierOverride)
                     .build();
 
@@ -426,25 +441,27 @@ public class EdgeEventsConnectionTest {
                     == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
 
             Log.w(TAG, "Setting test to NOT autoMigrate DME connection");
-            me.setAutoMigrateEdgeEventsConnection(false);
+
 
             me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
             er.setLatch(1);
-            er.latch.await(4, TimeUnit.SECONDS);
+            er.latch.await(20, TimeUnit.SECONDS);
             me.switchedToNextCloudlet(); // This is just an alias to the blocking version of restartEdgeEvents()/restartEdgeEventsFuture.
+
+            assertEquals("Wrong number of responses", 1, er.responses.size());
 
             me.getEdgeEventsConnection().postLocationUpdate(edmontonLoc);
             er.setLatch(1);
-            er.latch.await(4, TimeUnit.SECONDS);
+            er.latch.await(20, TimeUnit.SECONDS);
             me.switchedToNextCloudlet();
+            assertEquals("Wrong number of responses", 2, er.responses.size());
 
             me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
             er.setLatch(1);
-            er.latch.await(4, TimeUnit.SECONDS);
+            er.latch.await(20, TimeUnit.SECONDS);
             me.switchedToNextCloudlet();
-
-            Assert.assertTrue("No responses received over edge event bus!", !er.responses.isEmpty());
             assertEquals("Wrong number of responses", 3, er.responses.size());
+
             me.getEdgeEventsBus().unregister(er);
 
             er.responses.clear();
@@ -572,8 +589,9 @@ public class EdgeEventsConnectionTest {
             Log.e(TAG, Log.getStackTraceString(ie));
             assertFalse("FindCloudletFuture: InterruptedException!", true);
         } finally {
-            me.close();
-            me.getEdgeEventsBus().unregister(er);
+            if (me != null) {
+                me.close();
+            }
         }
     }
 }
