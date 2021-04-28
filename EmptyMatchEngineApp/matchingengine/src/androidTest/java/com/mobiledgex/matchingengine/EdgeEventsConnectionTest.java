@@ -423,6 +423,7 @@ public class EdgeEventsConnectionTest {
             // Mocks needed to prevent real locaiton messing with results;
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
             config.locationUpdateConfig.maxNumberOfUpdates = 0;
+            config.latencyUpdateConfig.maxNumberOfUpdates = 0;
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, edmontonLoc)
                     .setCarrierName(findCloudletCarrierOverride)
