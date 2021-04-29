@@ -70,6 +70,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
@@ -151,7 +152,11 @@ public class MatchingEngine {
     private boolean isSSLEnabled = true;
     private boolean useOnlyWifi = false;
 
-    private boolean shutdown = false;
+    private AtomicBoolean shutdown = new AtomicBoolean();
+
+    public boolean isShutdown() {
+        return shutdown.get();
+    }
 
     /*!
      * Two modes to call FindCloudlet. First is Proximity (default) which finds the nearest cloudlet based on gps location with application instance
@@ -419,6 +424,9 @@ public class MatchingEngine {
     synchronized public boolean restartEdgeEvents() throws DmeDnsException {
         try {
             warnIfUIThread();
+            if (isShutdown()) {
+                return false;
+            }
             if (mEdgeEventsConnection == null) {
                 mEdgeEventsConnection = getEdgeEventsConnection();
                 if (mEdgeEventsConnection != null) {
@@ -531,7 +539,7 @@ public class MatchingEngine {
                                                               Network network,
                                                               EdgeEventsConfig edgeEventsConfig)
             throws DmeDnsException {
-        if (shutdown) {
+        if (isShutdown()) {
             Log.e(TAG, "MatchingEngine has been closed.");
             return null;
         }
@@ -579,7 +587,7 @@ public class MatchingEngine {
 
     public synchronized EdgeEventsConnection getEdgeEventsConnection() {
         warnIfUIThread();
-        if (shutdown) {
+        if (isShutdown()) {
             Log.e(TAG, "MatchingEngine has been closed.");
             return null;
         }
@@ -608,6 +616,10 @@ public class MatchingEngine {
      * \ingroup functions_dmeapis
      */
     synchronized public void close() {
+        if (isShutdown()) {
+            return;
+        }
+        Log.d(TAG, "MatchingEngine closing.");
         if (mEdgeEventsConnection != null) {
             mEdgeEventsConnection.close();
         }
@@ -626,7 +638,8 @@ public class MatchingEngine {
         mContext = null;
         mNetworkManager = null;
         mAppConnectionManager = null;
-        shutdown = true;
+        shutdown.set(true);
+        Log.d(TAG, "MatchingEngine closed.");
     }
 
     /*!

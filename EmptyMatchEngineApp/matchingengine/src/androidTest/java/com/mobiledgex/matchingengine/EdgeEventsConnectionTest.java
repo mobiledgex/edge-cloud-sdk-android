@@ -375,14 +375,12 @@ public class EdgeEventsConnectionTest {
 
             // Default. If you need different test behavior, use the parameterized version. This might be raced against the new DME reconnect() call underneath.
             EdgeEventsConnection edgeEventsConnection = me.getEdgeEventsConnection();
-
             TestCase.assertNotNull(edgeEventsConnection);
 
             // No longer registered.
             edgeEventsConnection.postLocationUpdate(edmontonLoc);
             er.setLatch(1);
             er.latch.await(5, TimeUnit.SECONDS);
-            me.switchedToNextCloudlet();
             Assert.assertTrue("No responses expected over edge event bus!", er.responses.isEmpty());
 
         } catch (DmeDnsException dde) {

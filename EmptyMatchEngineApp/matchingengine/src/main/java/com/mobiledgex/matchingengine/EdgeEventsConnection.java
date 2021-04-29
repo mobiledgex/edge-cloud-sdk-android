@@ -21,10 +21,8 @@ import com.mobiledgex.matchingengine.util.MeLocation;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -64,7 +62,7 @@ public class EdgeEventsConnection {
         closed
     }
     ChannelStatus channelStatus = ChannelStatus.closed;
-    CyclicBarrier openBarrier = new CyclicBarrier(2); // One other party.
+    Object openAwaiter = new Object();
 
     String hostOverride;
     int portOverride;
@@ -237,19 +235,30 @@ public class EdgeEventsConnection {
         }
     }
 
-    synchronized boolean awaitOpen() {
-        try {
-            if (channelStatus == ChannelStatus.open || openBarrier.getNumberWaiting() == 0) {
+    boolean awaitOpen() {
+        synchronized (openAwaiter) {
+            if (channelStatus == ChannelStatus.open) {
                 return true;
             }
-            openBarrier.await(10, TimeUnit.SECONDS);
-            return true;
-        } catch (BrokenBarrierException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } finally {
+            Log.d(TAG, "Not open. Waiting...");
+            try {
+                openAwaiter.wait(15 * 1000);
+                if (channelStatus == ChannelStatus.open) {
+                    Log.d(TAG, "Now open.");
+                    return true;
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            Log.d(TAG, "Not open: " + channelStatus);
             return false;
+        }
+    }
+
+    private void notifyOpenAwaiter() {
+        synchronized (openAwaiter) {
+            Log.d(TAG, "Opened EdgeEventsConnection, with synchronized interface waiting. Notify.");
+            openAwaiter.notifyAll();
         }
     }
 
@@ -319,9 +328,12 @@ public class EdgeEventsConnection {
     }
 
     synchronized public void reconnect() throws DmeDnsException {
+        if (me.isShutdown()) {
+            return;
+        }
         Log.d(TAG, "Reconnecting...");
         channelStatus = ChannelStatus.reconnecting;
-        close();
+        closeInternal();
 
         if (hostOverride != null && portOverride > 0) {
             try {
@@ -347,20 +359,6 @@ public class EdgeEventsConnection {
             Log.e(TAG, "State Error: Missing sessions to reconnect.");
             postErrorToEventHandler(EdgeEventsError.missingSessionCookie);
             return;
-        }
-    }
-
-    synchronized private void notifyOpenAwaiter() {
-        if (openBarrier.getParties() == 1) {
-            // somebody is waiting for this state, and two to tango.
-            try {
-                openBarrier.await();
-                openBarrier.reset();
-            } catch (BrokenBarrierException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
     }
 
@@ -524,24 +522,21 @@ public class EdgeEventsConnection {
      */
     synchronized void close() {
         Log.d(TAG, "close()");
-        if (channelStatus != ChannelStatus.reconnecting) {
-            channelStatus = ChannelStatus.closing;
-        }
+        openAwaiter = null;
+        channelStatus = ChannelStatus.closing;
 
         try {
             if (!isShutdown()) {
                 Log.d(TAG, "closing...");
-                sendTerminate();
-                eventBusUnRegister();
                 stopEdgeEvents();
+                eventBusUnRegister();
+                sendTerminate();
                 closeInternal();
             }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            if (channelStatus != ChannelStatus.reconnecting) {
-                channelStatus = ChannelStatus.closed;
-            }
+            channelStatus = ChannelStatus.closed;
         }
     }
 
@@ -553,8 +548,12 @@ public class EdgeEventsConnection {
         return channel.isShutdown();
     }
 
-    public boolean send(AppClient.ClientEdgeEvent clientEdgeEvent) {
+    synchronized public boolean send(AppClient.ClientEdgeEvent clientEdgeEvent) {
         try {
+            if (me.isShutdown()) {
+                Log.w(TAG, "MatchingEngine is shutdown. Message is not Posted!");
+                return false;
+            }
             Log.d(TAG, "Received this event to post to server: " + clientEdgeEvent);
             if (!me.isEnableEdgeEvents()) {
                 Log.e(TAG, "EdgeEvents is disabled. Message is not sent.");
@@ -631,7 +630,10 @@ public class EdgeEventsConnection {
      * \section basic_location_handler_example Example
      * \snippet MainActivity.java basic_location_handler_example
      */
-    public boolean postLocationUpdate(Location location) {
+    synchronized public boolean postLocationUpdate(Location location) {
+        if (me.isShutdown()) {
+            return false;
+        }
         if (!me.isMatchingEngineLocationAllowed()) {
             return false;
         }
@@ -683,8 +685,10 @@ public class EdgeEventsConnection {
      * \return boolean indicating whether the site results are posted or not.
      * \ingroup functions_edge_events_api
      */
-    public boolean postLatencyUpdate(Site site, Location location) {
-
+    synchronized public boolean postLatencyUpdate(Site site, Location location) {
+        if (me.isShutdown()) {
+            return false;
+        }
         if (!me.isMatchingEngineLocationAllowed()) {
             return false;
         }
@@ -746,7 +750,7 @@ public class EdgeEventsConnection {
      * \return boolean indicating whether the site results are posted or not.
      * \ingroup functions_edge_events_api
      */
-    public boolean testPingAndPostLatencyUpdate(String host, Location location) {
+    synchronized public boolean testPingAndPostLatencyUpdate(String host, Location location) {
         return testPingAndPostLatencyUpdate(host, location, DEFAULT_NUM_SAMPLES);
     }
 
@@ -761,7 +765,10 @@ public class EdgeEventsConnection {
      * \return boolean indicating whether the site results are posted or not.
      * \ingroup functions_edge_events_api
      */
-    public boolean testPingAndPostLatencyUpdate(String host, Location location, int numSamples) {
+    synchronized public boolean testPingAndPostLatencyUpdate(String host, Location location, int numSamples) {
+        if (me.isShutdown()) {
+            return false;
+        }
         if (!me.isMatchingEngineLocationAllowed()) {
             return false;
         }
@@ -835,7 +842,7 @@ public class EdgeEventsConnection {
      * \return boolean indicating whether the site results are posted or not.
      * \ingroup functions_edge_events_api
      */
-    public boolean testConnectAndPostLatencyUpdate(String host, int port, Location location) {
+    synchronized public boolean testConnectAndPostLatencyUpdate(String host, int port, Location location) {
         return testConnectAndPostLatencyUpdate(host, port, location, DEFAULT_NUM_SAMPLES);
     }
 
@@ -853,7 +860,10 @@ public class EdgeEventsConnection {
      * \return boolean indicating whether the site results are posted or not.
      * \ingroup functions_edge_events_api
      */
-    public boolean testConnectAndPostLatencyUpdate(String host, int port, Location location, int numSamples) {
+    synchronized public boolean testConnectAndPostLatencyUpdate(String host, int port, Location location, int numSamples) {
+        if (me.isShutdown()) {
+            return false;
+        }
         if (!me.isMatchingEngineLocationAllowed()) {
             return false;
         }
@@ -1102,7 +1112,7 @@ public class EdgeEventsConnection {
 
 
     // Non raw ServerEdgeEvent.
-    boolean doClientFindCloudlet(FindCloudletEventTrigger reason) {
+    synchronized boolean doClientFindCloudlet(FindCloudletEventTrigger reason) {
 
         Location loc = null;
 
@@ -1144,7 +1154,7 @@ public class EdgeEventsConnection {
         return false;
     }
 
-    boolean handleFindCloudletServerPush(AppClient.ServerEdgeEvent event, FindCloudletEventTrigger reason) {
+    synchronized boolean handleFindCloudletServerPush(AppClient.ServerEdgeEvent event, FindCloudletEventTrigger reason) {
         if (event.getEventType() != ServerEventType.EVENT_CLOUDLET_UPDATE) {
             return false;
         }
@@ -1168,7 +1178,7 @@ public class EdgeEventsConnection {
             else {
                 try {
                     channelStatus = ChannelStatus.reconnecting;
-                    close();
+                    closeInternal();
                     reconnect();
                 } catch (DmeDnsException dde) {
                     postErrorToEventHandler(EdgeEventsError.missingDmeDnsEntry);
@@ -1183,7 +1193,7 @@ public class EdgeEventsConnection {
         return true;
     }
 
-    boolean handleAppInstHealth(AppClient.ServerEdgeEvent event) {
+    synchronized boolean handleAppInstHealth(AppClient.ServerEdgeEvent event) {
         if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_APPINST_HEALTH) {
             return false;
         }
@@ -1206,7 +1216,7 @@ public class EdgeEventsConnection {
         return true;
     }
 
-    boolean handleCloudletMaintenance(AppClient.ServerEdgeEvent event) {
+    synchronized boolean handleCloudletMaintenance(AppClient.ServerEdgeEvent event) {
         if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_CLOUDLET_MAINTENANCE) {
             return false;
         }
@@ -1221,7 +1231,7 @@ public class EdgeEventsConnection {
         return true;
     }
 
-    boolean handleCloudletState(AppClient.ServerEdgeEvent event) {
+    synchronized boolean handleCloudletState(AppClient.ServerEdgeEvent event) {
         if (event.getEventType() != ServerEventType.EVENT_CLOUDLET_STATE) {
             return false;
         }
@@ -1250,7 +1260,7 @@ public class EdgeEventsConnection {
     }
     // Only the app knows with any certainty which AppPort (and internal port array)
     // it wants to test, so this is in the application.
-    boolean handleLatencyRequest(AppClient.ServerEdgeEvent event) {
+    synchronized boolean handleLatencyRequest(AppClient.ServerEdgeEvent event) {
         if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_LATENCY_REQUEST) {
             return false;
         }
