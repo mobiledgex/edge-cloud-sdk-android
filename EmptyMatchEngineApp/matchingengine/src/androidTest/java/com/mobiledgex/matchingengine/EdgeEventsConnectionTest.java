@@ -242,6 +242,12 @@ public class EdgeEventsConnectionTest {
             me.setMatchingEngineLocationAllowed(true);
             registerClient(me);
             Location location = getTestLocation();
+
+            EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
+            // Some of this can spuriously break the DME connection for reconnection.
+            config.latencyUpdateConfig.maxNumberOfUpdates = 0;
+            config.locationUpdateConfig.maxNumberOfUpdates = 0;
+
             // Set orgName and location, then override the rest for testing:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setCarrierName(findCloudletCarrierOverride)
@@ -254,10 +260,12 @@ public class EdgeEventsConnectionTest {
             assertEquals("Not successful findCloudlet", FIND_FOUND, findCloudletReply1.getStatus());
 
             // Probably is false, since we didn't wait.
-            CompletableFuture<Boolean> startFuture;
-            boolean bvalue = (startFuture = me.startEdgeEventsFuture(me.createDefaultEdgeEventsConfig())).getNow(false);
+            CompletableFuture<Boolean> startFuture = me.startEdgeEventsFuture(config);
+            boolean bvalue = startFuture.getNow(false);
             assertFalse("Not enough time, likely fails", bvalue);
-            boolean value = me.startEdgeEventsFuture(me.createDefaultEdgeEventsConfig()).get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+
+            // More patient get:
+            boolean value = startFuture.get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             assertTrue("Did not start. Completion failed!", value);
             assertFalse("Should throw no exceptions!", startFuture.isCompletedExceptionally());
 
@@ -267,19 +275,70 @@ public class EdgeEventsConnectionTest {
             assertFalse("Should throw no exceptions!", restartFuture.isCompletedExceptionally());
 
             CompletableFuture<Boolean> stopFuture;
-            boolean stopped = (stopFuture = me.stopEdgeEventsFuture()).get(GRPC_TIMEOUT_MS * 5, TimeUnit.MILLISECONDS);
+            boolean stopped = (stopFuture = me.stopEdgeEventsFuture()).get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             assertTrue("Should stop successfully. Completion failed!", stopped);
             assertFalse("Should throw no exceptions!", stopFuture.isCompletedExceptionally());
+        } catch (Exception e) {
+            Log.e(TAG, "Exception type: " + e.getCause() + ", " + e.getLocalizedMessage());
+            e.printStackTrace();
+            fail("Test failed.");
+        } finally {
+            if (me != null) {
+                me.close();
+            }
+        }
+    }
+
+    @Test
+    public void testEdgeConnectionBasicCompletionFuturesFlow() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        AppClient.FindCloudletReply findCloudletReply1;
+
+        MatchingEngine me = null;
+        try {
+            me = new MatchingEngine(context);
+            me.setMatchingEngineLocationAllowed(true);
+            registerClient(me);
+            Location location = getTestLocation();
+            // Set orgName and location, then override the rest for testing:
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName(findCloudletCarrierOverride)
+                    .build();
+            if (useHostOverride) {
+                findCloudletReply1 = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                findCloudletReply1 = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
+            }
+            assertEquals("Not successful findCloudlet", FIND_FOUND, findCloudletReply1.getStatus());
 
             // Chain. This is rather ugly without Lambda sugar, but generates compatible bytecode.
             // Java Language level MUST be set to 8 (from 2017, gradle 3.0+, Android Studio 3.0+).
-            // TODO: Better return value handling, instead of just exceptions.
             final MatchingEngine finalMe = me;
+            Log.i(TAG, "XXX Starting EdgeEvents CompletableFuture chain test");
             CompletableFuture<Boolean> chainFuture = me.startEdgeEventsFuture(me.createDefaultEdgeEventsConfig())
-                    .thenCompose( b -> finalMe.restartEdgeEventsFuture() )
-                    .thenCompose( b ->  finalMe.stopEdgeEventsFuture() )
-                    .thenApply( b -> {System.out.println("Done!"); return b; })
+                    .thenCompose( b -> {
+                        if (!b) {
+                            throw new CompletionException(new IllegalStateException("Start failed"));
+                        }
+                        Log.i(TAG, "XXX RestartEdgeEvents Completion test");
+                        return finalMe.restartEdgeEventsFuture();
+                    } )
+                    .thenCompose( b -> {
+                        if (!b) {
+                            throw new CompletionException(new IllegalStateException("Restart failed"));
+                        }
+                        Log.i(TAG, "XXX StopEdgeEvents Completion test");
+                        return finalMe.stopEdgeEventsFuture();
+                    })
+                    .thenApply( b -> {
+                        if (!b) {
+                            throw new CompletionException(new IllegalStateException("Stop failed"));
+                        }
+                        Log.i(TAG, "Done!");
+                        return b;
+                    })
                     .exceptionally( ee -> {
+                        // DmeDnsException might happen during reconnection, for example.
                         Log.e(TAG, ee.getLocalizedMessage());
                         ee.printStackTrace();
                         return false;
@@ -287,18 +346,14 @@ public class EdgeEventsConnectionTest {
 
             try {
                 // 4 "pseudo" timeouts plus GRPC await close.
-                boolean chainValue = chainFuture.get(GRPC_TIMEOUT_MS * 4, TimeUnit.MILLISECONDS);
+                boolean chainValue = chainFuture.get(GRPC_TIMEOUT_MS * 7, TimeUnit.MILLISECONDS);
                 assertTrue("Chain failure", chainValue);
             } catch (CompletionException ce) {
                 fail("Should not be here. Reason for failure: " + ce.getMessage());
             }
-
-            boolean exceptionallyComplete = me.restartEdgeEventsFuture().isCompletedExceptionally();
-            assertFalse("Should be a clean run.", exceptionallyComplete);
-
             Log.i(TAG, "Test of chain done.");
         } catch (Exception e) {
-            Log.e(TAG, "Exception: " + e.getLocalizedMessage());
+            Log.e(TAG, "Exception type: " + e.getCause() + ", " + e.getLocalizedMessage());
             e.printStackTrace();
             fail("Test failed.");
         } finally {

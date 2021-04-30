@@ -81,7 +81,6 @@ public class EdgeEventsConnection {
 
     private EdgeEventsConfig mEdgeEventsConfig;
 
-
     /*!
      * The set of EdgeEvents interval tasks.
      */
@@ -174,10 +173,12 @@ public class EdgeEventsConnection {
     }
 
     /*!
-     * Establish an asynchronous DME Connection for streamed EdgeEvents to the current DME edge server.
-     * @param me
+     * EdgeEventsConnection is used to establish an asynchronous DME Connection for streamed EdgeEvents
+     * to the current DME edge server.
+     * \param me the parent MatchingEngine instance.
+     * \param eeConfig the configration to use, when the connection is up.
      */
-    EdgeEventsConnection(MatchingEngine me, EdgeEventsConfig eeConfig) throws DmeDnsException {
+    EdgeEventsConnection(MatchingEngine me, EdgeEventsConfig eeConfig) {
         synchronized (this) {
             hostOverride = null;
             portOverride = 0;
@@ -192,47 +193,6 @@ public class EdgeEventsConnection {
         } else {
             mEdgeEventsConfig = new EdgeEventsConfig(eeConfig);
         }
-
-        try {
-            open();
-        } catch (DmeDnsException dmedns) {
-            Log.e(TAG, "There is no DME to connect to!");
-            throw dmedns;
-        }
-    }
-
-    /*!
-     * Do not use. Internal use only.
-     * \param me
-     */
-    EdgeEventsConnection(MatchingEngine me, String dmeHost, int dmePort, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
-        this.me = me;
-
-        if (eeConfig == null) {
-            Log.w(TAG, "EdgeEventsConfig is required. Using a basic default config because there is none provided.");
-            eeConfig = EdgeEventsConfig.createDefaultEdgeEventsConfig();
-        }
-
-        try {
-            synchronized (this) {
-                hostOverride = dmeHost;
-                portOverride = dmePort;
-                networkOverride = network;
-            }
-
-            if (me.mFindCloudletReply != null &&
-                me.mFindCloudletReply.getEdgeEventsCookie() != null &&
-                me.mFindCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
-                open(dmeHost, dmePort, network, eeConfig);
-            } else {
-                mEdgeEventsConfig = eeConfig; // Don't open, but save for later.
-                Log.w(TAG, "AppInst not found, not opening EdgeEventsConnection");
-            }
-
-        } catch (DmeDnsException dmedns) {
-            Log.e(TAG, "There is no DME to connect to!");
-            throw dmedns;
-        }
     }
 
     boolean awaitOpen() {
@@ -242,22 +202,23 @@ public class EdgeEventsConnection {
             }
             Log.d(TAG, "Not open. Waiting...");
             try {
-                openAwaiter.wait(15 * 1000);
-                if (channelStatus == ChannelStatus.open) {
-                    Log.d(TAG, "Now open.");
-                    return true;
-                }
+                openAwaiter.wait(10 * 1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            Log.d(TAG, "Not open: " + channelStatus);
-            return false;
+            if (channelStatus == ChannelStatus.open) {
+                Log.d(TAG, "Now open.");
+                return true;
+            } else {
+                Log.d(TAG, "Not open: " + channelStatus);
+                return false;
+            }
         }
     }
 
     private void notifyOpenAwaiter() {
         synchronized (openAwaiter) {
-            Log.d(TAG, "Opened EdgeEventsConnection, with synchronized interface waiting. Notify.");
+            Log.d(TAG, "Opened EdgeEventsConnection. Notify.");
             openAwaiter.notifyAll();
         }
     }
@@ -327,12 +288,31 @@ public class EdgeEventsConnection {
         me.getEdgeEventsBus().post(error);
     }
 
+    /*!
+     * Do not use.
+     */
     synchronized public void reconnect() throws DmeDnsException {
+        // using existing config;
+        reconnect(me.generateDmeHostAddress(), me.getPort(), null, mEdgeEventsConfig);
+        hostOverride = null;
+        portOverride = 0;
+        networkOverride = null;
+    }
+
+    /*!
+     * Reconnects the EdgeEventsConnection with current settings. This will block until opened.
+     */
+    synchronized public void reconnect(String host, int port, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
         if (me.isShutdown()) {
             return;
         }
+        hostOverride = host;
+        portOverride = port;
+        networkOverride = network;
+        mEdgeEventsConfig = eeConfig;
         Log.d(TAG, "Reconnecting...");
         channelStatus = ChannelStatus.reconnecting;
+        stopEdgeEvents();
         closeInternal();
 
         if (hostOverride != null && portOverride > 0) {
@@ -360,8 +340,12 @@ public class EdgeEventsConnection {
             postErrorToEventHandler(EdgeEventsError.missingSessionCookie);
             return;
         }
+        awaitOpen();
     }
 
+    /*!
+     * Use this to open a DME connection to nearest DME.
+     */
     synchronized void open() throws DmeDnsException {
         // GenerateDmeHostAddress might actually hit a UI thread exception.
         try {
@@ -429,10 +413,14 @@ public class EdgeEventsConnection {
             public void onNext(AppClient.ServerEdgeEvent value) {
                 // If nothing is subscribed, it just goes to deadEvent.
                 // Raw Events.
-                me.getEdgeEventsBus().post(value);
+                if (me.getEdgeEventsBus() != null) {
+                    me.getEdgeEventsBus().post(value);
+                }
+
                 if (value.getEventType() == ServerEventType.EVENT_INIT_CONNECTION) {
                     channelStatus = ChannelStatus.open;
                     notifyOpenAwaiter();
+                    runEdgeEvents();
                 }
 
                 // Default handler will handle incoming messages if no subscribers are currently observed
@@ -497,6 +485,7 @@ public class EdgeEventsConnection {
      */
     synchronized void closeInternal() {
         Log.d(TAG, "stream closing...");
+        channelStatus = ChannelStatus.closing;
         sender = null;
         receiver = null;
 
@@ -505,38 +494,23 @@ public class EdgeEventsConnection {
         networkOverride = null;
 
         if (channel != null && !isShutdown()) {
-            try {
-                Log.d(TAG, "Awaiting termination...");
-                channel.awaitTermination(5000, TimeUnit.MILLISECONDS);
-                Log.d(TAG, "Done awaiting.");
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            sendTerminate();
         }
         channel = null;
+        channelStatus = ChannelStatus.closed;
         Log.d(TAG, "stream closed!");
     }
 
     /*!
-     * Call this to shutdown EdgeEvents cleanly.
+     * Call this to shutdown EdgeEvents cleanly. Instance cannot be reopened.
      */
     synchronized void close() {
         Log.d(TAG, "close()");
         openAwaiter = null;
-        channelStatus = ChannelStatus.closing;
-
-        try {
-            if (!isShutdown()) {
-                Log.d(TAG, "closing...");
-                stopEdgeEvents();
-                eventBusUnRegister();
-                sendTerminate();
-                closeInternal();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            channelStatus = ChannelStatus.closed;
+        if (!isShutdown()) {
+            Log.d(TAG, "closing...");
+            eventBusUnRegister();
+            closeInternal();
         }
     }
 
@@ -590,9 +564,14 @@ public class EdgeEventsConnection {
         if (sender != null) {
             sender.onNext(clientEdgeEvent);
         }
-        channel.shutdown();
+
         try {
+            channel.shutdown();
+            Log.d(TAG, "Awaiting termination...");
             channel.awaitTermination(5, TimeUnit.SECONDS);
+            Log.d(TAG, "Done awaiting.");
+            receiver = null;
+            sender = null;
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -958,6 +937,9 @@ public class EdgeEventsConnection {
      */
     synchronized public boolean runEdgeEvents() {
         try {
+            if (me.isShutdown()) {
+                return false;
+            }
             if (!me.isEnableEdgeEvents()) {
                 Log.e(TAG, "EdgeEvents are disabled. Managed EdgeEvents disabled.");
                 return false;
@@ -1061,6 +1043,7 @@ public class EdgeEventsConnection {
         for (EdgeEventsIntervalHandler eh : edgeEventsIntervalHandlers) {
             removeEdgeEventsIntervalTask(eh);
         }
+        closeInternal();
     }
 
     // Configured Defaults:
