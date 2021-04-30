@@ -70,6 +70,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
@@ -151,7 +152,11 @@ public class MatchingEngine {
     private boolean isSSLEnabled = true;
     private boolean useOnlyWifi = false;
 
-    private boolean shutdown = false;
+    private AtomicBoolean shutdown = new AtomicBoolean();
+
+    public boolean isShutdown() {
+        return shutdown.get();
+    }
 
     /*!
      * Two modes to call FindCloudlet. First is Proximity (default) which finds the nearest cloudlet based on gps location with application instance
@@ -188,6 +193,7 @@ public class MatchingEngine {
         mNetTest = new NetTest();
         mEnableEdgeEvents = true;
         mEdgeEventBus = new AsyncEventBus(threadpool);
+        mEdgeEventsConnection = new EdgeEventsConnection(this, null);
 
         if (MelMessaging.isMelEnabled()) {
             // Updates and sends for MEL status:
@@ -210,6 +216,7 @@ public class MatchingEngine {
         mNetTest = new NetTest();
         mEnableEdgeEvents = true;
         mEdgeEventBus = new AsyncEventBus(executorService);
+        mEdgeEventsConnection = new EdgeEventsConnection(this, null);
 
         if (MelMessaging.isMelEnabled()) {
             // Updates and sends for MEL status:
@@ -325,8 +332,16 @@ public class MatchingEngine {
             Log.e(TAG, "EdgeEventsConfig should not be null! See createDefaultEdgeEventsConfig(). startEdgeEvents() will create a minimal un-customized basic config for initial use.");
             edgeEventsConfig = createDefaultEdgeEventsConfig();
         }
+        if (isShutdown()) {
+            return false;
+        }
         mAppInitiatedRunEdgeEvents = true;
-        return startEdgeEvents(null, 0, null, edgeEventsConfig);
+        try {
+            return startEdgeEvents(null, 0, null, edgeEventsConfig);
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, "Failed to start DME EdgeEvents Connection, could not create DME hostname. The configuration given will be used for next attempt.");
+            return false;
+        }
     }
 
     // Do not use in production. DME will likely change, this sets the initial DME connection.
@@ -337,7 +352,11 @@ public class MatchingEngine {
         return CompletableFuture.supplyAsync(new Supplier<Boolean>() {
             @Override
             public Boolean get() {
-                return startEdgeEvents(dmeHost, dmePort, network, edgeEventsConfig);
+                try {
+                    return startEdgeEvents(dmeHost, dmePort, network, edgeEventsConfig);
+                } catch (DmeDnsException dde) {
+                    throw new CompletionException(dde);
+                }
             }
         });
     }
@@ -347,7 +366,7 @@ public class MatchingEngine {
     synchronized public boolean startEdgeEvents(String dmeHost,
                                                 int dmePort,
                                                 Network network,
-                                                EdgeEventsConfig edgeEventsConfig) {
+                                                EdgeEventsConfig edgeEventsConfig) throws DmeDnsException {
         warnIfUIThread();
         if (!mEnableEdgeEvents) {
             Log.w(TAG, "EdgeEvents has been disabled.");
@@ -365,25 +384,35 @@ public class MatchingEngine {
             return false; // NOT started.
         }
 
-        // Start, if not already, the edgeEvents connection. It also starts any deferred events.
-        // Reconnecting via FindCloudlet, will also call startEdgeEvents.
-        if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
+        if ((dmeHost == null || dmeHost.isEmpty()) || dmePort <= 0) {
             try {
-                mEdgeEventsConnection = getEdgeEventsConnection(dmeHost, dmePort, network, mEdgeEventsConfig);
+                dmeHost = generateDmeHostAddress();
+                dmePort = port;
             } catch (DmeDnsException dde) {
-                Log.e(TAG, "Exception trying to connect to DME host. Message: " + dde.getLocalizedMessage());
-                throw new CompletionException(dde);
+                Log.e(TAG, "Cannot create EdgeEventsConnection. If needed, use WifiOnly setting.");
+                throw dde;
             }
-            if (mAppInitiatedRunEdgeEvents) {
-                // Stop existing events, let the app take over with it's own config.
-                mEdgeEventsConnection.stopEdgeEvents();
-            }
-            mEdgeEventsConnection.runEdgeEvents();
-            Log.i(TAG, "EdgeEventsConnection is now started.");
-        } else {
-            Log.i(TAG, "EdgeEventsConnection is already running. Stop, before starting a new one.");
         }
 
+        // Start, if not already, the edgeEvents connection. It also starts any deferred events.
+        // Reconnecting via FindCloudlet, will also call startEdgeEvents.
+        if (mEdgeEventsConnection.isShutdown()) {
+            try {
+                mEdgeEventsConnection.open(dmeHost, dmePort, network, edgeEventsConfig);
+            } catch (DmeDnsException e) {
+                Log.e(TAG, "Cannot start edge events. Reason: " + e.getLocalizedMessage());
+                e.printStackTrace();
+            }
+            Log.i(TAG, "EdgeEventsConnection is now started.");
+        } else {
+            try {
+                Log.i(TAG, "EdgeEventsConnection is already running. Restarting.");
+                mEdgeEventsConnection.reconnect(dmeHost, dmePort, network, edgeEventsConfig);
+            } catch (DmeDnsException e) {
+                Log.e(TAG, "Failed to restart connection. DME Host name not found: " + dmeHost);
+                e.printStackTrace();
+            }
+        }
         return true;
     }
 
@@ -419,17 +448,15 @@ public class MatchingEngine {
     synchronized public boolean restartEdgeEvents() throws DmeDnsException {
         try {
             warnIfUIThread();
-            if (mEdgeEventsConnection == null) {
-                mEdgeEventsConnection = getEdgeEventsConnection();
-                if (mEdgeEventsConnection != null) {
-                    return true;
-                }
+            if (isShutdown()) {
+                return false;
             }
-            // Same reconnect:
-            mEdgeEventsConnection.stopEdgeEvents();
-            mEdgeEventsConnection.reconnect();
-            mEdgeEventsConnection.awaitOpen();
-            mEdgeEventsConnection.runEdgeEvents();
+
+            if (mEdgeEventsConnection.isShutdown()) {
+                mEdgeEventsConnection.open();
+            } else {
+                mEdgeEventsConnection.reconnect();
+            }
             return true;
         } catch (DmeDnsException dde) {
             Log.e(TAG, "Background restart failed. Check DME DNS mapping." + dde.getMessage());
@@ -467,12 +494,11 @@ public class MatchingEngine {
     synchronized public boolean stopEdgeEvents() {
         warnIfUIThread();
         mAppInitiatedRunEdgeEvents = false;
-        if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown()) {
+        if (mEdgeEventsConnection.isShutdown()) {
             Log.i(TAG, "EdgeEventsConnection is already stopped.");
             return false;
         }
-        mEdgeEventsConnection.close();
-        mEdgeEventsConnection = null;
+        mEdgeEventsConnection.stopEdgeEvents();
         return true;
     }
 
@@ -513,54 +539,7 @@ public class MatchingEngine {
         return true;
     }
 
-    /*!
-     * Do not use in production.
-     *
-     * Gets or re-establishes a connection to the DME, and returns an EdgeEventsConnection singleton.
-     *
-     * \param dmeHost
-     * \param port
-     * \param network
-     * \param edgeEventsConfig This is a required configuration for edgeEvents.
-     * \return a connected EdgeEventsConnection instance
-     * \throws DmeDnsException
-     * \ingroup functions_dmeapis
-     */
-    synchronized EdgeEventsConnection getEdgeEventsConnection(String dmeHost,
-                                                              int dmePort,
-                                                              Network network,
-                                                              EdgeEventsConfig edgeEventsConfig)
-            throws DmeDnsException {
-        if (shutdown) {
-            Log.e(TAG, "MatchingEngine has been closed.");
-            return null;
-        }
-        if (!mEnableEdgeEvents) {
-            Log.d(TAG, "EdgeEvents has been disabled for this MatchingEngine. Enable to receive EdgeEvents states for your app.");
-            return null;
-        }
 
-        if (edgeEventsConfig == null) {
-            throw new IllegalArgumentException("EdgeEventsConfig is required to get an EdgeEventsConnection. You can create a default one with MatchingEngine createDefaultEdgeEventsConfig()");
-        }
-
-        // Clean:
-        if (mEdgeEventsConnection != null && !mEdgeEventsConnection.isShutdown()) {
-            if (edgeEventsConfig != null) {
-                mEdgeEventsConfig = edgeEventsConfig; // For future use, existing connection will keep config.
-            }
-            return mEdgeEventsConnection;
-        }
-
-        // Open:
-        if (dmeHost == null || dmePort == 0) {
-            mEdgeEventsConnection = new EdgeEventsConnection(this, edgeEventsConfig);
-        } else {
-            mEdgeEventsConnection = new EdgeEventsConnection(this, dmeHost, dmePort, network, edgeEventsConfig);
-        }
-        mEdgeEventsConnection.awaitOpen();
-        return mEdgeEventsConnection;
-    }
 
     /*!
      * Returns an EdgeEventsConnection singleton to call edge events util functions.
@@ -577,28 +556,18 @@ public class MatchingEngine {
         }, threadpool);
     }
 
-    public synchronized EdgeEventsConnection getEdgeEventsConnection() {
+    synchronized public EdgeEventsConnection getEdgeEventsConnection() {
         warnIfUIThread();
-        if (shutdown) {
+        if (isShutdown()) {
             Log.e(TAG, "MatchingEngine has been closed.");
             return null;
         }
         if (mEnableEdgeEvents == false)
         {
-            Log.e(TAG, "EdgeEvents has been disabled.");
+            Log.w(TAG, "EdgeEvents has been disabled.");
             return null;
         }
-        if (mEdgeEventsConnection == null || mEdgeEventsConnection.isShutdown())
-        {
-            Log.w(TAG, "There is no current active EdgeEventsConnection, or is swapping edgeEvents connections if already started.");
-            try {
-                mEdgeEventsConnection = new EdgeEventsConnection(this, mEdgeEventsConfig);
-                mEdgeEventsConnection.awaitOpen();
-                return mEdgeEventsConnection;
-            } catch (DmeDnsException dde) {
-                throw new CompletionException(dde);
-            }
-        }
+
         return mEdgeEventsConnection;
     }
 
@@ -608,6 +577,10 @@ public class MatchingEngine {
      * \ingroup functions_dmeapis
      */
     synchronized public void close() {
+        if (isShutdown()) {
+            return;
+        }
+        Log.d(TAG, "MatchingEngine closing.");
         if (mEdgeEventsConnection != null) {
             mEdgeEventsConnection.close();
         }
@@ -626,7 +599,8 @@ public class MatchingEngine {
         mContext = null;
         mNetworkManager = null;
         mAppConnectionManager = null;
-        shutdown = true;
+        shutdown.set(true);
+        Log.d(TAG, "MatchingEngine closed.");
     }
 
     /*!
