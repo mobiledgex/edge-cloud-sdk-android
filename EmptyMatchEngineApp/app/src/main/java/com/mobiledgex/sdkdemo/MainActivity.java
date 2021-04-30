@@ -551,8 +551,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         netTest.addSite(site);
                         netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
 
-                        if (mMatchingEngine.getEdgeEventsConnection() == null) {
-                            // Might not exist, or is not configured to start.
+                        if (mMatchingEngine.isShutdown()) {
                             return;
                         }
 
