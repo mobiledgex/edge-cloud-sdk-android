@@ -389,6 +389,8 @@ public class EdgeEventsConnectionTest {
 
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
             config.locationUpdateConfig.maxNumberOfUpdates = 0;
+            // Latency too high will trigger more findCloudlets. We're not testing that.
+            config.latencyUpdateConfig.maxNumberOfUpdates = 0;
 
             // Cannot use the older API if overriding.
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(me.mContext, edmontonLoc)
@@ -764,7 +766,7 @@ public class EdgeEventsConnectionTest {
             EdgeEventsConfig edgeEventsConfig = me.createDefaultEdgeEventsConfig(
                     5,
                     5,
-                    50,
+                    500, // We want to measure just the ones we create.
                     ClientEventsConfig.UpdatePattern.onInterval);
             edgeEventsConfig.latencyInternalPort = 2016;
             edgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;
@@ -807,7 +809,9 @@ public class EdgeEventsConnectionTest {
             fail("FindCloudletFuture: InterruptedException!");
         } finally {
             if (me != null) {
+                Log.i(TAG, "Closing matching engine...");
                 me.close();
+                Log.i(TAG, "MatchingEngine clsoed for test.");
             }
         }
     }

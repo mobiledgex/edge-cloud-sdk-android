@@ -795,9 +795,9 @@ public class EdgeEventsConnection {
         // Trigger(s):
         if (site.average >= mEdgeEventsConfig.latencyThresholdTrigger) {
             Log.i(TAG, "Latency higher than requested during Ping latency test.");
-            //if (!doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh)) {
-            //    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
-            //};
+            if (!doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh)) {
+                postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+            };
         }
 
         for (int i = 0; i < site.samples.length; i++) {
@@ -890,9 +890,9 @@ public class EdgeEventsConnection {
         // Trigger(s):
         if (site.average >= mEdgeEventsConfig.latencyThresholdTrigger) {
             Log.i(TAG, "Latency higher than requested during Connect latency test.");
-            //if (!doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh)) {
-            //    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
-            //}
+            if (!doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh)) {
+                postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+            }
         }
 
         for (int i = 0; i < site.samples.length; i++) {
