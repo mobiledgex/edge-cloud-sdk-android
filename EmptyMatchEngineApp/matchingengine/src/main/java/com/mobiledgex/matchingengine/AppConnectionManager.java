@@ -505,6 +505,11 @@ public class AppConnectionManager {
         return appPort.getFqdnPrefix() + findCloudletReply.getFqdn();
     }
 
+    public String getHost(FindCloudletReply findCloudletReply, int internalPort) {
+        AppPort appPort = getAppPort(findCloudletReply, internalPort);
+        return appPort.getFqdnPrefix() + findCloudletReply.getFqdn();
+    }
+
     /*!
      * Returns the port of the developers app backend service based on the appPort provided.
      * An optional desiredPort parameter is provided if the developer wants a specific port within their appPort port range (if none provided, the function will default to the public_port field in the AppPort).

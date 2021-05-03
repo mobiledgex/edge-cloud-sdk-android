@@ -361,7 +361,7 @@ public class FindCloudlet implements Callable {
         // Create message channel for DME EdgeEvents:
         if (fcReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
             try {
-                mMatchingEngine.startEdgeEvents(mHost, mPort, network, mMatchingEngine.mEdgeEventsConfig);
+                mMatchingEngine.startEdgeEvents(mMatchingEngine.mEdgeEventsConfig);
             } catch (Exception e) {
                 // Non fatal, but print an error. No background events available.
                 Log.e(TAG, "Configured EdgeEventsConfig background tasks cannot be started. Exception was: " + e.getMessage());

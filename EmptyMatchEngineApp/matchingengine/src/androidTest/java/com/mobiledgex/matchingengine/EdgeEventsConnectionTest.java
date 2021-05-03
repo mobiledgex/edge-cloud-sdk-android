@@ -99,7 +99,9 @@ public class EdgeEventsConnectionTest {
         void HandleEdgeEvent(FindCloudletEvent fce) {
             Log.d(TAG, "Have new Cloudlet! " + fce.newCloudlet);
             assertNotNull("Should have a Cloudlet!", fce.newCloudlet);
-            assertSame("Should be a CloserCloudlet trigger!", fce.trigger, FindCloudletEventTrigger.CloserCloudlet);
+            assertTrue("Generic Receiver instance should get a CloserCloudlet or LatencyTooHigh trigger!",
+                    fce.trigger == FindCloudletEventTrigger.CloserCloudlet ||
+                    fce.trigger == FindCloudletEventTrigger.LatencyTooHigh);
             responses.add(fce);
             if (latch == null) {
                 return;
@@ -358,7 +360,9 @@ public class EdgeEventsConnectionTest {
             fail("Test failed.");
         } finally {
             if (me != null) {
+                Log.i(TAG, "Closing test case...");
                 me.close();
+                Log.i(TAG, "Closed test case.");
             }
         }
     }
@@ -467,7 +471,6 @@ public class EdgeEventsConnectionTest {
         AppClient.FindCloudletReply findCloudletReply1;
 
         try {
-            Location location = getTestLocation();
             registerClient(me);
 
             me.setAutoMigrateEdgeEventsConnection(false);
@@ -550,6 +553,167 @@ public class EdgeEventsConnectionTest {
             me.close();
         }
     }
+
+    @Test
+    public void LocationUtilEdgeEventsTest_LatencyTooHigh() {
+        LooperEnsure();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+        EventReceiver er = new EventReceiver();
+        me.getEdgeEventsBus().register(er); // Resettable latch.
+
+        Future<AppClient.FindCloudletReply> response1;
+        AppClient.FindCloudletReply findCloudletReply1;
+
+        try {
+            registerClient(me);
+
+            // Cannot use the older API if overriding.
+            // Mocks needed to prevent real locaiton messing with results;
+            EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
+            config.locationUpdateConfig.maxNumberOfUpdates = 0;
+            config.latencyUpdateConfig.maxNumberOfUpdates = 1;
+            config.latencyThresholdTrigger = 10; // Likely very low for our test servers.
+
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, edmontonLoc)
+                    .setCarrierName(findCloudletCarrierOverride)
+                    .build();
+
+            if (useHostOverride) {
+                response1 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
+                        MatchingEngine.FindCloudletMode.PROXIMITY);
+                // start on response1
+                me.startEdgeEvents(hostOverride, portOverride, null, config);
+            } else {
+                response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
+                // start on response1
+                // Do not use the futures version, if not on thread. get() will deadlock thread.
+                me.startEdgeEvents(config);
+            }
+
+            findCloudletReply1 = response1.get();
+
+            assertSame("FindCloudlet1 did not succeed!",  AppClient.FindCloudletReply.FindStatus.FIND_FOUND, findCloudletReply1.getStatus());
+
+            Log.w(TAG, "Setting test to NOT autoMigrate DME connection");
+
+
+            // Waiting for 1 (or more).
+            er.setLatch(1);
+            er.latch.await(20, TimeUnit.SECONDS);
+
+            assertTrue("Expected that the configured latency is too high!", er.latch.getCount() == 0);
+            assertTrue("Response must be too high.", er.responses.peek().trigger == FindCloudletEventTrigger.LatencyTooHigh);
+
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            fail("FindCloudletFuture: DmeDnsException");
+        } catch (ExecutionException ee) {
+            Log.e(TAG, Log.getStackTraceString(ee));
+            fail("FindCloudletFuture: ExecutionExecution!");
+        } catch (InterruptedException ie) {
+            Log.e(TAG, Log.getStackTraceString(ie));
+            fail("FindCloudletFuture: InterruptedException!");
+        } finally {
+            me.close();
+        }
+    }
+
+    @Test
+    public void LocationUtilEdgeEventsTest_Not_LatencyTooHigh() {
+        LooperEnsure();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+
+        class EventReceiver2 {
+            ConcurrentLinkedQueue<FindCloudletEvent> responses;
+            CountDownLatch latch;
+
+            public EventReceiver2() {
+                responses = new ConcurrentLinkedQueue<>();
+            }
+
+            public CountDownLatch setLatch(int count) {
+                return latch = new CountDownLatch(count);
+            }
+
+            @Subscribe
+            void HandleEdgeEvent(FindCloudletEvent fce) {
+                Log.d(TAG, "Have new Cloudlet! " + fce.newCloudlet);
+                assertNotNull("Should have a Cloudlet!", fce.newCloudlet);
+                assertTrue("Should be a LatencyTooHigh trigger!",fce.trigger == FindCloudletEventTrigger.LatencyTooHigh);
+                responses.add(fce);
+                if (latch == null) {
+                    return;
+                }
+                latch.countDown();
+            }
+        }
+        EventReceiver2 er = new EventReceiver2();
+        me.getEdgeEventsBus().register(er); // Resettable latch.
+
+        Future < AppClient.FindCloudletReply > response1;
+        AppClient.FindCloudletReply findCloudletReply1;
+
+        try {
+            registerClient(me);
+
+            // Cannot use the older API if overriding.
+            // Mocks needed to prevent real locaiton messing with results;
+            EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
+            config.locationUpdateConfig.maxNumberOfUpdates = 0;
+            config.latencyUpdateConfig.maxNumberOfUpdates = 1;
+            config.latencyThresholdTrigger = 300; // Likely very high for our test servers.
+
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, edmontonLoc)
+                    .setCarrierName(findCloudletCarrierOverride)
+                    .build();
+
+            if (useHostOverride) {
+                response1 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
+                        MatchingEngine.FindCloudletMode.PROXIMITY);
+                // start on response1
+                me.startEdgeEvents(hostOverride, portOverride, null, config);
+            } else {
+                response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
+                // start on response1
+                // Do not use the futures version, if not on thread. get() will deadlock thread.
+                me.startEdgeEvents(config);
+            }
+
+            findCloudletReply1 = response1.get();
+
+            assertSame("FindCloudlet1 did not succeed!",  AppClient.FindCloudletReply.FindStatus.FIND_FOUND, findCloudletReply1.getStatus());
+
+            Log.w(TAG, "Setting test to NOT autoMigrate DME connection");
+
+
+            // Waiting for 1 (or more).
+            int latchSize = 1;
+            er.setLatch(latchSize);
+            er.latch.await(20, TimeUnit.SECONDS);
+            assertTrue("Should not have triggered too high latency! Should still original value set!", er.latch.getCount() == latchSize);
+
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            fail("FindCloudletFuture: DmeDnsException");
+        } catch (ExecutionException ee) {
+            Log.e(TAG, Log.getStackTraceString(ee));
+            fail("FindCloudletFuture: ExecutionExecution!");
+        } catch (InterruptedException ie) {
+            Log.e(TAG, Log.getStackTraceString(ie));
+            fail("FindCloudletFuture: InterruptedException!");
+        } finally {
+            me.close();
+        }
+    }
+
 
     @Test
     public void LatencyUtilEdgeEventsTest() {
