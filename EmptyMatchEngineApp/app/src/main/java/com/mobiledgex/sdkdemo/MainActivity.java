@@ -559,10 +559,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                                 mLastLocationResult == null ? null : mLastLocationResult.getLastLocation());
 
                         // Post with Ping Util:
-                        mMatchingEngine.getEdgeEventsConnection().testPingAndPostLatencyUpdate(host, mLastLocationResult.getLastLocation());
+                        mMatchingEngine.getEdgeEventsConnection().testPingAndPostLatencyUpdate(mLastLocationResult.getLastLocation());
 
                         // Post with Connect Util:
-                        mMatchingEngine.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(host, publicPort, mLastLocationResult.getLastLocation());
+                        mMatchingEngine.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(mLastLocationResult.getLastLocation());
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

@@ -1,6 +1,5 @@
 package com.mobiledgex.matchingengine;
 
-
 import android.location.Location;
 import android.net.Network;
 import android.os.NetworkOnMainThreadException;
@@ -21,6 +20,7 @@ import com.mobiledgex.matchingengine.util.MeLocation;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -220,6 +220,7 @@ public class EdgeEventsConnection {
         synchronized (openAwaiter) {
             Log.d(TAG, "Opened EdgeEventsConnection. Notify.");
             openAwaiter.notifyAll();
+            Log.d(TAG, "Done notifying.");
         }
     }
 
@@ -259,7 +260,7 @@ public class EdgeEventsConnection {
         return true;
     }
 
-    private void postToFindCloudletEventHandler(FindCloudletEvent findCloudletEvent) {
+    synchronized private void postToFindCloudletEventHandler(FindCloudletEvent findCloudletEvent) {
         Log.d(TAG, "postToFindCloudletEventHandler");
         if (!validateFindCloudlet(findCloudletEvent.newCloudlet)) {
             postErrorToEventHandler(EdgeEventsError.missingEdgeEventsConfig);
@@ -284,12 +285,12 @@ public class EdgeEventsConnection {
      * The EdgeEventsConfig monitor may encounter errors that need to be reported. This reports it on
      * the subscribed event bus;
      */
-    private void postErrorToEventHandler(EdgeEventsError error) {
+    synchronized private void postErrorToEventHandler(EdgeEventsError error) {
         me.getEdgeEventsBus().post(error);
     }
 
     /*!
-     * Do not use.
+     * Reconnects the EdgeEventsConnection with current settings. This will block until opened.
      */
     synchronized public void reconnect() throws DmeDnsException {
         // using existing config;
@@ -299,9 +300,6 @@ public class EdgeEventsConnection {
         networkOverride = null;
     }
 
-    /*!
-     * Reconnects the EdgeEventsConnection with current settings. This will block until opened.
-     */
     synchronized public void reconnect(String host, int port, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
         if (me.isShutdown()) {
             return;
@@ -504,13 +502,17 @@ public class EdgeEventsConnection {
     /*!
      * Call this to shutdown EdgeEvents cleanly. Instance cannot be reopened.
      */
-    synchronized void close() {
-        Log.d(TAG, "close()");
-        openAwaiter = null;
-        if (!isShutdown()) {
-            Log.d(TAG, "closing...");
-            eventBusUnRegister();
-            closeInternal();
+    void close() {
+        synchronized (openAwaiter) {
+            openAwaiter.notifyAll();
+            openAwaiter = null;
+        }
+        synchronized (this) {
+            if (!isShutdown()) {
+                Log.d(TAG, "closing...");
+                eventBusUnRegister();
+                closeInternal();
+            }
         }
     }
 
@@ -655,7 +657,7 @@ public class EdgeEventsConnection {
     }
 
     /*!
-     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
+     * Outbound ClientEdgeEvent to DME. Post already collected site statistics.
      * A DME administrator of your Application may request an client application to collect performance
      * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
@@ -722,29 +724,13 @@ public class EdgeEventsConnection {
     /*!
      * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
      * A DME administrator of your Application may request an client application to collect performance
-     * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
+     * stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
-     * \param host string uri of the site to test with Ping (from default network network interface)
-     * \param location
-     * \return boolean indicating whether the site results are posted or not.
-     * \ingroup functions_edge_events_api
-     */
-    synchronized public boolean testPingAndPostLatencyUpdate(String host, Location location) {
-        return testPingAndPostLatencyUpdate(host, location, DEFAULT_NUM_SAMPLES);
-    }
-
-    /*!
-     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
-     * A DME administrator of your Application may request an client application to collect performance
-     * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
-     *
-     * \param site
      * \param android format location
-     * \param number of samples to test.
      * \return boolean indicating whether the site results are posted or not.
      * \ingroup functions_edge_events_api
      */
-    synchronized public boolean testPingAndPostLatencyUpdate(String host, Location location, int numSamples) {
+    synchronized public boolean testPingAndPostLatencyUpdate(Location location) {
         if (me.isShutdown()) {
             return false;
         }
@@ -769,6 +755,14 @@ public class EdgeEventsConnection {
             return false;
         }
 
+        AppClient.FindCloudletReply lastFc = me.getLastFindCloudletReply();
+        if (lastFc == null || lastFc.getStatus() != AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
+            Log.w(TAG, "Unable to test. A previous successful FindCloudletReply is required to test edge AppInst");
+            return false;
+        }
+        String host = me.getAppConnectionManager().getHost(lastFc, mEdgeEventsConfig.latencyInternalPort);
+        int port = me.getAppConnectionManager().getPublicPort(lastFc, mEdgeEventsConfig.latencyInternalPort);
+
         if (host == null || host.length() == 0) {
             // No results to post.
             Log.e(TAG, "host cannot be null.");
@@ -783,14 +777,21 @@ public class EdgeEventsConnection {
             clientEdgeEventBuilder.mergeDeviceInfo(deviceInfo);
         }
 
-        if (numSamples == 0) {
-            numSamples = DEFAULT_NUM_SAMPLES;
-        }
-        Site site = new Site(me.mContext, NetTest.TestType.PING, numSamples, host, 0);
+        Site site = new Site(me.mContext, NetTest.TestType.PING,
+                mEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates,
+                host, port);
         NetTest netTest = new NetTest();
         netTest.addSite(site);
         // Test list of sites:
         netTest.testSites(netTest.TestTimeoutMS);
+
+        // Trigger(s):
+        if (site.average >= mEdgeEventsConfig.latencyThresholdTrigger) {
+            Log.i(TAG, "Latency higher than requested during Ping latency test.");
+            if (!doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh)) {
+                postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+            };
+        }
 
         for (int i = 0; i < site.samples.length; i++) {
             LocOuterClass.Sample.Builder sampleBuilder = LocOuterClass.Sample.newBuilder()
@@ -814,32 +815,30 @@ public class EdgeEventsConnection {
      * A DME administrator of your Application may request an client application to collect performance
      * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
-     * This utility function uses the default network path. It does not swap networks.
+     * This utility function uses the default network path. It does not swap network interfaces.
      *
-     * \param site
-     * \param location
-     * \return boolean indicating whether the site results are posted or not.
-     * \ingroup functions_edge_events_api
-     */
-    synchronized public boolean testConnectAndPostLatencyUpdate(String host, int port, Location location) {
-        return testConnectAndPostLatencyUpdate(host, port, location, DEFAULT_NUM_SAMPLES);
-    }
-
-    /*!
-     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
-     * A DME administrator of your Application may request an client application to collect performance
-     * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
-     *
-     * This utility function uses the default network path. It does not swap networks.
-     *
-     * \param host
-     * \param port
      * \param android format GPS location.
      * \param number of samples to test
      * \return boolean indicating whether the site results are posted or not.
      * \ingroup functions_edge_events_api
      */
-    synchronized public boolean testConnectAndPostLatencyUpdate(String host, int port, Location location, int numSamples) {
+    synchronized public boolean testConnectAndPostLatencyUpdate(Location location) {
+        return testConnectAndPostLatencyUpdate(0, location);
+    }
+
+    /*!
+     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
+     * A DME administrator of your Application may request an client application to collect performance
+     * stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
+     *
+     * This utility function uses the default network path. It does not swap network interfaces.
+     *
+     * \param internalPort the internal port of your App definition. Not the public mapped port for the edge instance.
+     * \param android format GPS location.
+     * \return boolean indicating whether the site results are posted or not.
+     * \ingroup functions_edge_events_api
+     */
+    synchronized public boolean testConnectAndPostLatencyUpdate(int internalPort, Location location) {
         if (me.isShutdown()) {
             return false;
         }
@@ -848,6 +847,17 @@ public class EdgeEventsConnection {
         }
 
         LocOuterClass.Loc loc = null;
+
+        AppClient.FindCloudletReply lastFc = me.getLastFindCloudletReply();
+        if (lastFc == null || lastFc.getStatus() != AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
+            Log.w(TAG, "Unable to test. A previous successful FindCloudletReply is required to test edge AppInst");
+            return false;
+        }
+        String host = me.getAppConnectionManager().getHost(lastFc, mEdgeEventsConfig.latencyInternalPort);
+        int port = internalPort;
+        if (port <= 0) {
+            port = me.getAppConnectionManager().getPublicPort(lastFc, mEdgeEventsConfig.latencyInternalPort);
+        }
 
         if (host == null || host.length() == 0) {
             // No results to post.
@@ -878,15 +888,22 @@ public class EdgeEventsConnection {
                 .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LATENCY_SAMPLES)
                 .setGpsLocation(loc);
 
-        if (numSamples == 0) {
-            numSamples = DEFAULT_NUM_SAMPLES;
-        }
-
-        Site site = new Site(me.mContext, NetTest.TestType.CONNECT, numSamples, host, port);
+        Site site = new Site(me.mContext, NetTest.TestType.CONNECT,
+                mEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates,
+                host,
+                port);
         NetTest netTest = new NetTest();
         netTest.addSite(site);
         // Test list of sites:
         netTest.testSites(netTest.TestTimeoutMS);
+
+        // Trigger(s):
+        if (site.average >= mEdgeEventsConfig.latencyThresholdTrigger) {
+            Log.i(TAG, "Latency higher than requested during Connect latency test.");
+            if (!doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh)) {
+                postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+            }
+        }
 
         for (int i = 0; i < site.samples.length; i++) {
             LocOuterClass.Sample.Builder sampleBuilder = LocOuterClass.Sample.newBuilder()
@@ -973,8 +990,7 @@ public class EdgeEventsConnection {
             validateStartConfig(host, mEdgeEventsConfig);
 
             // Known Scheduled Timer tasks:
-            // TODO: Refactor to handle configs more generically.
-            runLatencyMonitorConfig(host, publicPort);
+            runLatencyMonitorConfig();
             runLocationMonitorConfig();
 
             // Launched Scheduled tasks.
@@ -1010,16 +1026,16 @@ public class EdgeEventsConnection {
         }
     }
 
-    synchronized private void runLatencyMonitorConfig(String host, int publicPort) {
+    synchronized private void runLatencyMonitorConfig() {
         if (mEdgeEventsConfig.latencyUpdateConfig != null) {
             ClientEventsConfig latencyUpdateConfig = mEdgeEventsConfig.latencyUpdateConfig;
 
             switch (latencyUpdateConfig.updatePattern) {
                 case onStart:
-                    if (publicPort <= 0) {
-                        testPingAndPostLatencyUpdate(host, getLastLocationPosted());
+                    if (mEdgeEventsConfig.latencyInternalPort <= 0) {
+                        testPingAndPostLatencyUpdate(getLastLocationPosted());
                     } else {
-                        testConnectAndPostLatencyUpdate(host, publicPort, getLastLocationPosted());
+                        testConnectAndPostLatencyUpdate(getLastLocationPosted());
                     }
                     break;
                 case onTrigger:
@@ -1027,13 +1043,9 @@ public class EdgeEventsConnection {
                     break;
                 case onInterval:
                     // Last FindCloudlet
-                    eventBusRegister(); // Attach Subscriber, to handle triggers and montoriing by interval.
+                    eventBusRegister(); // Attach Subscriber, to handle triggers and monitoring by interval.
                     // Add to a list of known EdgeEvent Testing Handlers
-                    addEdgeEventsIntervalTask(
-                            new EdgeEventsLatencyIntervalHandler(
-                                    me, host, publicPort,
-                                    mEdgeEventsConfig.latencyTestType,
-                                    latencyUpdateConfig));
+                    addEdgeEventsIntervalTask(new EdgeEventsLatencyIntervalHandler(me, mEdgeEventsConfig.latencyTestType, latencyUpdateConfig));
                     break;
             }
         }
@@ -1051,6 +1063,11 @@ public class EdgeEventsConnection {
     // It should not be subscribed, it is directly called if DeadEvents is observed.
     private boolean HandleDefaultEdgeEvents(AppClient.ServerEdgeEvent event) {
         boolean ret = true;
+
+        if (isShutdown()) {
+            Log.e(TAG, "Received events after shutdown at EdgeEvents handler. Not sending.");
+            return false;
+        }
 
         switch (event.getEventType()) {
             case EVENT_INIT_CONNECTION:
@@ -1096,8 +1113,10 @@ public class EdgeEventsConnection {
 
     // Non raw ServerEdgeEvent.
     synchronized boolean doClientFindCloudlet(FindCloudletEventTrigger reason) {
-
-        Location loc = null;
+        if (isShutdown()) {
+            return false;
+        }
+        Location loc;
 
         // Need app details to attempt posting.
         if (me.getLastRegisterClientRequest() == null) {
@@ -1108,8 +1127,12 @@ public class EdgeEventsConnection {
         }
 
         // FindCloudlet need location:
-        if (getLastLocationPosted() == null) {
-            return false;
+        loc = getLastLocationPosted();
+        if (loc == null) {
+            loc = getLocation();
+            if (loc == null) {
+                return false;
+            }
         }
 
         AppClient.FindCloudletRequest request = me.createDefaultFindCloudletRequest(me.mContext, loc)
@@ -1270,11 +1293,8 @@ public class EdgeEventsConnection {
                         return false;
                     }
 
-                    if (mEdgeEventsConfig.latencyInternalPort == 0 || mEdgeEventsConfig.latencyTestType == NetTest.TestType.PING) {
-                        Appcommon.AppPort aPort = me.mFindCloudletReply.getPortsList().get(0);
-                        // Only host matters for Ping.
-                        String host = aPort.getFqdnPrefix() + me.mFindCloudletReply.getFqdn();
-                        me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(host, mLastLocationPosted);
+                    if (mEdgeEventsConfig.latencyInternalPort <= 0 || mEdgeEventsConfig.latencyTestType == NetTest.TestType.PING) {
+                        me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(getLastLocationPosted());
                         return false;
                     }
 
@@ -1299,10 +1319,6 @@ public class EdgeEventsConnection {
                         if (!doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh)) {
                             postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
                         };
-                    }
-
-                    if (getLastLocationPosted() == null) {
-                        return false;
                     }
 
                     return me.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host), getLastLocationPosted());

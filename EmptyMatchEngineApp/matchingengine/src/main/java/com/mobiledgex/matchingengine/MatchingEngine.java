@@ -765,6 +765,13 @@ public class MatchingEngine {
         mVerifyLocationReply = locationVerify;
     }
 
+    synchronized public FindCloudletReply getLastFindCloudletReply() {
+        if (mFindCloudletReply == null) {
+            return null;
+        }
+        return FindCloudletReply.newBuilder(mFindCloudletReply).build();
+    }
+
     synchronized void setFindCloudletResponse(AppClient.FindCloudletReply reply) {
         mFindCloudletReply = reply;
     }

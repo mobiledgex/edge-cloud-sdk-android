@@ -66,6 +66,9 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
                     Log.w(TAG, "EdgeEventsConnection is not currently available.");
                     return;
                 }
+                // Permissions required, and could return null.
+                location = me.getEdgeEventsConnection().getLocation();
+
                 edgeEventsConnection.postLocationUpdate(location);
             } else {
                 Log.i(TAG, "Timer task complete.");

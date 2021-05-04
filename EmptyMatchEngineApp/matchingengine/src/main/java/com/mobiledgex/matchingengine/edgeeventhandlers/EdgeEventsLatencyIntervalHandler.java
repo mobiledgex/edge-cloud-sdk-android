@@ -26,6 +26,8 @@ import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 
 import java.util.TimerTask;
 
+import distributed_match_engine.AppClient;
+
 public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler {
 
     public final static String TAG = "EdgeEventsLocationIntervalHandler";
@@ -33,14 +35,11 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler 
 
     String host;
     int publicPort;
-    NetTest.TestType testType;
 
-    public EdgeEventsLatencyIntervalHandler(MatchingEngine matchingEngine, String host, int publicPort, NetTest.TestType testType, ClientEventsConfig config) {
+    public EdgeEventsLatencyIntervalHandler(MatchingEngine matchingEngine, NetTest.TestType testType, ClientEventsConfig config) {
         super();
         me = matchingEngine;
-        this.host = host;
-        this.publicPort = publicPort;
-        this.testType = testType;
+
         ClientEventsConfig cfg = new ClientEventsConfig(config);
 
         if (me == null) {
@@ -51,7 +50,7 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler 
 
             cfg.updateIntervalSeconds = 30;
         }
-        timer.schedule(new EdgeEventsLatencyIntervalHandler.LatencyTask(cfg),
+        timer.schedule(new EdgeEventsLatencyIntervalHandler.LatencyTask(testType, cfg),
                 0, // initial delay
                 (long)(cfg.updateIntervalSeconds * 1000)); // milliseconds interval
     }
@@ -60,12 +59,20 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler 
         ClientEventsConfig ceConfig;
         Location location = null;
 
-        LatencyTask(ClientEventsConfig clientEventsConfig) {
+        NetTest.TestType testType;
+
+        LatencyTask(NetTest.TestType testType, ClientEventsConfig clientEventsConfig) {
             ceConfig = clientEventsConfig;
             getNumberOfTimesExecuted = 0;
+            this.testType = testType;
         }
 
         public void run() {
+            AppClient.FindCloudletReply lastFc = me.getLastFindCloudletReply();
+            if (lastFc == null) {
+                return;
+            }
+
             if (getNumberOfTimesExecuted < ceConfig.maxNumberOfUpdates) {
                 getNumberOfTimesExecuted++;
                 EdgeEventsConnection edgeEventsConnection = me.getEdgeEventsConnection();
@@ -73,13 +80,16 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler 
                     Log.w(TAG, "EdgeEventsConnection is not currently available");
                     return;
                 }
+
+                // Permissions required, and could return null.
+                location = me.getEdgeEventsConnection().getLocation();
                 // By config:
                 switch (testType) {
                     case PING:
-                        edgeEventsConnection.testPingAndPostLatencyUpdate(host, location, ceConfig.maxNumberOfUpdates);
+                        edgeEventsConnection.testPingAndPostLatencyUpdate(location);
                         break;
                     case CONNECT:
-                        edgeEventsConnection.testConnectAndPostLatencyUpdate(host, publicPort, location, ceConfig.maxNumberOfUpdates);
+                        edgeEventsConnection.testConnectAndPostLatencyUpdate(location);
                         break;
                     default:
                         Log.e(TAG, "Unexpected test type: " + testType);
