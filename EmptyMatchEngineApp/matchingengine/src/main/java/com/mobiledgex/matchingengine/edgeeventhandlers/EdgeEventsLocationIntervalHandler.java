@@ -67,7 +67,7 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
                     return;
                 }
                 // Permissions required, and could return null.
-                //location = me.getEdgeEventsConnection().getLocation();
+                location = me.getEdgeEventsConnection().getLocation();
 
                 edgeEventsConnection.postLocationUpdate(location);
             } else {

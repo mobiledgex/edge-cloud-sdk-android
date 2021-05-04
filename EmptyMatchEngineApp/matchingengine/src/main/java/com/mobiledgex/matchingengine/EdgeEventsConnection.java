@@ -1,13 +1,9 @@
 package com.mobiledgex.matchingengine;
 
-
-import android.Manifest;
 import android.location.Location;
 import android.net.Network;
 import android.os.NetworkOnMainThreadException;
 import android.util.Log;
-
-import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.Subscribe;
@@ -21,7 +17,6 @@ import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEventTrigger;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.MeLocation;
-import com.mobiledgex.matchingengine.util.RequestPermissions;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -662,7 +657,7 @@ public class EdgeEventsConnection {
     }
 
     /*!
-     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
+     * Outbound ClientEdgeEvent to DME. Post already collected site statistics.
      * A DME administrator of your Application may request an client application to collect performance
      * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
@@ -729,11 +724,9 @@ public class EdgeEventsConnection {
     /*!
      * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
      * A DME administrator of your Application may request an client application to collect performance
-     * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
+     * stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
-     * \param site
      * \param android format location
-     * \param number of samples to test.
      * \return boolean indicating whether the site results are posted or not.
      * \ingroup functions_edge_events_api
      */
@@ -822,16 +815,30 @@ public class EdgeEventsConnection {
      * A DME administrator of your Application may request an client application to collect performance
      * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
      *
-     * This utility function uses the default network path. It does not swap networks.
+     * This utility function uses the default network path. It does not swap network interfaces.
      *
-     * \param host
-     * \param port
      * \param android format GPS location.
      * \param number of samples to test
      * \return boolean indicating whether the site results are posted or not.
      * \ingroup functions_edge_events_api
      */
     synchronized public boolean testConnectAndPostLatencyUpdate(Location location) {
+        return testConnectAndPostLatencyUpdate(0, location);
+    }
+
+    /*!
+     * Outbound ClientEdgeEvent to DME. Post site statistics with the most recent FindCloudletReply.
+     * A DME administrator of your Application may request an client application to collect performance
+     * stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
+     *
+     * This utility function uses the default network path. It does not swap network interfaces.
+     *
+     * \param internalPort the internal port of your App definition. Not the public mapped port for the edge instance.
+     * \param android format GPS location.
+     * \return boolean indicating whether the site results are posted or not.
+     * \ingroup functions_edge_events_api
+     */
+    synchronized public boolean testConnectAndPostLatencyUpdate(int internalPort, Location location) {
         if (me.isShutdown()) {
             return false;
         }
@@ -847,7 +854,10 @@ public class EdgeEventsConnection {
             return false;
         }
         String host = me.getAppConnectionManager().getHost(lastFc, mEdgeEventsConfig.latencyInternalPort);
-        int port = me.getAppConnectionManager().getPublicPort(lastFc, mEdgeEventsConfig.latencyInternalPort);
+        int port = internalPort;
+        if (port <= 0) {
+            port = me.getAppConnectionManager().getPublicPort(lastFc, mEdgeEventsConfig.latencyInternalPort);
+        }
 
         if (host == null || host.length() == 0) {
             // No results to post.
@@ -980,7 +990,6 @@ public class EdgeEventsConnection {
             validateStartConfig(host, mEdgeEventsConfig);
 
             // Known Scheduled Timer tasks:
-            // TODO: Refactor to handle configs more generically.
             runLatencyMonitorConfig();
             runLocationMonitorConfig();
 
@@ -1034,7 +1043,7 @@ public class EdgeEventsConnection {
                     break;
                 case onInterval:
                     // Last FindCloudlet
-                    eventBusRegister(); // Attach Subscriber, to handle triggers and montoriing by interval.
+                    eventBusRegister(); // Attach Subscriber, to handle triggers and monitoring by interval.
                     // Add to a list of known EdgeEvent Testing Handlers
                     addEdgeEventsIntervalTask(new EdgeEventsLatencyIntervalHandler(me, mEdgeEventsConfig.latencyTestType, latencyUpdateConfig));
                     break;
