@@ -271,13 +271,13 @@ public class EdgeEventsConnection {
         }
 
         // Post to interested subscribers.
-        boolean subbed = false;
+        boolean subscribed = false;
         if (mEdgeEventsConfig.triggers != null &&
             mEdgeEventsConfig.triggers.contains(findCloudletEvent.trigger)) {
-            subbed = true;
+            subscribed = true;
         }
 
-        if (subbed) {
+        if (subscribed) {
             me.getEdgeEventsBus().post(findCloudletEvent);
         }
     }
@@ -1138,7 +1138,10 @@ public class EdgeEventsConnection {
                 .build();
 
         try {
-            AppClient.FindCloudletReply reply = me.findCloudlet(request, me.getNetworkManager().getTimeout());
+            AppClient.FindCloudletReply reply = me.findCloudlet(
+                    request,
+                    me.getNetworkManager().getTimeout(),
+                    MatchingEngine.FindCloudletMode.PERFORMANCE);
             if (reply != null) {
                 FindCloudletEvent event = new FindCloudletEvent(reply, reason);
 
@@ -1265,7 +1268,7 @@ public class EdgeEventsConnection {
         switch (event.getCloudletState()) {
             // Informational:
             case CLOUDLET_STATE_READY:
-                Log.i(TAG,"Informatioonal cloudletState is ready and OK. Reason: " + event.getCloudletState());
+                Log.i(TAG,"Informational cloudletState is ready and OK. Reason: " + event.getCloudletState());
                 break;
             // Handle event:
             case CLOUDLET_STATE_UNKNOWN:
