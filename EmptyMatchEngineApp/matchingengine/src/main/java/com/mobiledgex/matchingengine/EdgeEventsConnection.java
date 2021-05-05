@@ -777,7 +777,7 @@ public class EdgeEventsConnection {
         }
 
         Site site = new Site(me.mContext, NetTest.TestType.PING,
-                mEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates,
+                Site.DEFAULT_NUM_SAMPLES,
                 host, port);
         NetTest netTest = new NetTest();
         netTest.addSite(site);
@@ -888,7 +888,7 @@ public class EdgeEventsConnection {
                 .setGpsLocation(loc);
 
         Site site = new Site(me.mContext, NetTest.TestType.CONNECT,
-                mEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates,
+                Site.DEFAULT_NUM_SAMPLES,
                 host,
                 port);
         NetTest netTest = new NetTest();

@@ -804,7 +804,7 @@ public class EdgeEventsConnectionTest {
             assertNotNull("Must have configured edgeEvents in test to USE edge events functions.", me.mEdgeEventsConfig);
 
             latch.await(20, TimeUnit.SECONDS);
-            int expectedNum = edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates;
+            long expectedNum = edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates;
             assertEquals("Must get [" + expectedNum + "] responses back from server.", expectedNum, responses.size());
             // FIXME: For this test, the location is NON-MOCKED, a MOCK location provider is required to get sensible results here, but the location timer task is going.
             //assertEquals("Must get new FindCloudlet responses back from server.", 0, latencyNewCloudletResponses.size());

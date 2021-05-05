@@ -280,13 +280,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             mMatchingEngine.getEdgeEventsBus().register(mEdgeEventsSubscriber);
 
             // set a default config.
+            // There is also a parameterized version to further customize.
             EdgeEventsConfig backgroundEdgeEventsConfig = mMatchingEngine.createDefaultEdgeEventsConfig();
             backgroundEdgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;
             // This is the internal port, that has not been remapped to a public port for a particular appInst.
             backgroundEdgeEventsConfig.latencyInternalPort = internalPort;
-            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 10;
-            backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; // Patience. We have none.
-
+            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 10; // Or Long.MAX_VALUE if you want. Default is 0.
+            backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; // The default is 30.
             //! [edgeevents_subsscriber_setup_example]
 
             //! [startedgeevents_example]

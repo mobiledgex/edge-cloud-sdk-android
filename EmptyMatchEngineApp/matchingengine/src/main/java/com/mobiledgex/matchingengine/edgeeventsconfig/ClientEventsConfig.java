@@ -20,7 +20,7 @@ package com.mobiledgex.matchingengine.edgeeventsconfig;
 public class ClientEventsConfig {
     public UpdatePattern updatePattern;
     public double updateIntervalSeconds; // in seconds
-    public int maxNumberOfUpdates;
+    public long maxNumberOfUpdates;
 
     public enum UpdatePattern {
         onStart,

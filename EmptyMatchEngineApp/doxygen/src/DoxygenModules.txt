@@ -105,6 +105,8 @@
  * Once defined, you can start monitoring:
  * \snippet MainActivity.java startedgeevents_example
  *
+ * If the application onPause() is called, consider calling stopEdgeEvents() to free resources.
+ *
  * \section edgeevents_subscriber_template cleanup
  * When the app needs to quit or free resources, call close():
  * \snippet MainActivity.java me_cleanup
