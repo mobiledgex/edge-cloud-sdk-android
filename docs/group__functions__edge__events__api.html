@@ -259,7 +259,7 @@ Example</h1>
 <div class="line">                String clientLocText = <span class="stringliteral">&quot;&quot;</span>;</div>
 <div class="line">                mLastLocationResult = locationResult;</div>
 <div class="line">                <span class="comment">// Post into edgeEvents updater:</span></div>
-<div class="line">                mMatchingEngine.getEdgeEventsConnectionFuture()</div>
+<div class="line">                me.<a class="code" href="group__functions__dmeapis.html#ga6a27f7bfe897b776c92d9744fb0007c8">getEdgeEventsConnectionFuture</a>()</div>
 <div class="line">                        .thenApply(connection -&gt; {</div>
 <div class="line">                            <span class="keywordflow">if</span> (connection != <span class="keyword">null</span>) {</div>
 <div class="line">                                connection.postLocationUpdate(locationResult.getLastLocation());</div>
@@ -275,6 +275,7 @@ Example</h1>
 <div class="line">                tv.setText(clientLocText);</div>
 <div class="line">            }</div>
 <div class="line">        };</div>
+<div class="ttc" id="agroup__functions__dmeapis_html_ga6a27f7bfe897b776c92d9744fb0007c8"><div class="ttname"><a href="group__functions__dmeapis.html#ga6a27f7bfe897b776c92d9744fb0007c8">com.mobiledgex.matchingengine.MatchingEngine.getEdgeEventsConnectionFuture</a></div><div class="ttdeci">synchronized CompletableFuture&lt; EdgeEventsConnection &gt; getEdgeEventsConnectionFuture()</div><div class="ttdef"><b>Definition:</b> MatchingEngine.java:550</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -403,7 +404,7 @@ Example</h1>
 <h1><a class="anchor" id="enable_edgeevents"></a>
 Example</h1>
 <div class="fragment"><div class="line">            <span class="comment">// Register the class subscribing to EdgeEvents to the EdgeEventsBus (Guava EventBus interface).</span></div>
-<div class="line">            mMatchingEngine.setEnableEdgeEvents(<span class="keyword">true</span>); <span class="comment">// default is true.</span></div>
+<div class="line">            me.setEnableEdgeEvents(<span class="keyword">true</span>); <span class="comment">// default is true.</span></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -439,7 +440,7 @@ Example</h1>
 </dl>
 <h1><a class="anchor" id="startedgeevents_example"></a>
 Example</h1>
-<div class="fragment"><div class="line">            mMatchingEngine.startEdgeEvents(backgroundEdgeEventsConfig);</div>
+<div class="fragment"><div class="line">            me.startEdgeEvents(backgroundEdgeEventsConfig);</div>
 </div><!-- fragment -->
 </div>
 </div>

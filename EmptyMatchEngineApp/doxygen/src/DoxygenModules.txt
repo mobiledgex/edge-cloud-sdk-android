@@ -126,6 +126,16 @@
  * details here:
  * https://console.mobiledgex.net
  *
+ * Optionally, If interested in dynamic edge migration, you can enable it:
+ * \snippet MainActivity.java enable_edgeevents
+ *
+ * Then, attach a EdgeEvents subscriber, described later in this document:
+ * \snippet MainActivity.java edgeevents_subsscriber_setup_example
+ *
+ * Once defined, you can start monitoring with the following. Monitoring starts when the first successful FIND_FOUND FindCloudlet Reply is returned
+ * in the next few lines of code.
+ * \snippet MainActivity.java startedgeevents_example
+ *
  * Create a register client request:
  * \snippet EngineCallTest.java createdefregisterexample
 
@@ -138,24 +148,18 @@
  * FindCloudlet, with a sane timeout, like 5 seconds.
  * \snippet EngineCallTest.java findcloudletexample
  *
- * If interested in dynamic edge migration, you can enable it:
- * \snippet MainActivity.java enable_edgeevents
+ * To connect to the edge server instance, use something similar to the following:
+ * \snippet EngineCallTest.java construct_host_and_port
  *
- * Then, attach a EdgeEvents subscriber, described shortly later:
- * \snippet MainActivity.java edgeevents_subsscriber_setup_example
- *
- * Here is the EdgeEventsSubscriber class just mentioned. The following example code is a Guava EventBus type Subscriber to EdgeEvents.
+ * Here is the EdgeEventsSubscriber class mentioned near the start of the document. The following example code is a Guava EventBus type Subscriber to EdgeEvents.
  * onMessageEvent can be any name as the EventBus will forward it to the matching class type. The FindCloudletEvent variant is good to
  * subscribe in your application. When recieved, the app should save state, and move to the next closer cloudlet.
  *
  * \snippet MainActivity.java edgeevents_subscriber_template
  *
- * Once defined, you can start monitoring:
- * \snippet MainActivity.java startedgeevents_example
- *
  * If the application onPause() is called, consider calling stopEdgeEvents() to free resources.
  *
- * \section edgeevents_subscriber_template cleanup
+ * \section edgeevents_subscriber_template Cleanup
  * When the app needs to quit or free resources, call close():
  * \snippet MainActivity.java me_cleanup
  */
