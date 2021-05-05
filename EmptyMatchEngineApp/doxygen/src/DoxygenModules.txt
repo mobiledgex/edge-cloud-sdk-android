@@ -68,7 +68,55 @@
  * \image html dmeflow.png width=800cm height=500cm
  *
  * \section how_to How To
- * First, you need a MatchingEngine instance. Since MachingEngine needs location permissions, this might be reinitialized onResume():
+ * Create or open an existing Android Studio project.
+ * 
+ * Add these definitions to your project's top most build.gradle file. In the same directory, create a local.properties file with the artifactory username and password you use to log into https://console.mobiledgex.net. Create a login there, if you haven't already.
+ *
+ *     Properties properties = new Properties()
+ *     properties.load(project.rootProject.file('local.properties').newDataInputStream())
+ *     def artifactory_user = properties.getProperty("artifactory_user")
+ *     def artifactory_password = properties.getProperty("artifactory_password")
+ *     
+ *     project.ext.mobiledgeXContextUrl = "https://artifactory.mobiledgex.net/artifactory"
+ *     project.ext.debugRepoKey = "maven-development"
+ *     project.ext.releaseRepoKey = "maven-releases"
+ *     project.ext.repoKey = "${debugRepoKey}"
+ *     project.ext.grpcVersion = '1.32.1'
+ * 
+ * Define a repository to pull these depedencies in, using the top most build.gradle file:
+ *
+ *     allprojects {
+ *         apply plugin: 'com.jfrog.artifactory'
+ *         repositories {
+ *             maven {
+ *                 credentials {
+ *                     // Create these variables if you don't have them.
+ *                     username artifactory_user
+ *                     password artifactory_password
+ *                 }
+ *                 url "${mobiledgeXContextUrl}/${repoKey}"
+ *             }
+ *             mavenLocal()
+ *             google()
+ *             jcenter()
+ *         }
+ *     }
+ *
+ * Add these depedencies to your app's build.gradle file:
+ * 
+ *     implementation 'com.mobiledgex:matchingengine:3.0.0'
+ *     implementation 'com.mobiledgex:mel:1.0.11'
+ *     implementation 'com.google.guava:guava:29.0-android'
+ *      
+ *     // Dependencies of Matching Engine:
+ *     implementation "io.grpc:grpc-stub:${grpcVersion}"
+ *    
+ *     implementation "io.grpc:grpc-okhttp:${grpcVersion}"
+ *     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
+ *
+ * 
+ * With the depedencies defined, let Android Studio pull in the depedencies. To get started using MobiledgeX, you need a MatchingEngine instance. Since MachingEngine needs location permissions, this might be reinitialized onResume():
+ *
  * \snippet EngineCallTest.java meconstructorexample
  * For privacy reasons, there is a flag the application should ask the user for permission before enabling, concerning location usage. This
  * is in addition to normal operating system permissions:

@@ -120,7 +120,44 @@ Where to Start?</h1>
 </div>
 <h1><a class="anchor" id="how_to"></a>
 How To</h1>
-<p>First, you need a MatchingEngine instance. Since MachingEngine needs location permissions, this might be reinitialized onResume(): </p><div class="fragment"><div class="line">        MatchingEngine me = <span class="keyword">new</span> MatchingEngine(context);</div>
+<p>Create or open an existing Android Studio project.</p>
+<p>Add these definitions to your project's top most build.gradle file. In the same directory, create a local.properties file with the artifactory username and password you use to log into <a href="https://console.mobiledgex.net">https://console.mobiledgex.net</a>. Create a login there, if you haven't already. </p><pre class="fragment">Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+def artifactory_user = properties.getProperty("artifactory_user")
+def artifactory_password = properties.getProperty("artifactory_password")
+
+project.ext.mobiledgeXContextUrl = "https://artifactory.mobiledgex.net/artifactory"
+project.ext.debugRepoKey = "maven-development"
+project.ext.releaseRepoKey = "maven-releases"
+project.ext.repoKey = "${debugRepoKey}"
+project.ext.grpcVersion = '1.32.1'
+</pre><p> Define a repository to pull these depedencies in, using the top most build.gradle file: </p><pre class="fragment">allprojects {
+    apply plugin: 'com.jfrog.artifactory'
+    repositories {
+        maven {
+            credentials {
+                // Create these variables if you don't have them.
+                username artifactory_user
+                password artifactory_password
+            }
+            url "${mobiledgeXContextUrl}/${repoKey}"
+        }
+        mavenLocal()
+        google()
+        jcenter()
+    }
+}
+</pre><p> Add these depedencies to your app's build.gradle file: </p><pre class="fragment">implementation 'com.mobiledgex:matchingengine:3.0.0'
+implementation 'com.mobiledgex:mel:1.0.11'
+implementation 'com.google.guava:guava:29.0-android'
+
+// Dependencies of Matching Engine:
+implementation "io.grpc:grpc-stub:${grpcVersion}"
+
+implementation "io.grpc:grpc-okhttp:${grpcVersion}"
+implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
+</pre><p>With the depedencies defined, let Android Studio pull in the depedencies. To get started using MobiledgeX, you need a MatchingEngine instance. Since MachingEngine needs location permissions, this might be reinitialized onResume():</p>
+<div class="fragment"><div class="line">        MatchingEngine me = <span class="keyword">new</span> MatchingEngine(context);</div>
 </div><!-- fragment --><p>For privacy reasons, there is a flag the application should ask the user for permission before enabling, concerning location usage. This is in addition to normal operating system permissions: </p><div class="fragment"><div class="line">        MatchingEngine.setMatchingEngineLocationAllowed(matchingEngineLocationAllowed);</div>
 </div><!-- fragment --><p> Then, register, and find the first closest cloudlet. If not sure of your organization or appInst details, log in and view the app details here: <a href="https://console.mobiledgex.net">https://console.mobiledgex.net</a></p>
 <p>Create a register client request: </p><div class="fragment"><div class="line">            AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, organizationName).build();</div>
@@ -135,10 +172,13 @@ How To</h1>
 <div class="line">            mMatchingEngine.getEdgeEventsBus().register(mEdgeEventsSubscriber);</div>
 <div class="line"> </div>
 <div class="line">            <span class="comment">// set a default config.</span></div>
+<div class="line">            <span class="comment">// There is also a parameterized version to further customize.</span></div>
 <div class="line">            EdgeEventsConfig backgroundEdgeEventsConfig = mMatchingEngine.createDefaultEdgeEventsConfig();</div>
 <div class="line">            backgroundEdgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;</div>
 <div class="line">            <span class="comment">// This is the internal port, that has not been remapped to a public port for a particular appInst.</span></div>
 <div class="line">            backgroundEdgeEventsConfig.latencyInternalPort = internalPort;</div>
+<div class="line">            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 10; <span class="comment">// Or Long.MAX_VALUE if you want. Default is 0.</span></div>
+<div class="line">            backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; <span class="comment">// The default is 30.</span></div>
 </div><!-- fragment --><p> Here is the EdgeEventsSubscriber class just mentioned. The following example code is a Guava EventBus type Subscriber to EdgeEvents. onMessageEvent can be any name as the EventBus will forward it to the matching class type. The FindCloudletEvent variant is good to subscribe in your application. When recieved, the app should save state, and move to the next closer cloudlet.</p>
 <div class="fragment"><div class="line">    <span class="comment">// (Guava EventBus Interface)</span></div>
 <div class="line">    <span class="comment">// This class encapsulates what an app might implement to watch for edge events. Not every event</span></div>
@@ -149,6 +189,9 @@ How To</h1>
 <div class="line">        @Subscribe</div>
 <div class="line">        <span class="keyword">public</span> <span class="keywordtype">void</span> onMessageEvent(EdgeEventsConnection.EdgeEventsError error) {</div>
 <div class="line">            Log.d(TAG, <span class="stringliteral">&quot;EdgeEvents error reported, reason: &quot;</span> + error);</div>
+<div class="line"> </div>
+<div class="line">            someText = error.toString();</div>
+<div class="line">            updateText(ctx, someText);</div>
 <div class="line">            <span class="comment">// Check the App&#39;s EdgeEventsConfig and logs.</span></div>
 <div class="line">        }</div>
 <div class="line"> </div>
@@ -156,10 +199,14 @@ How To</h1>
 <div class="line">        <span class="comment">// the AppInst Health and Latency spec for this application.</span></div>
 <div class="line">        @Subscribe</div>
 <div class="line">        <span class="keyword">public</span> <span class="keywordtype">void</span> onMessageEvent(FindCloudletEvent findCloudletEvent) {</div>
-<div class="line">            Log.d(TAG, <span class="stringliteral">&quot;Cloudlet update, reason: &quot;</span> + findCloudletEvent.trigger);</div>
+<div class="line">            Log.i(TAG, <span class="stringliteral">&quot;Cloudlet update, reason: &quot;</span> + findCloudletEvent.trigger);</div>
 <div class="line"> </div>
 <div class="line">            <span class="comment">// Connect to new Cloudlet in the event here, preferably in a background task.</span></div>
-<div class="line">            Log.d(TAG, <span class="stringliteral">&quot;Cloudlet: &quot;</span> + findCloudletEvent.newCloudlet);</div>
+<div class="line">            Log.i(TAG, <span class="stringliteral">&quot;Cloudlet: &quot;</span> + findCloudletEvent.newCloudlet);</div>
+<div class="line"> </div>
+<div class="line">            someText = findCloudletEvent.newCloudlet.toString();</div>
+<div class="line">            updateText(ctx, someText);</div>
+<div class="line"> </div>
 <div class="line">            <span class="comment">// If MatchingEngine.setAutoMigrateEdgeEventsConnection() has been set to false,</span></div>
 <div class="line">            <span class="comment">// let MatchingEngine know with switchedToNextCloudlet() so the new cloudlet can</span></div>
 <div class="line">            <span class="comment">// maintain the edge connection.</span></div>
@@ -174,8 +221,8 @@ How To</h1>
 <div class="line">        <span class="comment">// To optionally post messages to the DME, use MatchingEngine&#39;s EdgeEventsConnection.</span></div>
 <div class="line">        <span class="comment">//@Subscribe</span></div>
 <div class="line">        <span class="keyword">public</span> <span class="keywordtype">void</span> onMessageEvent(AppClient.ServerEdgeEvent event) {</div>
-<div class="line">            Map&lt;String, String&gt; tagsMap = <span class="keyword">event</span>.getTagsMap();</div>
-<div class="line"> </div>
+<div class="line">            someText = <span class="keyword">event</span>.toString();</div>
+<div class="line">            updateText(ctx, someText);</div>
 <div class="line">            <span class="keywordflow">switch</span> (event.getEventType()) {</div>
 <div class="line">                <span class="keywordflow">case</span> EVENT_INIT_CONNECTION:</div>
 <div class="line">                    System.out.println(<span class="stringliteral">&quot;Received Init response: &quot;</span> + event);</div>
@@ -203,6 +250,9 @@ How To</h1>
 <div class="line">                    System.out.println(<span class="stringliteral">&quot;Received: Server pushed a new FindCloudletReply to switch to: &quot;</span> + event);</div>
 <div class="line">                    handleFindCloudletServerPush(event);</div>
 <div class="line">                    <span class="keywordflow">break</span>;</div>
+<div class="line">                <span class="keywordflow">case</span> EVENT_ERROR:</div>
+<div class="line">                    Log.d(TAG,<span class="stringliteral">&quot;Received: An edgeEvents error: &quot;</span> + event.getErrorMsg());</div>
+<div class="line">                    <span class="keywordflow">break</span>;</div>
 <div class="line">                <span class="keywordflow">case</span> EVENT_UNKNOWN:</div>
 <div class="line">                    System.out.println(<span class="stringliteral">&quot;Received UnknownEvent.&quot;</span>);</div>
 <div class="line">                    <span class="keywordflow">break</span>;</div>
@@ -211,7 +261,8 @@ How To</h1>
 <div class="line">            }</div>
 <div class="line">        }</div>
 </div><!-- fragment --><p> Once defined, you can start monitoring: </p><div class="fragment"><div class="line">            mMatchingEngine.startEdgeEvents(backgroundEdgeEventsConfig);</div>
-</div><!-- fragment --> <h1><a class="anchor" id="edgeevents_subscriber_template"></a>
+</div><!-- fragment --><p> If the application onPause() is called, consider calling stopEdgeEvents() to free resources.</p>
+<h1><a class="anchor" id="edgeevents_subscriber_template"></a>
 cleanup</h1>
 <p>When the app needs to quit or free resources, call close(): </p><div class="fragment"><div class="line"> </div>
 <div class="line">    @Override</div>
@@ -223,6 +274,7 @@ cleanup</h1>
 <div class="line">            mMatchingEngine = <span class="keyword">null</span>;</div>
 <div class="line">        }</div>
 <div class="line">        mEdgeEventsSubscriber = <span class="keyword">null</span>;</div>
+<div class="line">        ctx = <span class="keyword">null</span>;</div>
 <div class="line">    }</div>
 </div><!-- fragment --></div></div><!-- PageDoc -->
 </div><!-- contents -->

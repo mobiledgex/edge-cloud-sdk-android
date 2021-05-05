@@ -67,7 +67,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -318,7 +317,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     // [me_cleanup]
 
 
-    CountDownLatch latch;
     //! [edgeevents_subscriber_template]
     // (Guava EventBus Interface)
     // This class encapsulates what an app might implement to watch for edge events. Not every event
@@ -347,7 +345,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             someText = findCloudletEvent.newCloudlet.toString();
             updateText(ctx, someText);
 
-            latch.countDown(); // Just one for "reasons".
             // If MatchingEngine.setAutoMigrateEdgeEventsConnection() has been set to false,
             // let MatchingEngine know with switchedToNextCloudlet() so the new cloudlet can
             // maintain the edge connection.
@@ -360,7 +357,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         // use case better.
         //
         // To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
-        @Subscribe
+        //@Subscribe
         public void onMessageEvent(AppClient.ServerEdgeEvent event) {
             someText = event.toString();
             updateText(ctx, someText);
@@ -647,7 +644,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     private void runFlow(Task<Location> locationTask, AppCompatActivity ctx) {
-        latch = new CountDownLatch(1);
         Location location = locationTask.getResult();
         if (location == null) {
             Log.e(TAG, "Mising location. Cannot update.");
