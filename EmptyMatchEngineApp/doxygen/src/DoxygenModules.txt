@@ -68,6 +68,7 @@
  * \image html dmeflow.png width=800cm height=500cm
  *
  * \section how_to How To
+ * \subsection project_setup Project Setup
  * Create or open an existing Android Studio project.
  * 
  * Add these definitions to your project's top most build.gradle file. In the same directory, create a local.properties file with the artifactory username and password you use to log into https://console.mobiledgex.net. Create a login there, if you haven't already.
@@ -115,8 +116,10 @@
  *     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
  *
  * 
- * With the depedencies defined, let Android Studio pull in the depedencies. To get started using MobiledgeX, you need a MatchingEngine instance. Since MachingEngine needs location permissions, this might be reinitialized onResume():
+ * With the dependencies defined, let Android Studio pull in the depedencies. To get started using MobiledgeX, you need a
+ * MatchingEngine instance. Since MatchingEngine needs location permissions, this might be reinitialized onResume():
  *
+ * \subsection setup_matchingengine Setup MatchingEngine
  * \snippet EngineCallTest.java meconstructorexample
  * For privacy reasons, there is a flag the application should ask the user for permission before enabling, concerning location usage. This
  * is in addition to normal operating system permissions:
@@ -129,12 +132,18 @@
  * Optionally, If interested in dynamic edge migration, you can enable it:
  * \snippet MainActivity.java enable_edgeevents
  *
- * Then, attach a EdgeEvents subscriber, described later in this document:
+ * \subsection setup_edge_events Setup EdgeEvents
+ * Then, attach an EdgeEvents subscriber, described later in this document:
  * \snippet MainActivity.java edgeevents_subsscriber_setup_example
  *
  * Once defined, you can start monitoring with the following. Monitoring starts when the first successful FIND_FOUND FindCloudlet Reply is returned
  * in the next few lines of code.
  * \snippet MainActivity.java startedgeevents_example
+ *
+ * \subsection register_and_findcloudlet Register and FindCloudlet
+ * Many of these commands have asynchronous Futures versions. The blocking versions below should only be run inside something
+ * like a CompletableFuture so that the UI thread is not stuck waiting for a network response. The SDK will also print warnings
+ * if running on the UI thread. If you don't have a location service running, see the "Location Callback Example" section.
  *
  * Create a register client request:
  * \snippet EngineCallTest.java createdefregisterexample
@@ -148,18 +157,37 @@
  * FindCloudlet, with a sane timeout, like 5 seconds.
  * \snippet EngineCallTest.java findcloudletexample
  *
+ * \subsection connect_to_appinst Connect to the Edge AppInst
  * To connect to the edge server instance, use something similar to the following:
  * \snippet EngineCallTest.java construct_host_and_port
  *
- * Here is the EdgeEventsSubscriber class mentioned near the start of the document. The following example code is a Guava EventBus type Subscriber to EdgeEvents.
- * onMessageEvent can be any name as the EventBus will forward it to the matching class type. The FindCloudletEvent variant is good to
- * subscribe in your application. When recieved, the app should save state, and move to the next closer cloudlet.
+ * \subsection edgeevents_subscriber EdgeEventsSubscriber Template
+ * Here is the EdgeEventsSubscriber class mentioned near the start of the document. The following example code is a Guava
+ * EventBus type Subscriber to EdgeEvents. onMessageEvent can be any name as the EventBus will forward it to the matching
+ * class type. The FindCloudletEvent variant is good to subscribe in your application. When recieved, the app should save
+ * state, and move to the next closer cloudlet.
  *
  * \snippet MainActivity.java edgeevents_subscriber_template
  *
+ * \subsection location_callback_example Location Callback Example and Posting Updates for Cloudlet Updates
+ * It is possible to directly feed location into the EdgeEvents connection to the server. If there is a closer edge
+ * server, the app will be notified about a better cloudlet. Location permissions is app controled, as the app UI
+ * controls permission prompts between onPause() and onResume() states, where the the user might remove location
+ * permisisons.
+ * \snippet MainActivity.java basic_location_handler_example
+ * To request android location service to run in the background, you need google play services, please read here:
+ * https://developer.android.com/training/location/request-updates#java
+ *
+ * \subsection matchingengine_permissions MatchingEngine permission utility
+ * The application should prompt for location permissions, as well as read the network state for edge server state management. Here's
+ * example to check using com.mobiledgex.matchingengine.util.RequestPermissions. It has getNeededPermissions() to check current
+ * missing permissions.
+ * \snippet FirstTimeUseActivity.java create_request_permissions_util
+ * \snippet FirstTimeUseActivity.java request_permissions_example
+ *
  * If the application onPause() is called, consider calling stopEdgeEvents() to free resources.
  *
- * \section edgeevents_subscriber_template Cleanup
+ * \subsection edgeevents_subscriber_template Cleanup
  * When the app needs to quit or free resources, call close():
  * \snippet MainActivity.java me_cleanup
  */

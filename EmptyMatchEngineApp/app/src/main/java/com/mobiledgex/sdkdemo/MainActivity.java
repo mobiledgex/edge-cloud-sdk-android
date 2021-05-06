@@ -23,6 +23,7 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -600,11 +601,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             if (mFusedLocationClient == null) {
                 mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
             }
-            mFusedLocationClient.requestLocationUpdates(mLocationRequest,mLocationCallback,
-                    null /* Looper */);
+            mFusedLocationClient.requestLocationUpdates(
+                    mLocationRequest,
+                    mLocationCallback,
+                    Looper.getMainLooper() /* Looper */);
         } catch (SecurityException se) {
+            Log.e(TAG, "SecurityException message: " + se.getLocalizedMessage());
             se.printStackTrace();
-            Log.i(TAG, "App should Request location permissions during onCreate().");
+            Log.i(TAG, "App should Request location permissions during onResume() or onCreate().");
         }
     }
 

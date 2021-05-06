@@ -125,7 +125,7 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a1cc272288a13ac4ed34af1f4bb56faa8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Simple util class for last known location. </p>
+<div class="textblock"><p>Simple util class for last known location. This does NOT get continuous location, which is owned by the application lifecycle, and can use the full LocationCallback object. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a1cc272288a13ac4ed34af1f4bb56faa8"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1cc272288a13ac4ed34af1f4bb56faa8">&#9670;&nbsp;</a></span>getBlocking()</h2>
@@ -152,7 +152,12 @@ Public Member Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>A utility blocking call to location services, otherwise, use standard asynchronous location APIs. Location Access Permissions must be enabled. </p>
+<p>A utility blocking call to location services, otherwise, use standard asynchronous location APIs. Location Access Permissions must be enabled. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">context</td><td>context for activity. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
