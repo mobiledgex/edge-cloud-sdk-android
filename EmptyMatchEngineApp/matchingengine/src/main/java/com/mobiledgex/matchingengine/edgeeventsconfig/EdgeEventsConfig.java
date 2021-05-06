@@ -63,9 +63,13 @@ public class EdgeEventsConfig {
             triggers = EnumSet.copyOf(edgeEventsConfig.triggers);
         }
 
-        // Sane defaults, onTrigger, and once.
-        latencyUpdateConfig = new ClientEventsConfig(edgeEventsConfig.latencyUpdateConfig);
-        locationUpdateConfig = new ClientEventsConfig(edgeEventsConfig.locationUpdateConfig);
+        // Sane defaults
+        if (edgeEventsConfig.latencyUpdateConfig != null) {
+            latencyUpdateConfig = new ClientEventsConfig(edgeEventsConfig.latencyUpdateConfig);
+        }
+        if (edgeEventsConfig.locationUpdateConfig != null) {
+            locationUpdateConfig = new ClientEventsConfig(edgeEventsConfig.locationUpdateConfig);
+        }
     }
 
     /*!

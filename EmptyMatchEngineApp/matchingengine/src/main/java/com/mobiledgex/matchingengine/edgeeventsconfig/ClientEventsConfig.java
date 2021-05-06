@@ -31,7 +31,7 @@ public class ClientEventsConfig {
     public ClientEventsConfig() {
         updatePattern = UpdatePattern.onTrigger;
         updateIntervalSeconds = 30;
-        maxNumberOfUpdates = 0;
+        maxNumberOfUpdates = 0; // <= 0 means "infinity".
     }
 
     public ClientEventsConfig(ClientEventsConfig clientEventsConfig) {

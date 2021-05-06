@@ -1019,7 +1019,9 @@ public class EdgeEventsConnection {
                 case onInterval:
                     eventBusRegister(); // Attach Subscriber, to handle triggers and montoriing by interval.
                     // Start, and add to a list of known EdgeEvent Testing Handlers
-                    addEdgeEventsIntervalTask(new EdgeEventsLocationIntervalHandler(me, locationUpdateConfig));
+                    if (locationUpdateConfig != null) {
+                        addEdgeEventsIntervalTask(new EdgeEventsLocationIntervalHandler(me, locationUpdateConfig));
+                    }
                     break;
             }
         }
@@ -1044,7 +1046,9 @@ public class EdgeEventsConnection {
                     // Last FindCloudlet
                     eventBusRegister(); // Attach Subscriber, to handle triggers and monitoring by interval.
                     // Add to a list of known EdgeEvent Testing Handlers
-                    addEdgeEventsIntervalTask(new EdgeEventsLatencyIntervalHandler(me, mEdgeEventsConfig.latencyTestType, latencyUpdateConfig));
+                    if (latencyUpdateConfig != null) {
+                        addEdgeEventsIntervalTask(new EdgeEventsLatencyIntervalHandler(me, mEdgeEventsConfig.latencyTestType, latencyUpdateConfig));
+                    }
                     break;
             }
         }

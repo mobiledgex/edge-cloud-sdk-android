@@ -28,9 +28,7 @@ import com.mobiledgex.mel.MelMessaging;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -361,10 +359,12 @@ public class FindCloudlet implements Callable {
         // Create message channel for DME EdgeEvents:
         if (fcReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
             try {
-                mMatchingEngine.startEdgeEvents(mMatchingEngine.mEdgeEventsConfig);
+                // The engine is allowed to use a default config, should the config be null.
+                mMatchingEngine.startEdgeEventsInternal(mMatchingEngine.mEdgeEventsConfig);
             } catch (Exception e) {
                 // Non fatal, but print an error. No background events available.
                 Log.e(TAG, "Configured EdgeEventsConfig background tasks cannot be started. Exception was: " + e.getMessage());
+                e.printStackTrace();
                 if (mMatchingEngine.getEdgeEventsBus() != null) {
                     mMatchingEngine.getEdgeEventsBus().post(EdgeEventsConnection.EdgeEventsError.edgeEventsConnectionError);
                 }
