@@ -23,6 +23,7 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -65,9 +66,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -84,7 +83,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private AppCompatActivity ctx = this;
 
     private RequestPermissions mRpUtil;
-    private MatchingEngine mMatchingEngine;
+    private MatchingEngine me;
     private NetTest netTest;
     private EdgeEventsSubscriber mEdgeEventsSubscriber;
 
@@ -149,7 +148,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 String clientLocText = "";
                 mLastLocationResult = locationResult;
                 // Post into edgeEvents updater:
-                mMatchingEngine.getEdgeEventsConnectionFuture()
+                me.getEdgeEventsConnectionFuture()
                         .thenApply(connection -> {
                             if (connection != null) {
                                 connection.postLocationUpdate(locationResult.getLastLocation());
@@ -184,7 +183,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 edmontonLoc.setLatitude(53.5461); // Edmonton
                 edmontonLoc.setLongitude(-113.4938);
                 // Post location update:
-                mMatchingEngine.getEdgeEventsConnectionFuture()
+                me.getEdgeEventsConnectionFuture()
                         .thenApply(connection -> {
                             if (connection != null) {
                                 connection.postLocationUpdate(edmontonLoc);
@@ -202,7 +201,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 montrealLoc.setLatitude(45.5017); // Montreal
                 montrealLoc.setLongitude(-73.5673);
                 // Post into matching engine:
-                mMatchingEngine.getEdgeEventsConnectionFuture()
+                me.getEdgeEventsConnectionFuture()
                         .thenApply(connection -> {
                             if (connection != null) {
                                 connection.postLocationUpdate(montrealLoc);
@@ -264,33 +263,33 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             return;
         }
 
-        if (mMatchingEngine == null) {
+        if (me == null) {
             //! [matchingengine_constructor]
             // Permissions must be available. Check permissions upon OnResume(). Create a MobiledgeX MatchingEngine instance.
-            mMatchingEngine = new MatchingEngine(this);
+            me = new MatchingEngine(this);
             //! [matchingengine_constructor]
 
             //! [enable_edgeevents]
             // Register the class subscribing to EdgeEvents to the EdgeEventsBus (Guava EventBus interface).
-            mMatchingEngine.setEnableEdgeEvents(true); // default is true.
+            me.setEnableEdgeEvents(true); // default is true.
             //! [enable_edgeevents]
 
             //! [edgeevents_subsscriber_setup_example]
             mEdgeEventsSubscriber = new EdgeEventsSubscriber();
-            mMatchingEngine.getEdgeEventsBus().register(mEdgeEventsSubscriber);
+            me.getEdgeEventsBus().register(mEdgeEventsSubscriber);
 
             // set a default config.
-            EdgeEventsConfig backgroundEdgeEventsConfig = mMatchingEngine.createDefaultEdgeEventsConfig();
+            // There is also a parameterized version to further customize.
+            EdgeEventsConfig backgroundEdgeEventsConfig = me.createDefaultEdgeEventsConfig();
             backgroundEdgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;
             // This is the internal port, that has not been remapped to a public port for a particular appInst.
             backgroundEdgeEventsConfig.latencyInternalPort = internalPort;
-            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 10;
-            backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; // Patience. We have none.
-
+            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 10; // Or Long.MAX_VALUE if you want. Default is 0.
+            backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; // The default is 30.
             //! [edgeevents_subsscriber_setup_example]
 
             //! [startedgeevents_example]
-            mMatchingEngine.startEdgeEvents(backgroundEdgeEventsConfig);
+            me.startEdgeEvents(backgroundEdgeEventsConfig);
             //! [startedgeevents_example]
         }
 
@@ -308,9 +307,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     public void onDestroy() {
         super.onDestroy();
 
-        if (mMatchingEngine != null) {
-            mMatchingEngine.close();
-            mMatchingEngine = null;
+        if (me != null) {
+            me.close();
+            me = null;
         }
         mEdgeEventsSubscriber = null;
         ctx = null;
@@ -318,7 +317,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     // [me_cleanup]
 
 
-    CountDownLatch latch;
     //! [edgeevents_subscriber_template]
     // (Guava EventBus Interface)
     // This class encapsulates what an app might implement to watch for edge events. Not every event
@@ -347,7 +345,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             someText = findCloudletEvent.newCloudlet.toString();
             updateText(ctx, someText);
 
-            latch.countDown(); // Just one for "reasons".
             // If MatchingEngine.setAutoMigrateEdgeEventsConnection() has been set to false,
             // let MatchingEngine know with switchedToNextCloudlet() so the new cloudlet can
             // maintain the edge connection.
@@ -360,7 +357,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         // use case better.
         //
         // To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
-        @Subscribe
+        //@Subscribe
         public void onMessageEvent(AppClient.ServerEdgeEvent event) {
             someText = event.toString();
             updateText(ctx, someText);
@@ -421,14 +418,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // Just print:
             AppClient.FindCloudletReply reply = event.getNewCloudlet();
 
-            HashMap<Integer, Appcommon.AppPort> ports = mMatchingEngine.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
+            HashMap<Integer, Appcommon.AppPort> ports = me.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
             Appcommon.AppPort aPort = ports.get(internalPort);
             if (aPort == null) {
                 Log.e(TAG, "wrong port configuration.");
                 return;
             }
             int publicPort = aPort.getPublicPort();
-            String url = mMatchingEngine.getAppConnectionManager().createUrl(reply, aPort, publicPort, "https", "");
+            String url = me.getAppConnectionManager().createUrl(reply, aPort, publicPort, "https", "");
 
             someText += "New FindCloudlet path is: " + url;
 
@@ -537,7 +534,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         // Assuming some knowledge of your own internal un-remapped server port
                         // discover, and test with the PerformanceMetrics API:
                         int publicPort;
-                        HashMap<Integer, Appcommon.AppPort> ports = mMatchingEngine.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
+                        HashMap<Integer, Appcommon.AppPort> ports = me.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
                         Appcommon.AppPort anAppPort = ports.get(internalPort);
                         if (anAppPort == null) {
                             System.out.println("Your expected server (or port) doesn't seem to be here!");
@@ -545,24 +542,24 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                         // Test with default network in use:
                         publicPort = anAppPort.getPublicPort();
-                        String host = mMatchingEngine.getAppConnectionManager().getHost(mLastFindCloudlet, anAppPort);
+                        String host = me.getAppConnectionManager().getHost(mLastFindCloudlet, anAppPort);
 
                         Site site = new Site(getApplicationContext(), NetTest.TestType.CONNECT, 5, host, publicPort);
                         netTest.addSite(site);
                         netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
 
-                        if (mMatchingEngine.isShutdown()) {
+                        if (me.isShutdown()) {
                             return;
                         }
 
-                        mMatchingEngine.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host),
+                        me.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host),
                                 mLastLocationResult == null ? null : mLastLocationResult.getLastLocation());
 
                         // Post with Ping Util:
-                        mMatchingEngine.getEdgeEventsConnection().testPingAndPostLatencyUpdate(mLastLocationResult.getLastLocation());
+                        me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(mLastLocationResult.getLastLocation());
 
                         // Post with Connect Util:
-                        mMatchingEngine.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(mLastLocationResult.getLastLocation());
+                        me.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(mLastLocationResult.getLastLocation());
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -604,11 +601,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             if (mFusedLocationClient == null) {
                 mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
             }
-            mFusedLocationClient.requestLocationUpdates(mLocationRequest,mLocationCallback,
-                    null /* Looper */);
+            mFusedLocationClient.requestLocationUpdates(
+                    mLocationRequest,
+                    mLocationCallback,
+                    Looper.getMainLooper() /* Looper */);
         } catch (SecurityException se) {
+            Log.e(TAG, "SecurityException message: " + se.getLocalizedMessage());
             se.printStackTrace();
-            Log.i(TAG, "App should Request location permissions during onCreate().");
+            Log.i(TAG, "App should Request location permissions during onResume() or onCreate().");
         }
     }
 
@@ -647,7 +647,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     private void runFlow(Task<Location> locationTask, AppCompatActivity ctx) {
-        latch = new CountDownLatch(1);
         Location location = locationTask.getResult();
         if (location == null) {
             Log.e(TAG, "Mising location. Cannot update.");
@@ -661,7 +660,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             //String adId = mMatchingEngine.GetHashedAdvertisingID(ctx);
 
             // If no carrierName, or active Subscription networks, the app should use the public cloud instead.
-            List<SubscriptionInfo> subList = mMatchingEngine.getActiveSubscriptionInfoList();
+            List<SubscriptionInfo> subList = me.getActiveSubscriptionInfoList();
             if (subList != null && subList.size() > 0) {
                 for (SubscriptionInfo info: subList) {
                     CharSequence carrierName = info.getCarrierName();
@@ -689,7 +688,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // It's possible the Generated DME DNS host doesn't exist yet for your SIM.
             String dmeHostAddress;
             try {
-                dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
+                dmeHostAddress = me.generateDmeHostAddress();
                 someText += "(e)SIM card based DME address: " + dmeHostAddress + "\n";
             } catch (DmeDnsException dde){
                 someText += dde.getMessage();
@@ -699,13 +698,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
             }
             dmeHostAddress = "wifi." + MatchingEngine.baseDmeHost;
-            mMatchingEngine.setUseWifiOnly(true);
-            mMatchingEngine.setSSLEnabled(true);
+            me.setUseWifiOnly(true);
+            me.setSSLEnabled(true);
             //mMatchingEngine.setNetworkSwitchingEnabled(true);
             //dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
             //dmeHostAddress = "192.168.1.172";
 
-            int port = mMatchingEngine.getPort(); // Keep same port.
+            int port = me.getPort(); // Keep same port.
 
             String orgName = "MobiledgeX-Samples"; // Always supplied by application, and in the MobiledgeX web admin console.
             // For illustration, the matching engine can be used to programmatically get the name of your application details
@@ -717,7 +716,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
             // like AuthToken or Tag key value pairs.
             AppClient.RegisterClientRequest registerClientRequest =
-                    mMatchingEngine.createDefaultRegisterClientRequest(ctx, orgName)
+                    me.createDefaultRegisterClientRequest(ctx, orgName)
                             //.setCarrierName("telus")
                             .setAppName(appName)
                             .setAppVers(appVers)
@@ -727,7 +726,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // This exercises a threadpool that can have a dependent call depth larger than 1
             AppClient.RegisterClientReply registerClientReply;
             Future<AppClient.RegisterClientReply> registerClientReplyFuture =
-                    mMatchingEngine.registerClientFuture(registerClientRequest,
+                    me.registerClientFuture(registerClientRequest,
                             dmeHostAddress, port, 10000);
             registerClientReply = registerClientReplyFuture.get();
 
@@ -741,10 +740,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
             // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
             AppClient.FindCloudletRequest findCloudletRequest =
-                    mMatchingEngine.createDefaultFindCloudletRequest(ctx, location) // location)
+                    me.createDefaultFindCloudletRequest(ctx, location) // location)
                             .setCarrierName("")
                             .build();
-            AppClient.FindCloudletReply closestCloudlet = mMatchingEngine.findCloudlet(findCloudletRequest,
+            AppClient.FindCloudletReply closestCloudlet = me.findCloudlet(findCloudletRequest,
                     dmeHostAddress, port, 10000);
             Log.i(TAG, "closest Cloudlet is " + closestCloudlet);
             mLastFindCloudlet = closestCloudlet;
@@ -758,19 +757,19 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // should now be initalized, unless disabled.
 
             registerClientReplyFuture =
-                    mMatchingEngine.registerClientFuture(registerClientRequest,
+                    me.registerClientFuture(registerClientRequest,
                             dmeHostAddress, port, 10000);
             registerClientReply = registerClientReplyFuture.get();
             Log.i(TAG, "Register status: " + registerClientReply.getStatus());
             AppClient.VerifyLocationRequest verifyRequest =
-                    mMatchingEngine.createDefaultVerifyLocationRequest(ctx, location)
+                    me.createDefaultVerifyLocationRequest(ctx, location)
                             .build();
             Log.i(TAG, "verifyRequest is " + verifyRequest);
 
             if (verifyRequest != null) {
                 // Location Verification (Blocking, or use verifyLocationFuture):
                 AppClient.VerifyLocationReply verifiedLocation =
-                        mMatchingEngine.verifyLocation(verifyRequest, dmeHostAddress, port, 10000);
+                        me.verifyLocation(verifyRequest, dmeHostAddress, port, 10000);
                 Log.i(TAG, "VerifyLocationReply is " + verifiedLocation);
 
                 someText += "[Location Verified: Tower: " + verifiedLocation.getTowerStatus() +
@@ -817,7 +816,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     }
 
                     // Test from a particular network path. Here, the active one is Celluar since we switched the whole process over earlier.
-                    Site site = new Site(mMatchingEngine.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, host, serverPort);
+                    Site site = new Site(me.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, host, serverPort);
                     netTest.addSite(site);
                 }
 
@@ -825,9 +824,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                 String appInstListText = "";
                 AppClient.AppInstListRequest appInstListRequest =
-                        mMatchingEngine.createDefaultAppInstListRequest(ctx, location).build();
+                        me.createDefaultAppInstListRequest(ctx, location).build();
 
-                AppClient.AppInstListReply appInstListReply = mMatchingEngine.getAppInstList(
+                AppClient.AppInstListReply appInstListReply = me.getAppInstList(
                         appInstListRequest, dmeHostAddress, port, 10000);
 
                 for (AppClient.CloudletLocation cloudletLocation : appInstListReply.getCloudletsList()) {
@@ -858,24 +857,24 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 }
             }
 
-            someText += "[Is WiFi Enabled: " + mMatchingEngine.isWiFiEnabled(ctx) + "]\n";
+            someText += "[Is WiFi Enabled: " + me.isWiFiEnabled(ctx) + "]\n";
 
             if (android.os.Build.VERSION.SDK_INT >= 28) {
-                someText += "[Is Roaming Data Enabled: " + mMatchingEngine.isRoamingData() + "]\n";
+                someText += "[Is Roaming Data Enabled: " + me.isRoamingData() + "]\n";
             } else {
                 someText += "[Roaming Data status unknown.]\n";
             }
 
             CarrierConfigManager carrierConfigManager = ctx.getSystemService(CarrierConfigManager.class);
             someText += "[Enabling WiFi Calling could disable Cellular Data if on a Roaming Network!\nWiFi Calling  Support Status: "
-                    + mMatchingEngine.isWiFiCallingSupported(carrierConfigManager) + "]\n";
+                    + me.isWiFiCallingSupported(carrierConfigManager) + "]\n";
 
 
             // Background thread. Post update to the UI thread:
             updateText(ctx, someText);
 
             // Set network back to last default one, if desired:
-            mMatchingEngine.getNetworkManager().resetNetworkToDefault();
+            me.getNetworkManager().resetNetworkToDefault();
         } catch (/*DmeDnsException |*/ ExecutionException | StatusRuntimeException e) {
             Log.e(TAG, e.getMessage());
             Log.e(TAG, Log.getStackTraceString(e));

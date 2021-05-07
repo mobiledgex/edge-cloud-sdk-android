@@ -219,6 +219,9 @@ public class AppConnectionManager {
         for (Appcommon.AppPort p : findCloudletReply.getPortsList()) {
             try {
                 publicPort = getPort(p, internalPort);
+                if (publicPort != 0) {
+                    return publicPort;
+                }
             } catch (InvalidPortException e) {
                 Log.d(TAG, "Internal Port [" + internalPort + "] Not found in AppPort, continuing to next port...");
                 continue;

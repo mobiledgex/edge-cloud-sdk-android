@@ -32,11 +32,14 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
     public EdgeEventsLocationIntervalHandler(MatchingEngine matchingEngine, ClientEventsConfig config) {
         super();
         me = matchingEngine;
-        ClientEventsConfig cfg = new ClientEventsConfig(config);
-
         if (me == null) {
             throw new IllegalArgumentException("MatchingEngine cannot be null!");
         }
+        if (config == null) {
+            throw new IllegalArgumentException("Config cannot be null!");
+        }
+        ClientEventsConfig cfg = new ClientEventsConfig(config);
+
         if (config.updateIntervalSeconds <= 0) {
             Log.w(TAG, "Seconds cannot be negative. Defaulting to 30 seconds.");
 
@@ -59,7 +62,7 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
         }
 
         public void run() {
-            if (getNumberOfTimesExecuted < ceConfig.maxNumberOfUpdates) {
+            if (getNumberOfTimesExecuted < ceConfig.maxNumberOfUpdates || ceConfig.maxNumberOfUpdates <= 0) {
                 getNumberOfTimesExecuted++;
                 EdgeEventsConnection edgeEventsConnection = me.getEdgeEventsConnection();
                 if (edgeEventsConnection == null) {
@@ -67,7 +70,7 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
                     return;
                 }
                 // Permissions required, and could return null.
-                location = me.getEdgeEventsConnection().getLocation();
+                location = edgeEventsConnection.getLocation();
 
                 edgeEventsConnection.postLocationUpdate(location);
             } else {

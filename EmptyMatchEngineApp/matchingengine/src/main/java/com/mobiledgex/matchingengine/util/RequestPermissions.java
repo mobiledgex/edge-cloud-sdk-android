@@ -45,7 +45,7 @@ public class RequestPermissions {
     public static final String[] permissions = new String[] { // Special Enhanced security requests.
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.READ_PHONE_STATE, // Get Phone number
+            Manifest.permission.READ_PHONE_STATE, // Get network state.
     };
 
     public static boolean permissionsDeniedShown = false;
@@ -60,6 +60,17 @@ public class RequestPermissions {
             }
         }
         return permissionsNeeded;
+    }
+
+    /*!
+     * Returns whether location permissions are granted to the app, currently.
+     * \param activity
+     */
+    static boolean hasLocationPermissions(AppCompatActivity activity) {
+        boolean fine = ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        boolean coarse = ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+
+        return (fine || coarse);
     }
 
     public void requestMultiplePermissions(AppCompatActivity activity) {

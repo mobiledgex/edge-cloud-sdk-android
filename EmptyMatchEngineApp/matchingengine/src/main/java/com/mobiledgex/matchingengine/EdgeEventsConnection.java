@@ -196,6 +196,9 @@ public class EdgeEventsConnection {
     }
 
     boolean awaitOpen() {
+        if (isShutdown()) {
+            return false;
+        }
         synchronized (openAwaiter) {
             if (channelStatus == ChannelStatus.open) {
                 return true;
@@ -268,15 +271,13 @@ public class EdgeEventsConnection {
         }
 
         // Post to interested subscribers.
-        boolean subbed = false;
-        for (int i = 0; i  < mEdgeEventsConfig.triggers.length; i++) {
-            if (findCloudletEvent.trigger == mEdgeEventsConfig.triggers[i]) {
-                subbed = true;
-                break;
-            }
+        boolean subscribed = false;
+        if (mEdgeEventsConfig.triggers != null &&
+            mEdgeEventsConfig.triggers.contains(findCloudletEvent.trigger)) {
+            subscribed = true;
         }
 
-        if (subbed) {
+        if (subscribed) {
             me.getEdgeEventsBus().post(findCloudletEvent);
         }
     }
@@ -502,17 +503,15 @@ public class EdgeEventsConnection {
     /*!
      * Call this to shutdown EdgeEvents cleanly. Instance cannot be reopened.
      */
-    void close() {
+    synchronized void close() {
         synchronized (openAwaiter) {
             openAwaiter.notifyAll();
             openAwaiter = null;
         }
-        synchronized (this) {
-            if (!isShutdown()) {
-                Log.d(TAG, "closing...");
-                eventBusUnRegister();
-                closeInternal();
-            }
+        if (!isShutdown()) {
+            Log.d(TAG, "closing...");
+            eventBusUnRegister();
+            closeInternal();
         }
     }
 
@@ -778,7 +777,7 @@ public class EdgeEventsConnection {
         }
 
         Site site = new Site(me.mContext, NetTest.TestType.PING,
-                mEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates,
+                Site.DEFAULT_NUM_SAMPLES,
                 host, port);
         NetTest netTest = new NetTest();
         netTest.addSite(site);
@@ -889,7 +888,7 @@ public class EdgeEventsConnection {
                 .setGpsLocation(loc);
 
         Site site = new Site(me.mContext, NetTest.TestType.CONNECT,
-                mEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates,
+                Site.DEFAULT_NUM_SAMPLES,
                 host,
                 port);
         NetTest netTest = new NetTest();
@@ -1020,7 +1019,9 @@ public class EdgeEventsConnection {
                 case onInterval:
                     eventBusRegister(); // Attach Subscriber, to handle triggers and montoriing by interval.
                     // Start, and add to a list of known EdgeEvent Testing Handlers
-                    addEdgeEventsIntervalTask(new EdgeEventsLocationIntervalHandler(me, locationUpdateConfig));
+                    if (locationUpdateConfig != null) {
+                        addEdgeEventsIntervalTask(new EdgeEventsLocationIntervalHandler(me, locationUpdateConfig));
+                    }
                     break;
             }
         }
@@ -1045,7 +1046,9 @@ public class EdgeEventsConnection {
                     // Last FindCloudlet
                     eventBusRegister(); // Attach Subscriber, to handle triggers and monitoring by interval.
                     // Add to a list of known EdgeEvent Testing Handlers
-                    addEdgeEventsIntervalTask(new EdgeEventsLatencyIntervalHandler(me, mEdgeEventsConfig.latencyTestType, latencyUpdateConfig));
+                    if (latencyUpdateConfig != null) {
+                        addEdgeEventsIntervalTask(new EdgeEventsLatencyIntervalHandler(me, mEdgeEventsConfig.latencyTestType, latencyUpdateConfig));
+                    }
                     break;
             }
         }
@@ -1126,7 +1129,7 @@ public class EdgeEventsConnection {
             return false;
         }
 
-        // FindCloudlet need location:
+        // FindCloudlet needs location:
         loc = getLastLocationPosted();
         if (loc == null) {
             loc = getLocation();
@@ -1139,12 +1142,18 @@ public class EdgeEventsConnection {
                 .build();
 
         try {
-            AppClient.FindCloudletReply reply = me.findCloudlet(request, me.getNetworkManager().getTimeout());
+            AppClient.FindCloudletReply reply = me.findCloudlet(
+                    request,
+                    me.getNetworkManager().getTimeout(),
+                    MatchingEngine.FindCloudletMode.PERFORMANCE);
             if (reply != null) {
                 FindCloudletEvent event = new FindCloudletEvent(reply, reason);
 
                 // TODO: Check if this is a new FindCloudlet before posting.
                 postToFindCloudletEventHandler(event);
+                if (me.isAutoMigrateEdgeEventsConnection()) {
+                    reconnect();
+                }
                 return true;
             }
             // Caller decides what happens on failure.
@@ -1205,19 +1214,22 @@ public class EdgeEventsConnection {
         }
 
         switch (event.getHealthCheck()) {
-            case HEALTH_CHECK_FAIL_ROOTLB_OFFLINE:
+            // Informational:
+            case HEALTH_CHECK_OK:
+            case HEALTH_CHECK_UNKNOWN: // yes, OK.
+                Log.i(TAG, "Informational appInst HealthCheck is OK. Reason: " + event.getHealthCheck());
+                break;
+
+            // Handle Event:
+            case HEALTH_CHECK_FAIL_ROOTLB_OFFLINE: // fallthrough
             case HEALTH_CHECK_FAIL_SERVER_FAIL:
+            case UNRECOGNIZED: // Presumably if not OK, means to get a new FindCloudlet.
+            default:
+                Log.i(TAG, "AppInst Health event. Doing FindCloudlet. Reason: " + event.getHealthCheck());
                 if (!doClientFindCloudlet(FindCloudletEventTrigger.AppInstHealthChanged)) {
                     postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
                 }
                 break;
-            case HEALTH_CHECK_OK:
-                Log.i(TAG, "AppInst Health is OK");
-                break;
-            case UNRECOGNIZED:
-                // fall through
-            default:
-                Log.i(TAG, "AppInst Health event: " + event.getHealthCheck());
         }
         return true;
     }
@@ -1228,11 +1240,26 @@ public class EdgeEventsConnection {
         }
 
         switch (event.getMaintenanceState()) {
-            case NORMAL_OPERATION:
-                Log.i(TAG,"Maintenance state is all good!");
+            // Handle event:
+            case UNDER_MAINTENANCE:
+                Log.i(TAG,"Maintenance state changed! Finding new Cloudlet. Reason: " + event.getMaintenanceState());
+                if (!doClientFindCloudlet(FindCloudletEventTrigger.CloudletMaintenanceStateChanged)) {
+                    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                }
                 break;
+            // Informational.
+            case NORMAL_OPERATION:
+            case MAINTENANCE_START: // all fall through
+            case FAILOVER_REQUESTED:
+            case FAILOVER_DONE:
+            case FAILOVER_ERROR:
+            case MAINTENANCE_START_NO_FAILOVER:
+            case CRM_REQUESTED:
+            case CRM_UNDER_MAINTENANCE:
+            case CRM_ERROR:
+            case NORMAL_OPERATION_INIT:
             default:
-                Log.i(TAG,"Server maintenance: " + event.getMaintenanceState());
+                Log.i(TAG,"Informational maintenance state changed! Reason:" + event.getMaintenanceState());
         }
         return true;
     }
@@ -1243,24 +1270,22 @@ public class EdgeEventsConnection {
         }
 
         switch (event.getCloudletState()) {
-            case CLOUDLET_STATE_INIT:
-                Log.i(TAG,"Cloudlet is not ready yet. Wait or FindCloudlet again.");
-                break;
-            case CLOUDLET_STATE_NOT_PRESENT:
-            case CLOUDLET_STATE_UPGRADE:
-            case CLOUDLET_STATE_OFFLINE:
-            case CLOUDLET_STATE_ERRORS:
-                Log.i(TAG,"Cloudlet State is: " + event.getCloudletState());
-                handleFindCloudletServerPush(event, FindCloudletEventTrigger.CloudletStateChanged);
-                break;
+            // Informational:
             case CLOUDLET_STATE_READY:
-                Log.i(TAG,"Cloudlet State is: " + event.getCloudletState());
+                Log.i(TAG,"Informational cloudletState is ready and OK. Reason: " + event.getCloudletState());
                 break;
+            // Handle event:
+            case CLOUDLET_STATE_UNKNOWN:
+            case CLOUDLET_STATE_ERRORS:
+            case CLOUDLET_STATE_OFFLINE:
+            case CLOUDLET_STATE_NOT_PRESENT:
+            case CLOUDLET_STATE_INIT:
+            case CLOUDLET_STATE_UPGRADE:
             case CLOUDLET_STATE_NEED_SYNC:
-                Log.i(TAG,"Cloudlet data needs to sync.");
-                break;
             default:
-                Log.i(TAG,"Not handled");
+                Log.i(TAG,"Cloudlet State Change. Doing findCloudlet. Reason: " + event.getCloudletState());
+                doClientFindCloudlet(FindCloudletEventTrigger.CloudletStateChanged);
+                break;
         }
         return true;
     }

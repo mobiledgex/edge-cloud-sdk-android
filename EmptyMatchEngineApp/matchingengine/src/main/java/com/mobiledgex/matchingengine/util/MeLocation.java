@@ -36,7 +36,9 @@ import android.util.Log;
 
 
 /*!
- * Simple util class for last known location.
+ * Simple util class for last known location. This does NOT get continuous location,
+ * which is owned by the application lifecycle, and can use the full LocationCallback
+ * object.
  * \ingroup classes_util
  */
 public class MeLocation {
@@ -120,9 +122,10 @@ public class MeLocation {
         mMatchingEngine = matchingEngine;
     }
 
-    /**
+    /*!
      * A utility blocking call to location services, otherwise, use standard asynchronous location APIs.
      * Location Access Permissions must be enabled.
+     * \param context context for activity.
      */
     public android.location.Location getBlocking(final Context context, long timeoutInMilliseconds)
             throws IllegalArgumentException, IllegalStateException, SecurityException,
