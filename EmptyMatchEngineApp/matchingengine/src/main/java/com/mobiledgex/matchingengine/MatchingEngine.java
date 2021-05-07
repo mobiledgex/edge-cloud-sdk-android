@@ -329,13 +329,30 @@ public class MatchingEngine {
     synchronized public boolean startEdgeEvents(EdgeEventsConfig edgeEventsConfig) {
         warnIfUIThread();
         if (edgeEventsConfig == null) {
-            Log.e(TAG, "EdgeEventsConfig should not be null! See createDefaultEdgeEventsConfig(). startEdgeEvents() will create a minimal un-customized basic config for initial use.");
-            edgeEventsConfig = createDefaultEdgeEventsConfig();
+            Log.e(TAG, "EdgeEventsConfig should not be null!");
+            return false;
         }
         if (isShutdown()) {
             return false;
         }
         mAppInitiatedRunEdgeEvents = true;
+        try {
+            return startEdgeEvents(null, 0, null, edgeEventsConfig);
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, "Failed to start DME EdgeEvents Connection, could not create DME hostname. The configuration given will be used for next attempt.");
+            return false;
+        }
+    }
+
+    synchronized boolean startEdgeEventsInternal(EdgeEventsConfig edgeEventsConfig) {
+        if (edgeEventsConfig == null) {
+            Log.e(TAG, "Will create a minimal config for EdgeEvents use.");
+            edgeEventsConfig = createDefaultEdgeEventsConfig();
+        }
+        if (isShutdown()) {
+            return false;
+        }
+        mAppInitiatedRunEdgeEvents = false;
         try {
             return startEdgeEvents(null, 0, null, edgeEventsConfig);
         } catch (DmeDnsException dde) {
@@ -373,14 +390,14 @@ public class MatchingEngine {
             return false;
         }
 
-        if (edgeEventsConfig == null) {
+        if (edgeEventsConfig == null && !mAppInitiatedRunEdgeEvents) {
             Log.w(TAG, "Cannot start edgeEvents without a configuration. Using Default.");
             mEdgeEventsConfig = createDefaultEdgeEventsConfig();
         } else {
             mEdgeEventsConfig = edgeEventsConfig;
         }
         // This is an exposed path to start/restart EdgeEvents, state check everything.
-        if (!validateEdgeEventsConfig(edgeEventsConfig)) {
+        if (!validateEdgeEventsConfig()) {
             return false; // NOT started.
         }
 
@@ -504,11 +521,10 @@ public class MatchingEngine {
 
     /**
      * validate prior to creating a EdgeEventsConnection outside FindCloudlet auto creation.
-     * @param edgeEventsConfig
      * @return
      */
-    private boolean validateEdgeEventsConfig(EdgeEventsConfig edgeEventsConfig) {
-        if (mEnableEdgeEvents == false) {
+    private boolean validateEdgeEventsConfig() {
+        if (!mEnableEdgeEvents) {
             Log.w(TAG, "EdgeEvents is set to disabled.");
             return false;
         }
@@ -517,8 +533,8 @@ public class MatchingEngine {
             Log.w(TAG, "MobiledgeX Location services are disabled. Reduced functionality. EdgeEvents can only receive server push events.");
         }
 
-        if (!mEnableEdgeEvents) {
-            Log.w(TAG, "MobiledgeX EdgeEvents are disabled. Reduced functionality.");
+        if (mEdgeEventsConfig == null) {
+            Log.w(TAG, "No configuration to run edgeEvents");
             return false;
         }
 
@@ -581,6 +597,7 @@ public class MatchingEngine {
             return;
         }
         Log.d(TAG, "MatchingEngine closing.");
+        stopEdgeEvents();
         if (mEdgeEventsConnection != null) {
             mEdgeEventsConnection.close();
         }

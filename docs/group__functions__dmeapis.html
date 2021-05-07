@@ -112,8 +112,8 @@ $(document).ready(function(){initNavTree('group__functions__dmeapis.html',''); i
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:gae538de0186cb81e4941d2b952d31ef60"><td class="memItemLeft" align="right" valign="top">synchronized <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html">EdgeEventsConnection</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gae538de0186cb81e4941d2b952d31ef60">com.mobiledgex.matchingengine.MatchingEngine.getEdgeEventsConnection</a> ()</td></tr>
-<tr class="separator:gae538de0186cb81e4941d2b952d31ef60"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6a27f7bfe897b776c92d9744fb0007c8"><td class="memItemLeft" align="right" valign="top">synchronized CompletableFuture&lt; <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html">EdgeEventsConnection</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga6a27f7bfe897b776c92d9744fb0007c8">com.mobiledgex.matchingengine.MatchingEngine.getEdgeEventsConnectionFuture</a> ()</td></tr>
+<tr class="separator:ga6a27f7bfe897b776c92d9744fb0007c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga6e66e0506a2ce266e63c94b58ef04f1c"><td class="memItemLeft" align="right" valign="top">synchronized void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga6e66e0506a2ce266e63c94b58ef04f1c">com.mobiledgex.matchingengine.MatchingEngine.close</a> ()</td></tr>
 <tr class="separator:ga6e66e0506a2ce266e63c94b58ef04f1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae2042ac3377ddc4e3f2a0a01cbe681a7"><td class="memItemLeft" align="right" valign="top">RegisterClientRequest.Builder&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gae2042ac3377ddc4e3f2a0a01cbe681a7">com.mobiledgex.matchingengine.MatchingEngine.createDefaultRegisterClientRequest</a> (Context context, String organizationName)  throws PackageManager.NameNotFoundException </td></tr>
@@ -1018,14 +1018,14 @@ Example</h1>
 
 </div>
 </div>
-<a id="gae538de0186cb81e4941d2b952d31ef60"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gae538de0186cb81e4941d2b952d31ef60">&#9670;&nbsp;</a></span>getEdgeEventsConnection()</h2>
+<a id="ga6a27f7bfe897b776c92d9744fb0007c8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga6a27f7bfe897b776c92d9744fb0007c8">&#9670;&nbsp;</a></span>getEdgeEventsConnectionFuture()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">synchronized <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html">EdgeEventsConnection</a> com.mobiledgex.matchingengine.MatchingEngine.getEdgeEventsConnection </td>
+          <td class="memname">synchronized CompletableFuture&lt;<a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html">EdgeEventsConnection</a>&gt; com.mobiledgex.matchingengine.MatchingEngine.getEdgeEventsConnectionFuture </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -1341,7 +1341,7 @@ Example</h1>
 <div class="line">                    organizationName, applicationName,</div>
 <div class="line">                    appVersion, location, <span class="stringliteral">&quot;&quot;</span>,</div>
 <div class="line">                    0, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">MatchingEngine</a>.FindCloudletMode.PROXIMITY); <span class="comment">// FIXME: These parameters should be overloaded or optional.</span></div>
-<div class="ttc" id="aclasscom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_html_a169f68551802701593df83c15e1ee7c5"><div class="ttname"><a href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">com.mobiledgex.matchingengine.MatchingEngine.MatchingEngine</a></div><div class="ttdeci">MatchingEngine(Context context)</div><div class="ttdef"><b>Definition:</b> MatchingEngine.java:175</div></div>
+<div class="ttc" id="aclasscom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_html_a169f68551802701593df83c15e1ee7c5"><div class="ttname"><a href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">com.mobiledgex.matchingengine.MatchingEngine.MatchingEngine</a></div><div class="ttdeci">MatchingEngine(Context context)</div><div class="ttdef"><b>Definition:</b> MatchingEngine.java:187</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -1556,7 +1556,7 @@ Example</h1>
 </dl>
 <h1><a class="anchor" id="registerexample"></a>
 Example</h1>
-<div class="fragment"><div class="line">                registerReply = me.registerClient(regRequest, GRPC_TIMEOUT_MS);</div>
+<div class="fragment"><div class="line">                registerReply = me.registerClient(registerClientRequest, GRPC_TIMEOUT_MS);</div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -1617,7 +1617,7 @@ Example</h1>
 </dl>
 <h1><a class="anchor" id="registeroverrideexample"></a>
 Example</h1>
-<div class="fragment"><div class="line">                registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);</div>
+<div class="fragment"><div class="line">                registerReply = me.registerClient(registerClientRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);</div>
 </div><!-- fragment -->
 </div>
 </div>

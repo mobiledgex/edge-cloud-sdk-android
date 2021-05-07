@@ -3,6 +3,7 @@ var classcom_1_1mobiledgex_1_1matchingengine_1_1_app_connection_manager =
     [ "createUrl", "group__functions__getconnectionutils.html#ga10b2ba7c9cd66c48a0c323263189aea6", null ],
     [ "getAppPort", "classcom_1_1mobiledgex_1_1matchingengine_1_1_app_connection_manager.html#a550bf2f6dd6e50b0748eb15b21545d78", null ],
     [ "getHost", "group__functions__getconnectionutils.html#gab6c7663756f6d3cee6982c122b232f55", null ],
+    [ "getHost", "classcom_1_1mobiledgex_1_1matchingengine_1_1_app_connection_manager.html#a4249c2d22faffb363eafb93bc8ccdbdd", null ],
     [ "getHttpClient", "group__functions__getconnection.html#ga736cee5942e4bd4b91044e2cbc1921a6", null ],
     [ "getPort", "group__functions__getconnectionutils.html#gacb92d31ff8360f20ad139a3862f19ba5", null ],
     [ "getPublicPort", "classcom_1_1mobiledgex_1_1matchingengine_1_1_app_connection_manager.html#a1f8b37c9893a0445f71bcedaeca4184d", null ],

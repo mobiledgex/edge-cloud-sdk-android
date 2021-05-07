@@ -126,10 +126,16 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
+<tr class="memitem:a7ac9c3d737701ba905bc3393ba9b4aef"><td class="memItemLeft" align="right" valign="top"><a id="a7ac9c3d737701ba905bc3393ba9b4aef"></a>
+boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isShutdown</b> ()</td></tr>
+<tr class="separator:a7ac9c3d737701ba905bc3393ba9b4aef"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a169f68551802701593df83c15e1ee7c5"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">MatchingEngine</a> (Context context)</td></tr>
 <tr class="separator:a169f68551802701593df83c15e1ee7c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a07ac6b57ce1573e837f311354bd1ef64"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a07ac6b57ce1573e837f311354bd1ef64">MatchingEngine</a> (Context context, ExecutorService executorService)</td></tr>
 <tr class="separator:a07ac6b57ce1573e837f311354bd1ef64"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3552b23d26a73cca1e0bdb905e8e6bd4"><td class="memItemLeft" align="right" valign="top"><a id="a3552b23d26a73cca1e0bdb905e8e6bd4"></a>
+boolean&#160;</td><td class="memItemRight" valign="bottom"><b>warnIfUIThread</b> ()</td></tr>
+<tr class="separator:a3552b23d26a73cca1e0bdb905e8e6bd4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6d0129b6307cae33469cde8e47b82318"><td class="memItemLeft" align="right" valign="top"><a id="a6d0129b6307cae33469cde8e47b82318"></a>
 boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isEnableEdgeEvents</b> ()</td></tr>
 <tr class="separator:a6d0129b6307cae33469cde8e47b82318"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -146,19 +152,31 @@ synchronized void&#160;</td><td class="memItemRight" valign="bottom"><b>setEdgeE
 <tr class="separator:abfa9b973224822ef7cea2c91d1cde12f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abf65ad608a5851415b6258d40b9da6cc"><td class="memItemLeft" align="right" valign="top">EdgeEventsConfig&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#abf65ad608a5851415b6258d40b9da6cc">createDefaultEdgeEventsConfig</a> (double latencyUpdateIntervalSeconds, double locationUpdateIntervalSeconds, double latencyThresholdTriggerMs, ClientEventsConfig.UpdatePattern updatePattern)</td></tr>
 <tr class="separator:abf65ad608a5851415b6258d40b9da6cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga2ff5ed5fc0e3b6894ca3ae150aeb8bc2"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#ga2ff5ed5fc0e3b6894ca3ae150aeb8bc2">startEdgeEvents</a> (EdgeEventsConfig edgeEventsConfig)</td></tr>
-<tr class="separator:ga2ff5ed5fc0e3b6894ca3ae150aeb8bc2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga3ae318da27afaadebc961784ebeaa552"><td class="memItemLeft" align="right" valign="top">synchronized CompletableFuture&lt; Boolean &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#ga3ae318da27afaadebc961784ebeaa552">startEdgeEventsFuture</a> (EdgeEventsConfig edgeEventsConfig)</td></tr>
+<tr class="separator:ga3ae318da27afaadebc961784ebeaa552"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae8a4bba07fbab05abab5698a2d8e0d8e"><td class="memItemLeft" align="right" valign="top">synchronized boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#gae8a4bba07fbab05abab5698a2d8e0d8e">startEdgeEvents</a> (EdgeEventsConfig edgeEventsConfig)</td></tr>
+<tr class="separator:gae8a4bba07fbab05abab5698a2d8e0d8e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a27463dfe3c44d1bee5814ba6255cdc73"><td class="memItemLeft" align="right" valign="top"><a id="a27463dfe3c44d1bee5814ba6255cdc73"></a>
+synchronized CompletableFuture&lt; Boolean &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>startEdgeEventsFuture</b> (final String dmeHost, final int dmePort, final Network network, final EdgeEventsConfig edgeEventsConfig)</td></tr>
+<tr class="separator:a27463dfe3c44d1bee5814ba6255cdc73"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8f50472d44b48cd35bb0d147f22725f0"><td class="memItemLeft" align="right" valign="top"><a id="a8f50472d44b48cd35bb0d147f22725f0"></a>
-synchronized boolean&#160;</td><td class="memItemRight" valign="bottom"><b>startEdgeEvents</b> (String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig)</td></tr>
+synchronized boolean&#160;</td><td class="memItemRight" valign="bottom"><b>startEdgeEvents</b> (String dmeHost, int dmePort, Network network, EdgeEventsConfig edgeEventsConfig)  throws DmeDnsException </td></tr>
 <tr class="separator:a8f50472d44b48cd35bb0d147f22725f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac1a1a5efd79335c82b227d328bf6f11f"><td class="memItemLeft" align="right" valign="top">synchronized CompletableFuture&lt; Boolean &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#gac1a1a5efd79335c82b227d328bf6f11f">restartEdgeEventsFuture</a> ()</td></tr>
+<tr class="separator:gac1a1a5efd79335c82b227d328bf6f11f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga486a584a47aa147c16a1b986f3495a9e"><td class="memItemLeft" align="right" valign="top">synchronized boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#ga486a584a47aa147c16a1b986f3495a9e">restartEdgeEvents</a> ()  throws DmeDnsException </td></tr>
 <tr class="separator:ga486a584a47aa147c16a1b986f3495a9e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaf422e306d140500f77163c4ce829653f"><td class="memItemLeft" align="right" valign="top">synchronized boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#gaf422e306d140500f77163c4ce829653f">switchedToNextCloudlet</a> ()  throws DmeDnsException</td></tr>
+<tr class="memitem:gaf422e306d140500f77163c4ce829653f"><td class="memItemLeft" align="right" valign="top">synchronized boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#gaf422e306d140500f77163c4ce829653f">switchedToNextCloudlet</a> ()  throws DmeDnsException </td></tr>
 <tr class="separator:gaf422e306d140500f77163c4ce829653f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga562d847816fbcc4d83b38b17ea7a1cbf"><td class="memItemLeft" align="right" valign="top">synchronized CompletableFuture&lt; Boolean &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#ga562d847816fbcc4d83b38b17ea7a1cbf">stopEdgeEventsFuture</a> ()</td></tr>
+<tr class="separator:ga562d847816fbcc4d83b38b17ea7a1cbf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga7a4eed97ee649d41b7a7910d4b2b2928"><td class="memItemLeft" align="right" valign="top">synchronized boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#ga7a4eed97ee649d41b7a7910d4b2b2928">stopEdgeEvents</a> ()</td></tr>
 <tr class="separator:ga7a4eed97ee649d41b7a7910d4b2b2928"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae538de0186cb81e4941d2b952d31ef60"><td class="memItemLeft" align="right" valign="top">synchronized <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html">EdgeEventsConnection</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gae538de0186cb81e4941d2b952d31ef60">getEdgeEventsConnection</a> ()</td></tr>
-<tr class="separator:gae538de0186cb81e4941d2b952d31ef60"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6a27f7bfe897b776c92d9744fb0007c8"><td class="memItemLeft" align="right" valign="top">synchronized CompletableFuture&lt; <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html">EdgeEventsConnection</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga6a27f7bfe897b776c92d9744fb0007c8">getEdgeEventsConnectionFuture</a> ()</td></tr>
+<tr class="separator:ga6a27f7bfe897b776c92d9744fb0007c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae538de0186cb81e4941d2b952d31ef60"><td class="memItemLeft" align="right" valign="top"><a id="ae538de0186cb81e4941d2b952d31ef60"></a>
+synchronized <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html">EdgeEventsConnection</a>&#160;</td><td class="memItemRight" valign="bottom"><b>getEdgeEventsConnection</b> ()</td></tr>
+<tr class="separator:ae538de0186cb81e4941d2b952d31ef60"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga6e66e0506a2ce266e63c94b58ef04f1c"><td class="memItemLeft" align="right" valign="top">synchronized void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga6e66e0506a2ce266e63c94b58ef04f1c">close</a> ()</td></tr>
 <tr class="separator:ga6e66e0506a2ce266e63c94b58ef04f1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga033d44051c4e7807237f3112fa6563b9"><td class="memItemLeft" align="right" valign="top">EventBus&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#ga033d44051c4e7807237f3112fa6563b9">getEdgeEventsBus</a> ()</td></tr>
@@ -186,6 +204,9 @@ synchronized void&#160;</td><td class="memItemRight" valign="bottom"><b>setAllow
 <tr class="memitem:afb25fff61d0eba28643b4006c86b6e4c"><td class="memItemLeft" align="right" valign="top"><a id="afb25fff61d0eba28643b4006c86b6e4c"></a>
 Future&#160;</td><td class="memItemRight" valign="bottom"><b>submit</b> (Callable task)</td></tr>
 <tr class="separator:afb25fff61d0eba28643b4006c86b6e4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7772670e8c825f65fc89c5a1b570769f"><td class="memItemLeft" align="right" valign="top"><a id="a7772670e8c825f65fc89c5a1b570769f"></a>
+synchronized FindCloudletReply&#160;</td><td class="memItemRight" valign="bottom"><b>getLastFindCloudletReply</b> ()</td></tr>
+<tr class="separator:a7772670e8c825f65fc89c5a1b570769f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gab0f24bab966bc7ce5664cba797d4033c"><td class="memItemLeft" align="right" valign="top">HashMap&lt; String, String &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeutils.html#gab0f24bab966bc7ce5664cba797d4033c">getDeviceInfo</a> ()</td></tr>
 <tr class="separator:gab0f24bab966bc7ce5664cba797d4033c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5805b01fbd9c3cc88e70d6ebbab14977"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeutils.html#ga5805b01fbd9c3cc88e70d6ebbab14977">getCarrierName</a> (Context context)</td></tr>
@@ -359,7 +380,7 @@ static final String&#160;</td><td class="memItemRight" valign="bottom"><b>MATCHI
 <h1><a class="anchor" id="meconstructorexample"></a>
 Example</h1>
 <div class="fragment"><div class="line">        <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">MatchingEngine</a> me = <span class="keyword">new</span> <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">MatchingEngine</a>(context);</div>
-<div class="ttc" id="aclasscom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_html_a169f68551802701593df83c15e1ee7c5"><div class="ttname"><a href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">com.mobiledgex.matchingengine.MatchingEngine.MatchingEngine</a></div><div class="ttdeci">MatchingEngine(Context context)</div><div class="ttdef"><b>Definition:</b> MatchingEngine.java:175</div></div>
+<div class="ttc" id="aclasscom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_html_a169f68551802701593df83c15e1ee7c5"><div class="ttname"><a href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">com.mobiledgex.matchingengine.MatchingEngine.MatchingEngine</a></div><div class="ttdeci">MatchingEngine(Context context)</div><div class="ttdef"><b>Definition:</b> MatchingEngine.java:187</div></div>
 </div><!-- fragment -->
 </div>
 </div>

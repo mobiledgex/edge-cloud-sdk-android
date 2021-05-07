@@ -350,7 +350,7 @@ public class EngineCallTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         AppClient.RegisterClientReply registerReply;
-        AppClient.RegisterClientRequest regRequest;
+        AppClient.RegisterClientRequest registerClientRequest;
 
         try {
             // The app version will be null, but we can build from scratch for test
@@ -362,14 +362,14 @@ public class EngineCallTest {
             if (ids.size() > 0) {
                 regRequestBuilder.setCellId(me.retrieveCellId(context).get(0).second.intValue());
             }
-            regRequest = regRequestBuilder.build();
+            registerClientRequest = regRequestBuilder.build();
             if (useHostOverride) {
                 //! [registeroverrideexample]
-                registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+                registerReply = me.registerClient(registerClientRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
                 //! [registeroverrideexample]
             } else {
                 //! [registerexample]
-                registerReply = me.registerClient(regRequest, GRPC_TIMEOUT_MS);
+                registerReply = me.registerClient(registerClientRequest, GRPC_TIMEOUT_MS);
                 //! [registerexample]
             }
             assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
@@ -527,7 +527,34 @@ public class EngineCallTest {
             long size2 = me.getNetTest().sortedSiteList().size();
 
             assertEquals("Sizes should match!", size1, size2);
+            assertNotNull("FindCloudletReply1 is null!", findCloudletReply1);
+            assertNotNull("FindCloudletReply2 is null!", findCloudletReply2);
+            assertTrue(findCloudletReply1.getStatus().equals(AppClient.FindCloudletReply.FindStatus.FIND_FOUND));
+            assertTrue(findCloudletReply2.getStatus().equals(AppClient.FindCloudletReply.FindStatus.FIND_FOUND));
 
+            // Connect:
+            int internalAppInstPortNum = 2016;
+            //! [construct_host_and_port]
+            if (findCloudletReply1.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
+                // The edge server host and port can be constructed with the following utility code:
+                String host = me.getAppConnectionManager().getHost(findCloudletReply1, internalAppInstPortNum);
+                int port = me.getAppConnectionManager().getPublicPort(findCloudletReply1, internalAppInstPortNum);
+                Log.i(TAG, "Host: " + host + ", Port: " + port);
+            }
+            //! [construct_host_and_port]
+            assertNotNull(findCloudletReply1.getCloudletLocation());
+            assertNotNull(findCloudletReply2.getCloudletLocation());
+
+            NetTest netTest = me.getNetTest();
+            if (!findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn())) {
+                Site site1 = netTest.getSite(findCloudletReply1.getPorts(0).getFqdnPrefix() + findCloudletReply1.getFqdn());
+                Site site2 = netTest.getSite(findCloudletReply2.getPorts(0).getFqdnPrefix() + findCloudletReply2.getFqdn());
+                double margin = Math.abs(site1.average-site2.average)/site2.average;
+                assertTrue("Winner Not within 15% margin: " + margin, margin < .15d);
+            }
+
+            // Might also fail, since the network is not under test control:
+            assertEquals("App's expected test cloudlet FQDN doesn't match.", "cv-cluster.paradise-main.mobiledgex.net", findCloudletReply1.getFqdn());
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("FindCloudlet: DmeDnsException", true);
@@ -545,26 +572,6 @@ public class EngineCallTest {
             me.close();
             enableMockLocation(context,false);
         }
-
-        assertNotNull("FindCloudletReply1 is null!", findCloudletReply1);
-        assertNotNull("FindCloudletReply2 is null!", findCloudletReply2);
-        assertTrue(findCloudletReply1.getStatus().equals(AppClient.FindCloudletReply.FindStatus.FIND_FOUND));
-        assertTrue(findCloudletReply2.getStatus().equals(AppClient.FindCloudletReply.FindStatus.FIND_FOUND));
-
-        assertNotNull(findCloudletReply1.getCloudletLocation());
-        assertNotNull(findCloudletReply2.getCloudletLocation());
-
-        NetTest netTest = me.getNetTest();
-        if (!findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn())) {
-            Site site1 = netTest.getSite(findCloudletReply1.getPorts(0).getFqdnPrefix() + findCloudletReply1.getFqdn());
-            Site site2 = netTest.getSite(findCloudletReply2.getPorts(0).getFqdnPrefix() + findCloudletReply2.getFqdn());
-            double margin = Math.abs(site1.average-site2.average)/site2.average;
-            assertTrue("Winner Not within 15% margin: " + margin, margin < .15d);
-        }
-
-
-        // Might also fail, since the network is not under test control:
-        assertEquals("App's expected test cloudlet FQDN doesn't match.", "cv-cluster.paradise-main.mobiledgex.net", findCloudletReply1.getFqdn());
     }
 
     // This test only tests "" any, and not subject to the global override.

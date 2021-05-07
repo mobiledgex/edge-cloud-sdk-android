@@ -19,6 +19,8 @@ package com.mobiledgex.matchingengine.edgeeventsconfig;
 
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 
+import java.util.EnumSet;
+
 public class EdgeEventsConfig {
     // Configure how to send events
 
@@ -32,17 +34,14 @@ public class EdgeEventsConfig {
 
     // Configure how to respond to events
     public double latencyThresholdTrigger; // latency threshold in ms when new FindCloudlet is triggered
-    public FindCloudletEventTrigger triggers[];// events that application wants a new find cloudlet for
+    public EnumSet<FindCloudletEventTrigger> triggers;// events that application wants a new find cloudlet for
 
     // Defaults:
     public EdgeEventsConfig() {
         latencyInternalPort = 0; // implicit Ping only.
         latencyTestType = NetTest.TestType.CONNECT;
         latencyThresholdTrigger = 50;
-        // TODO: Should everything be supported, just assign values() for everything.
-        triggers = new FindCloudletEventTrigger[] {
-                FindCloudletEventTrigger.CloserCloudlet, FindCloudletEventTrigger.CloudletStateChanged, FindCloudletEventTrigger.LatencyTooHigh
-        };
+        triggers = EnumSet.allOf(FindCloudletEventTrigger.class);
 
         // Sane defaults, onTrigger, and once.
         latencyUpdateConfig = new ClientEventsConfig();
@@ -59,21 +58,18 @@ public class EdgeEventsConfig {
         latencyTestType = edgeEventsConfig.latencyTestType;
         latencyThresholdTrigger = edgeEventsConfig.latencyThresholdTrigger;
         if (edgeEventsConfig.triggers == null) {
-            triggers = new FindCloudletEventTrigger[] {
-                    FindCloudletEventTrigger.CloudletStateChanged, FindCloudletEventTrigger.LatencyTooHigh, FindCloudletEventTrigger.CloserCloudlet
-            };
-        } else {
-            if (edgeEventsConfig.triggers.length > 0) {
-                triggers = new FindCloudletEventTrigger[edgeEventsConfig.triggers.length];
-            }
-            for (int i = 0; i < edgeEventsConfig.triggers.length; i++) {
-                triggers[i] = edgeEventsConfig.triggers[i];
-            }
+            triggers = EnumSet.allOf(FindCloudletEventTrigger.class);
+        } else if (edgeEventsConfig.triggers.size() >= 0) {
+            triggers = EnumSet.copyOf(edgeEventsConfig.triggers);
         }
 
-        // Sane defaults, onTrigger, and once.
-        latencyUpdateConfig = new ClientEventsConfig(edgeEventsConfig.latencyUpdateConfig);
-        locationUpdateConfig = new ClientEventsConfig(edgeEventsConfig.locationUpdateConfig);
+        // Sane defaults
+        if (edgeEventsConfig.latencyUpdateConfig != null) {
+            latencyUpdateConfig = new ClientEventsConfig(edgeEventsConfig.latencyUpdateConfig);
+        }
+        if (edgeEventsConfig.locationUpdateConfig != null) {
+            locationUpdateConfig = new ClientEventsConfig(edgeEventsConfig.locationUpdateConfig);
+        }
     }
 
     /*!

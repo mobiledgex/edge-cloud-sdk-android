@@ -14,7 +14,7 @@ var searchData=
   ['getdefault_42',['getDefault',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_mobiledge_x_s_s_l_socket_factory.html#a5297cb60e8f22d2074014bb55d985f64',1,'com::mobiledgex::matchingengine::MobiledgeXSSLSocketFactory']]],
   ['getdeviceinfo_43',['getDeviceInfo',['../group__functions__dmeutils.html#gab0f24bab966bc7ce5664cba797d4033c',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
   ['getedgeeventsbus_44',['getEdgeEventsBus',['../group__functions__edge__events__api.html#ga033d44051c4e7807237f3112fa6563b9',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
-  ['getedgeeventsconnection_45',['getEdgeEventsConnection',['../group__functions__dmeapis.html#gae538de0186cb81e4941d2b952d31ef60',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
+  ['getedgeeventsconnectionfuture_45',['getEdgeEventsConnectionFuture',['../group__functions__dmeapis.html#ga6a27f7bfe897b776c92d9744fb0007c8',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
   ['gethost_46',['getHost',['../group__functions__getconnectionutils.html#gab6c7663756f6d3cee6982c122b232f55',1,'com::mobiledgex::matchingengine::AppConnectionManager']]],
   ['gethttpclient_47',['getHttpClient',['../group__functions__getconnection.html#ga736cee5942e4bd4b91044e2cbc1921a6',1,'com::mobiledgex::matchingengine::AppConnectionManager']]],
   ['getlocation_48',['getLocation',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a6ebddde8cebf412ec0449ca035146996',1,'com::mobiledgex::matchingengine::EdgeEventsConnection']]],

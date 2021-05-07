@@ -389,7 +389,7 @@ public class EdgeEventsConnectionTest {
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
             config.locationUpdateConfig.maxNumberOfUpdates = 0;
             // Latency too high will trigger more findCloudlets. We're not testing that.
-            config.latencyUpdateConfig.maxNumberOfUpdates = 0;
+            config.latencyUpdateConfig = null;
 
             // Cannot use the older API if overriding.
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(me.mContext, edmontonLoc)
@@ -480,8 +480,8 @@ public class EdgeEventsConnectionTest {
             // Cannot use the older API if overriding.
             // Mocks needed to prevent real locaiton messing with results;
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
-            config.locationUpdateConfig.maxNumberOfUpdates = 0;
-            config.latencyUpdateConfig.maxNumberOfUpdates = 0;
+            config.locationUpdateConfig = null; // No tasks at all, must test under test control.
+            config.latencyUpdateConfig = null;
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, edmontonLoc)
                     .setCarrierName(findCloudletCarrierOverride)
@@ -519,10 +519,12 @@ public class EdgeEventsConnectionTest {
             me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
             er.setLatch(1);
             er.latch.await(20, TimeUnit.SECONDS);
+
+            // Switch off notifications.
+            me.getEdgeEventsBus().unregister(er);
+
             me.switchedToNextCloudlet();
             assertEquals("Wrong number of responses", 3, er.responses.size());
-
-            me.getEdgeEventsBus().unregister(er);
 
             er.responses.clear();
             // NewCloudlets may kill the event connection due to auto terminate.
@@ -597,8 +599,8 @@ public class EdgeEventsConnectionTest {
             // Cannot use the older API if overriding.
             // Mocks needed to prevent real locaiton messing with results;
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
-            config.locationUpdateConfig.maxNumberOfUpdates = 0;
-            config.latencyUpdateConfig.maxNumberOfUpdates = 1;
+            config.locationUpdateConfig = null; // Don't want anything.
+            config.latencyUpdateConfig.maxNumberOfUpdates = 1; // num <= 0 means "infinity".
             config.latencyThresholdTrigger = 10; // Likely very low for our test servers.
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, edmontonLoc)
@@ -804,7 +806,7 @@ public class EdgeEventsConnectionTest {
             assertNotNull("Must have configured edgeEvents in test to USE edge events functions.", me.mEdgeEventsConfig);
 
             latch.await(20, TimeUnit.SECONDS);
-            int expectedNum = edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates;
+            long expectedNum = edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates;
             assertEquals("Must get [" + expectedNum + "] responses back from server.", expectedNum, responses.size());
             // FIXME: For this test, the location is NON-MOCKED, a MOCK location provider is required to get sensible results here, but the location timer task is going.
             //assertEquals("Must get new FindCloudlet responses back from server.", 0, latencyNewCloudletResponses.size());
