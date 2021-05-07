@@ -306,7 +306,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     @Override
     public void onDestroy() {
         super.onDestroy();
-
         if (me != null) {
             me.close();
             me = null;

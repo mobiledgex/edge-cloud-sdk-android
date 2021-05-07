@@ -54,6 +54,8 @@ import java.util.concurrent.TimeUnit;
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
 
+import static com.mobiledgex.matchingengine.EdgeEventsConnection.ChannelStatus.open;
+import static com.mobiledgex.matchingengine.EdgeEventsConnection.ChannelStatus.opening;
 import static distributed_match_engine.AppClient.FindCloudletReply.FindStatus.FIND_FOUND;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -64,13 +66,13 @@ import static org.junit.Assert.fail;
 
 public class EdgeEventsConnectionTest {
     public static final String TAG = "EdgeEventsConnectionTest";
-    public static final long GRPC_TIMEOUT_MS = 10000;
+    public static final long GRPC_TIMEOUT_MS = 25000;
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
     public static final String organizationName = "MobiledgeX-Samples";
     // Other globals:
-    public static final String applicationName = "sdktest";
+    public static final String applicationName = "sdktest"; // "automation-sdk-porttest";
     public static final String appVersion = "9.0";
 
     FusedLocationProviderClient fusedLocationClient;
@@ -247,8 +249,8 @@ public class EdgeEventsConnectionTest {
 
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
             // Some of this can spuriously break the DME connection for reconnection.
-            config.latencyUpdateConfig.maxNumberOfUpdates = 0;
-            config.locationUpdateConfig.maxNumberOfUpdates = 0;
+            config.latencyUpdateConfig = null; // Disable. This could break the test with spurrious newFindCloudlets.
+            config.locationUpdateConfig.maxNumberOfUpdates = 0; // Infinity.
 
             // Set orgName and location, then override the rest for testing:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
@@ -272,16 +274,22 @@ public class EdgeEventsConnectionTest {
             assertFalse("Should throw no exceptions!", startFuture.isCompletedExceptionally());
 
             CompletableFuture<Boolean> restartFuture;
-            boolean restarted = (restartFuture = me.restartEdgeEventsFuture()).get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            boolean restarted = (restartFuture = me.restartEdgeEventsFuture()).get(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
             assertTrue("Should restart successfully. Completion failed!", restarted);
+            Log.i(TAG, "XXX Done restart.");
+            assertTrue("Should be running after restart: ",
+                    open == me.getEdgeEventsConnection().channelStatus ||
+                    opening == me.getEdgeEventsConnection().channelStatus);
             assertFalse("Should throw no exceptions!", restartFuture.isCompletedExceptionally());
+
 
             CompletableFuture<Boolean> stopFuture;
             boolean stopped = (stopFuture = me.stopEdgeEventsFuture()).get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             assertTrue("Should stop successfully. Completion failed!", stopped);
             assertFalse("Should throw no exceptions!", stopFuture.isCompletedExceptionally());
+            Log.i(TAG, "XXX Done stop.");
         } catch (Exception e) {
-            Log.e(TAG, "Exception type: " + e.getCause() + ", " + e.getLocalizedMessage());
+            Log.e(TAG, "Exception: " + e + ", " + e.getLocalizedMessage());
             e.printStackTrace();
             fail("Test failed.");
         } finally {
@@ -355,7 +363,7 @@ public class EdgeEventsConnectionTest {
             }
             Log.i(TAG, "Test of chain done.");
         } catch (Exception e) {
-            Log.e(TAG, "Exception type: " + e.getCause() + ", " + e.getLocalizedMessage());
+            Log.e(TAG, "Exception: "  + e + ", " + e.getLocalizedMessage());
             e.printStackTrace();
             fail("Test failed.");
         } finally {
@@ -390,6 +398,7 @@ public class EdgeEventsConnectionTest {
             config.locationUpdateConfig.maxNumberOfUpdates = 0;
             // Latency too high will trigger more findCloudlets. We're not testing that.
             config.latencyUpdateConfig = null;
+            config.locationUpdateConfig = null;
 
             // Cannot use the older API if overriding.
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(me.mContext, edmontonLoc)
@@ -399,14 +408,11 @@ public class EdgeEventsConnectionTest {
             if (useHostOverride) {
                 response1 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
                         MatchingEngine.FindCloudletMode.PROXIMITY);
-                // start on response1
-                me.startEdgeEvents(hostOverride, portOverride, null, config);
+                me.startEdgeEvents(config);
             } else {
                 response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
-                // start on response1
-                // Do not use the futures version, if not on thread. get() will deadlock thread.
-                me.startEdgeEvents(config);
             }
+            me.startEdgeEvents(config);
 
             findCloudletReply1 = response1.get();
 
@@ -414,17 +420,17 @@ public class EdgeEventsConnectionTest {
 
             me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
             er.setLatch(1);
-            er.latch.await(20, TimeUnit.SECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
             assertEquals("Wrong number of responses", 1, er.responses.size());
 
             me.getEdgeEventsConnection().postLocationUpdate(edmontonLoc);
             er.setLatch(1);
-            er.latch.await(20, TimeUnit.SECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
             assertEquals("Wrong number of responses", 2, er.responses.size());
 
             me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
             er.setLatch(1);
-            er.latch.await(20, TimeUnit.SECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
             assertEquals("Wrong number of responses", 3, er.responses.size());
 
             me.getEdgeEventsBus().unregister(er);
@@ -440,7 +446,7 @@ public class EdgeEventsConnectionTest {
             // No longer registered.
             edgeEventsConnection.postLocationUpdate(edmontonLoc);
             er.setLatch(1);
-            er.latch.await(5, TimeUnit.SECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             Assert.assertTrue("No responses expected over edge event bus!", er.responses.isEmpty());
 
         } catch (DmeDnsException dde) {
@@ -490,14 +496,10 @@ public class EdgeEventsConnectionTest {
             if (useHostOverride) {
                 response1 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
                         MatchingEngine.FindCloudletMode.PROXIMITY);
-                // start on response1
-                me.startEdgeEvents(hostOverride, portOverride, null, config);
             } else {
                 response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
-                // start on response1
-                // Do not use the futures version, if not on thread. get() will deadlock thread.
-                me.startEdgeEvents(config);
             }
+            me.startEdgeEvents(config);
 
             findCloudletReply1 = response1.get();
 
@@ -505,20 +507,20 @@ public class EdgeEventsConnectionTest {
 
             me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
             er.setLatch(1);
-            er.latch.await(20, TimeUnit.SECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
             me.switchedToNextCloudlet(); // This is just an alias to the blocking version of restartEdgeEvents()/restartEdgeEventsFuture.
 
             assertEquals("Wrong number of responses", 1, er.responses.size());
 
             me.getEdgeEventsConnection().postLocationUpdate(edmontonLoc);
             er.setLatch(1);
-            er.latch.await(20, TimeUnit.SECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
             me.switchedToNextCloudlet();
             assertEquals("Wrong number of responses", 2, er.responses.size());
 
             me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
             er.setLatch(1);
-            er.latch.await(20, TimeUnit.SECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
 
             // Switch off notifications.
             me.getEdgeEventsBus().unregister(er);
@@ -537,7 +539,7 @@ public class EdgeEventsConnectionTest {
             // No longer registered.
             edgeEventsConnection.postLocationUpdate(edmontonLoc);
             er.setLatch(1);
-            er.latch.await(5, TimeUnit.SECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             me.switchedToNextCloudlet();
             Assert.assertTrue("No responses expected over edge event bus!", er.responses.isEmpty());
 
@@ -610,14 +612,10 @@ public class EdgeEventsConnectionTest {
             if (useHostOverride) {
                 response1 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
                         MatchingEngine.FindCloudletMode.PROXIMITY);
-                // start on response1
-                me.startEdgeEvents(hostOverride, portOverride, null, config);
             } else {
                 response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
-                // start on response1
-                // Do not use the futures version, if not on thread. get() will deadlock thread.
-                me.startEdgeEvents(config);
             }
+            me.startEdgeEvents(config);
 
             findCloudletReply1 = response1.get();
 
@@ -625,7 +623,7 @@ public class EdgeEventsConnectionTest {
 
             // Waiting for 1 (or more).
             er.setLatch(1);
-            er.latch.await(20, TimeUnit.SECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
             assertEquals("Expected that the configured latency is too high!", 0, er.latch.getCount());
             assertTrue("Response must be too high.", er.responses.peek().trigger == FindCloudletEventTrigger.LatencyTooHigh);
@@ -700,14 +698,10 @@ public class EdgeEventsConnectionTest {
             if (useHostOverride) {
                 response1 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
                         MatchingEngine.FindCloudletMode.PROXIMITY);
-                // start on response1
-                me.startEdgeEvents(hostOverride, portOverride, null, config);
             } else {
                 response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
-                // start on response1
-                // Do not use the futures version, if not on thread. get() will deadlock thread.
-                me.startEdgeEvents(config);
             }
+            me.startEdgeEvents(config);
 
             findCloudletReply1 = response1.get();
 
@@ -716,7 +710,7 @@ public class EdgeEventsConnectionTest {
             // Waiting for 1 (or more).
             int latchSize = 1;
             er.setLatch(latchSize);
-            er.latch.await(20, TimeUnit.SECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             assertEquals("Should not have triggered too high latency! Should still be the original value set!", latchSize, er.latch.getCount());
 
         } catch (DmeDnsException dde) {
@@ -787,25 +781,22 @@ public class EdgeEventsConnectionTest {
                     ClientEventsConfig.UpdatePattern.onInterval);
             edgeEventsConfig.latencyInternalPort = 2016;
             edgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;
-            edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates++; // Use a non-specific value, that's 1 higher for tests.
+            edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates++; //  We want 1. 0 is actually infinity.
 
             if (useHostOverride) {
                 response1 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
                         MatchingEngine.FindCloudletMode.PROXIMITY);
-                // start on response1
-                me.startEdgeEvents(hostOverride, portOverride, null, edgeEventsConfig);
             } else {
                 response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
-                // start on response1
-                me.startEdgeEvents(edgeEventsConfig);
             }
+            me.startEdgeEvents(edgeEventsConfig);
             findCloudletReply1 = response1.get();
 
 
             assertSame("FindCloudlet1 did not succeed!", findCloudletReply1.getStatus(), FIND_FOUND);
             assertNotNull("Must have configured edgeEvents in test to USE edge events functions.", me.mEdgeEventsConfig);
 
-            latch.await(20, TimeUnit.SECONDS);
+            latch.await(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             long expectedNum = edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates;
             assertEquals("Must get [" + expectedNum + "] responses back from server.", expectedNum, responses.size());
             // FIXME: For this test, the location is NON-MOCKED, a MOCK location provider is required to get sensible results here, but the location timer task is going.

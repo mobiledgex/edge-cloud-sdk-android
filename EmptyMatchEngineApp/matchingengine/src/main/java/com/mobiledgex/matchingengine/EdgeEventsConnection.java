@@ -4,6 +4,7 @@ import android.location.Location;
 import android.net.Network;
 import android.os.NetworkOnMainThreadException;
 import android.util.Log;
+import android.util.Log;
 
 import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.Subscribe;
@@ -20,7 +21,6 @@ import com.mobiledgex.matchingengine.util.MeLocation;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -64,9 +64,17 @@ public class EdgeEventsConnection {
     ChannelStatus channelStatus = ChannelStatus.closed;
     Object openAwaiter = new Object();
 
-    String hostOverride;
-    int portOverride;
-    Network networkOverride;
+    ConnectionDetails lastConnectionDetails;
+    class ConnectionDetails {
+        String host;
+        int port;
+        Network network;
+        ConnectionDetails(String aHost, int aPort, Network aNetwork) {
+            host = aHost;
+            port = aPort;
+            network = aNetwork;
+        }
+    }
 
     private Location mLastLocationPosted = null;
 
@@ -179,12 +187,8 @@ public class EdgeEventsConnection {
      * \param eeConfig the configration to use, when the connection is up.
      */
     EdgeEventsConnection(MatchingEngine me, EdgeEventsConfig eeConfig) {
-        synchronized (this) {
-            hostOverride = null;
-            portOverride = 0;
-            networkOverride = null;
-        }
         this.me = me;
+        lastConnectionDetails = new ConnectionDetails(null, 0, null);
 
         Log.w(TAG, "Configuring EdgeEvent Defaults");
         if (eeConfig == null) {
@@ -207,6 +211,7 @@ public class EdgeEventsConnection {
             try {
                 openAwaiter.wait(10 * 1000);
             } catch (InterruptedException e) {
+                Log.w(TAG, "awaitOpen() was Interrupted.");
                 e.printStackTrace();
             }
             if (channelStatus == ChannelStatus.open) {
@@ -294,43 +299,21 @@ public class EdgeEventsConnection {
      * Reconnects the EdgeEventsConnection with current settings. This will block until opened.
      */
     synchronized public void reconnect() throws DmeDnsException {
-        // using existing config;
-        reconnect(me.generateDmeHostAddress(), me.getPort(), null, mEdgeEventsConfig);
-        hostOverride = null;
-        portOverride = 0;
-        networkOverride = null;
+        // FIXME: using existing config until FindCloudletReply has the "new DME".
+        reconnect(lastConnectionDetails.host, lastConnectionDetails.port, lastConnectionDetails.network, mEdgeEventsConfig);
     }
 
-    synchronized public void reconnect(String host, int port, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
+    synchronized void reconnect(String host, int port, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
         if (me.isShutdown()) {
             return;
         }
-        hostOverride = host;
-        portOverride = port;
-        networkOverride = network;
         mEdgeEventsConfig = eeConfig;
         Log.d(TAG, "Reconnecting...");
         channelStatus = ChannelStatus.reconnecting;
         stopEdgeEvents();
         closeInternal();
 
-        if (hostOverride != null && portOverride > 0) {
-            try {
-                open(hostOverride, portOverride, networkOverride, mEdgeEventsConfig);
-            } catch (DmeDnsException dde){
-                Log.e(TAG, "Host : [" + hostOverride + "] does not appear to exist for reconnect(). Please check the DME host used.");
-                postErrorToEventHandler(EdgeEventsError.missingDmeDnsEntry);
-                throw dde;
-            }
-        } else {
-            try {
-                open();
-            } catch (DmeDnsException dde) {
-                Log.e(TAG, "Automatically generated DME Address failed to open for reconnect(). Check with MatchingEngine generateDmeHostAddress() to find current one.");
-                postErrorToEventHandler(EdgeEventsError.missingDmeDnsEntry);
-                 throw dde;
-            }
-        }
+        open(host, port, network, mEdgeEventsConfig);
 
         // We need to re-init the DME connection:
         // Client identifies itself with an Init message to DME EdgeEvents Connection.
@@ -346,23 +329,15 @@ public class EdgeEventsConnection {
      * Use this to open a DME connection to nearest DME.
      */
     synchronized void open() throws DmeDnsException {
-        // GenerateDmeHostAddress might actually hit a UI thread exception.
         try {
-            open(me.generateDmeHostAddress(), me.getPort(), null, mEdgeEventsConfig);
+            // FIXME: using existing config until FindCloudletReply has the "new DME".
+            open(lastConnectionDetails.host, lastConnectionDetails.port, lastConnectionDetails.network, mEdgeEventsConfig);
         } catch (NetworkOnMainThreadException nomte) {
             Log.e(TAG, "Consider running this call from a background thread.");
-        }
-        finally {
-            hostOverride = null;
-            portOverride = 0;
-            networkOverride = null;
         }
     }
 
     synchronized void open(String host, int port, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
-        hostOverride = host;
-        portOverride = port;
-        networkOverride = network;
         eventBusRegister();
         if (channelStatus != ChannelStatus.reconnecting) {
             channelStatus = ChannelStatus.opening;
@@ -379,6 +354,8 @@ public class EdgeEventsConnection {
             mEdgeEventsConfig = new EdgeEventsConfig(eeConfig);
         }
 
+        lastConnectionDetails.host = host;
+        lastConnectionDetails.port = port;
         if (network == null) {
             try {
                 if (!me.isUseWifiOnly()) {
@@ -393,9 +370,9 @@ public class EdgeEventsConnection {
                 Log.e(TAG, "Unable to establish EdgeEvents DMEConnection!");
                 return; // Unable to establish connect to backend!
             }
-            networkOverride = null;
+            lastConnectionDetails.network = null;
         } else {
-            networkOverride = network;
+            lastConnectionDetails.network = network;
         }
 
         try {
@@ -404,7 +381,8 @@ public class EdgeEventsConnection {
             throw new DmeDnsException(("Could not find mcc-mnc.dme.mobiledgex.net DME server: " + host), uhe);
         }
 
-        this.channel = me.channelPicker(host, port, network);
+        Log.i(TAG, "Opening EdgeEventsConnection on: Host: " + lastConnectionDetails.host + ", Port: " + lastConnectionDetails.port);
+        this.channel = me.channelPicker(lastConnectionDetails.host, lastConnectionDetails.port, lastConnectionDetails.network);
         this.asyncStub = MatchEngineApiGrpc.newStub(channel);
 
         receiver = new StreamObserver<AppClient.ServerEdgeEvent>() {
@@ -416,8 +394,11 @@ public class EdgeEventsConnection {
                     me.getEdgeEventsBus().post(value);
                 }
 
-                if (value.getEventType() == ServerEventType.EVENT_INIT_CONNECTION) {
+                if (channelStatus != ChannelStatus.open) {
+                    // Whatever it was, it's now open.
                     channelStatus = ChannelStatus.open;
+                }
+                if (value.getEventType() == ServerEventType.EVENT_INIT_CONNECTION) {
                     notifyOpenAwaiter();
                     runEdgeEvents();
                 }
@@ -488,10 +469,6 @@ public class EdgeEventsConnection {
         sender = null;
         receiver = null;
 
-        hostOverride = null;
-        portOverride = 0;
-        networkOverride = null;
-
         if (channel != null && !isShutdown()) {
             sendTerminate();
         }
@@ -512,6 +489,7 @@ public class EdgeEventsConnection {
             Log.d(TAG, "closing...");
             eventBusUnRegister();
             closeInternal();
+            lastConnectionDetails = null;
         }
     }
 
@@ -1144,6 +1122,8 @@ public class EdgeEventsConnection {
         try {
             AppClient.FindCloudletReply reply = me.findCloudlet(
                     request,
+                    lastConnectionDetails.host,
+                    lastConnectionDetails.port,
                     me.getNetworkManager().getTimeout(),
                     MatchingEngine.FindCloudletMode.PERFORMANCE);
             if (reply != null) {
