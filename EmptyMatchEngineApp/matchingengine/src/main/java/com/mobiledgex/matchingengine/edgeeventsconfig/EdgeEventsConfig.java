@@ -103,9 +103,11 @@ public class EdgeEventsConfig {
      */
     public static EdgeEventsConfig createDefaultEdgeEventsConfig(double latencyUpdateIntervalSeconds,
                                                                  double locationUpdateIntervalSeconds,
-                                                                 double latencyThresholdTriggerMs) {
+                                                                 double latencyThresholdTriggerMs,
+                                                                 int latencyInternalPort) {
         EdgeEventsConfig eeConfig = new EdgeEventsConfig();
         eeConfig.latencyThresholdTrigger = latencyThresholdTriggerMs;
+        eeConfig.latencyInternalPort = latencyInternalPort;
 
         eeConfig.latencyUpdateConfig.updateIntervalSeconds = latencyUpdateIntervalSeconds;
         eeConfig.latencyUpdateConfig.updatePattern = ClientEventsConfig.UpdatePattern.onInterval;

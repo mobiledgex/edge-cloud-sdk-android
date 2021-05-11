@@ -150,8 +150,8 @@ synchronized void&#160;</td><td class="memItemRight" valign="bottom"><b>setEdgeE
 <tr class="separator:ga7b5dedae17ae59b261fc307e5aacc11e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abfa9b973224822ef7cea2c91d1cde12f"><td class="memItemLeft" align="right" valign="top">EdgeEventsConfig&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#abfa9b973224822ef7cea2c91d1cde12f">createDefaultEdgeEventsConfig</a> ()</td></tr>
 <tr class="separator:abfa9b973224822ef7cea2c91d1cde12f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7651ef5de856f635a5f357e2d0d7efc7"><td class="memItemLeft" align="right" valign="top">EdgeEventsConfig&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a7651ef5de856f635a5f357e2d0d7efc7">createDefaultEdgeEventsConfig</a> (double latencyUpdateIntervalSeconds, double locationUpdateIntervalSeconds, double latencyThresholdTriggerMs)</td></tr>
-<tr class="separator:a7651ef5de856f635a5f357e2d0d7efc7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aee3ca7ebf134658a8dc3e10a6cf28916"><td class="memItemLeft" align="right" valign="top">EdgeEventsConfig&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#aee3ca7ebf134658a8dc3e10a6cf28916">createDefaultEdgeEventsConfig</a> (double latencyUpdateIntervalSeconds, double locationUpdateIntervalSeconds, double latencyThresholdTriggerMs, int internalPort)</td></tr>
+<tr class="separator:aee3ca7ebf134658a8dc3e10a6cf28916"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga3ae318da27afaadebc961784ebeaa552"><td class="memItemLeft" align="right" valign="top">synchronized CompletableFuture&lt; Boolean &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#ga3ae318da27afaadebc961784ebeaa552">startEdgeEventsFuture</a> (EdgeEventsConfig edgeEventsConfig)</td></tr>
 <tr class="separator:ga3ae318da27afaadebc961784ebeaa552"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae8a4bba07fbab05abab5698a2d8e0d8e"><td class="memItemLeft" align="right" valign="top">synchronized boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#gae8a4bba07fbab05abab5698a2d8e0d8e">startEdgeEvents</a> (EdgeEventsConfig edgeEventsConfig)</td></tr>
@@ -432,8 +432,8 @@ Example</h1>
 
 </div>
 </div>
-<a id="a7651ef5de856f635a5f357e2d0d7efc7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7651ef5de856f635a5f357e2d0d7efc7">&#9670;&nbsp;</a></span>createDefaultEdgeEventsConfig() <span class="overload">[2/2]</span></h2>
+<a id="aee3ca7ebf134658a8dc3e10a6cf28916"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aee3ca7ebf134658a8dc3e10a6cf28916">&#9670;&nbsp;</a></span>createDefaultEdgeEventsConfig() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -454,7 +454,13 @@ Example</h1>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">double&#160;</td>
-          <td class="paramname"><em>latencyThresholdTriggerMs</em>&#160;</td>
+          <td class="paramname"><em>latencyThresholdTriggerMs</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>internalPort</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -468,6 +474,7 @@ Example</h1>
     <tr><td class="paramname">latencyUpdateIntervalSeconds</td><td>how often the edgeEvents tests latency to configured server. </td></tr>
     <tr><td class="paramname">locationUpdateIntervalSeconds</td><td>how often edgeEvents will send GPS to the server. Set the location, or enable location permissions in <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html">MatchingEngine</a> to get the location to send. </td></tr>
     <tr><td class="paramname">latencyThresholdTriggerMs</td><td>sets the upper bound of acceptable latency, and then informs the app. </td></tr>
+    <tr><td class="paramname">internalPort</td><td>this is the internal port for your application. </td></tr>
   </table>
   </dd>
 </dl>

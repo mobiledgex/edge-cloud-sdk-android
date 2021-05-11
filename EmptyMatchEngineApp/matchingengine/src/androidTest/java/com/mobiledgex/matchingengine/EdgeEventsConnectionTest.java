@@ -333,7 +333,7 @@ public class EdgeEventsConnectionTest {
 
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
             // Some of this can spuriously break the DME connection for reconnection.
-            config.latencyUpdateConfig = null; // Disable. This could break the test with spurrious newFindCloudlets.
+            config.latencyUpdateConfig = null; // Disable. This could break the test with spurious newFindCloudlets.
             config.locationUpdateConfig.maxNumberOfUpdates = 0; // Infinity.
 
             // Set orgName and location, then override the rest for testing:
@@ -861,9 +861,8 @@ public class EdgeEventsConnectionTest {
             EdgeEventsConfig edgeEventsConfig = me.createDefaultEdgeEventsConfig(
                     5,
                     5,
-                    500, // We want to measure just the ones we create.
-                    ClientEventsConfig.UpdatePattern.onInterval);
-            edgeEventsConfig.latencyInternalPort = 2016;
+                    500,
+                    2016);
             edgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;
             edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates++; //  We want 1. 0 is actually infinity.
 

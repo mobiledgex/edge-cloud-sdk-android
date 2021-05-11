@@ -7,7 +7,7 @@ var classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine =
     [ "createDefaultAppInstListRequest", "group__functions__dmeapis.html#ga489996a5146c24597370cfc971273c2d", null ],
     [ "createDefaultDynamicLocGroupRequest", "group__functions__dmeapis.html#ga94fbd15eb1b2d20a06d3680a31018cdc", null ],
     [ "createDefaultEdgeEventsConfig", "classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#abfa9b973224822ef7cea2c91d1cde12f", null ],
-    [ "createDefaultEdgeEventsConfig", "classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a7651ef5de856f635a5f357e2d0d7efc7", null ],
+    [ "createDefaultEdgeEventsConfig", "classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#aee3ca7ebf134658a8dc3e10a6cf28916", null ],
     [ "createDefaultFindCloudletRequest", "group__functions__dmeapis.html#ga8189c03b1bd38967264b00e93173d911", null ],
     [ "createDefaultGetLocationRequest", "group__functions__dmeapis.html#ga1885cfdf96d0cdc81acc6a34771cbfaf", null ],
     [ "createDefaultQosPositionRequest", "group__functions__dmeapis.html#gae93bb72f34dc349c0d3eeef93addcd8c", null ],

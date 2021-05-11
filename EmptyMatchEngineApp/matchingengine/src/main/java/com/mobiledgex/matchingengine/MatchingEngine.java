@@ -277,7 +277,6 @@ public class MatchingEngine {
      * Helper util to create a useful config.
      */
     public EdgeEventsConfig createDefaultEdgeEventsConfig() {
-
         return EdgeEventsConfig.createDefaultEdgeEventsConfig();
     }
     /*!
@@ -285,11 +284,12 @@ public class MatchingEngine {
      * \param latencyUpdateIntervalSeconds how often the edgeEvents tests latency to configured server.
      * \param locationUpdateIntervalSeconds how often edgeEvents will send GPS to the server. Set the location, or enable location permissions in MatchingEngine to get the location to send.
      * \param latencyThresholdTriggerMs sets the upper bound of acceptable latency, and then informs the app.
+     * \param internalPort this is the internal port for your application.
      */
     public EdgeEventsConfig createDefaultEdgeEventsConfig(double latencyUpdateIntervalSeconds,
                                                           double locationUpdateIntervalSeconds,
-                                                          double latencyThresholdTriggerMs) {
-        return EdgeEventsConfig.createDefaultEdgeEventsConfig(latencyUpdateIntervalSeconds, locationUpdateIntervalSeconds, latencyThresholdTriggerMs);
+                                                          double latencyThresholdTriggerMs, int internalPort) {
+        return EdgeEventsConfig.createDefaultEdgeEventsConfig(latencyUpdateIntervalSeconds, locationUpdateIntervalSeconds, latencyThresholdTriggerMs, internalPort);
     }
 
     /*!
