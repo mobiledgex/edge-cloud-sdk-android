@@ -505,9 +505,6 @@ public class MatchingEngine {
     synchronized public boolean stopEdgeEvents() {
         warnIfUIThread();
         mAppInitiatedRunEdgeEvents = false;
-        if (mEdgeEventsConnection.isShutdown()) {
-            Log.i(TAG, "EdgeEventsConnection is already stopped.");
-        }
         mEdgeEventsConnection.stopEdgeEvents();
         return true;
     }
@@ -817,8 +814,10 @@ public class MatchingEngine {
      * \ingroup functions_dmeutils
      */
     public HashMap<String, String> getDeviceInfo() {
-
         HashMap<String, String> map = new HashMap<>();
+        if (isShutdown()) {
+            return null;
+        }
 
         TelephonyManager telManager = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
         if (telManager == null) {

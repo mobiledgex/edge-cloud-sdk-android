@@ -189,6 +189,90 @@ public class EdgeEventsConnectionTest {
     }
 
     @Test
+    public void testDefaultConfigNoChanges() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        Future<AppClient.FindCloudletReply> response1;
+        AppClient.FindCloudletReply findCloudletReply1;
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+        // This EdgeEventsConnection test requires an EdgeEvents enabled server.
+        // me.setSSLEnabled(false);
+        // me.setNetworkSwitchingEnabled(false);
+        // attach an EdgeEventBus to receive the server response, if any (inline class):
+        final List<AppClient.ServerEdgeEvent> responses = new ArrayList<>();
+        final List<FindCloudletEvent> latencyNewCloudletResponses = new ArrayList<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        class EventReceiver2 {
+            @Subscribe
+            void HandleEdgeEvent(AppClient.ServerEdgeEvent edgeEvent) {
+                switch (edgeEvent.getEventType()) {
+                    case EVENT_LATENCY_PROCESSED:
+                        Log.i(TAG, "Received a latency processed response: " + edgeEvent);
+                        responses.add(edgeEvent);
+                        latch.countDown();
+                        break;
+                }
+            }
+            @Subscribe
+            void HandleFindCloudlet(FindCloudletEvent fce) {
+                latencyNewCloudletResponses.add(fce);
+            }
+        }
+        EventReceiver2 er = new EventReceiver2();
+        me.getEdgeEventsBus().register(er);
+        try {
+            Location location = getTestLocation(); // Test needs this configurable in a sensible way.
+            registerClient(me);
+            //enableMockLocation(context,true);
+
+            // Cannot use the older API if overriding.
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName(findCloudletCarrierOverride)
+                    .build();
+            EdgeEventsConfig edgeEventsConfig = me.createDefaultEdgeEventsConfig();
+            if (useHostOverride) {
+                response1 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
+                        MatchingEngine.FindCloudletMode.PROXIMITY);
+                // start on response1
+                me.startEdgeEventsFuture(edgeEventsConfig);
+            } else {
+                response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
+                // start on response1
+                me.startEdgeEvents(edgeEventsConfig);
+            }
+            findCloudletReply1 = response1.get();
+            assertSame("FindCloudlet1 did not succeed!", findCloudletReply1.getStatus(), FIND_FOUND);
+            latch.await(GRPC_TIMEOUT_MS * 1, TimeUnit.MILLISECONDS);
+            // This is actually unbounded, as the default is infinity latency Processed resposnes, should you wait long enough for that many to start arriving.
+            long expectedNum = 1; // edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates;
+            Log.i(TAG, "EdgeEvent :  " + responses.size());
+            assertTrue("Must get at LEAST [" + expectedNum + "] responses back from server.", responses.size() >= expectedNum);
+            // FIXME: For this test, the location is NON-MOCKED, a MOCK location provider is required to get sensible results here, but the location timer task is going.
+            //assertEquals("Must get new FindCloudlet responses back from server.", 0, latencyNewCloudletResponses.size());
+            for (AppClient.ServerEdgeEvent s : responses) {
+                assertTrue("Must have non-negative averages!", s.getStatistics().getAvg() >= 0f);
+                Log.i(TAG, "Edge Event  :  " + s.getEventType());
+            }
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            fail("FindCloudletFuture: DmeDnsException");
+        } catch (ExecutionException ee) {
+            Log.e(TAG, Log.getStackTraceString(ee));
+            fail("FindCloudletFuture: ExecutionExecution!");
+        } catch (InterruptedException ie) {
+            Log.e(TAG, Log.getStackTraceString(ie));
+            fail("FindCloudletFuture: InterruptedException!");
+        } finally {
+            if (me != null) {
+                Log.i(TAG, "Closing matching engine...");
+                me.close();
+                Log.i(TAG, "MatchingEngine closed for test.");
+            }
+        }
+    }
+
+    @Test
     public void testDeviceInfo() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         AppClient.FindCloudletReply findCloudletReply1;
@@ -521,12 +605,12 @@ public class EdgeEventsConnectionTest {
             me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
             er.setLatch(1);
             er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
-
-            // Switch off notifications.
-            me.getEdgeEventsBus().unregister(er);
-
             me.switchedToNextCloudlet();
             assertEquals("Wrong number of responses", 3, er.responses.size());
+
+            // Switch off notifications.
+            Log.d(TAG, "Unregistering events...");
+            me.getEdgeEventsBus().unregister(er);
 
             er.responses.clear();
             // NewCloudlets may kill the event connection due to auto terminate.

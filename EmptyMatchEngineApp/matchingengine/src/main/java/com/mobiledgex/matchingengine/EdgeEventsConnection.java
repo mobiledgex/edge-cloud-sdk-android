@@ -4,7 +4,6 @@ import android.location.Location;
 import android.net.Network;
 import android.os.NetworkOnMainThreadException;
 import android.util.Log;
-import android.util.Log;
 
 import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.Subscribe;
@@ -225,6 +224,9 @@ public class EdgeEventsConnection {
     }
 
     private void notifyOpenAwaiter() {
+        if (isShutdown()) {
+            return;
+        }
         synchronized (openAwaiter) {
             Log.d(TAG, "Opened EdgeEventsConnection. Notify.");
             openAwaiter.notifyAll();
@@ -292,6 +294,9 @@ public class EdgeEventsConnection {
      * the subscribed event bus;
      */
     synchronized private void postErrorToEventHandler(EdgeEventsError error) {
+        if (me.isShutdown()) {
+            return;
+        }
         me.getEdgeEventsBus().post(error);
     }
 
@@ -338,6 +343,10 @@ public class EdgeEventsConnection {
     }
 
     synchronized void open(String host, int port, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
+        if (me.isShutdown()) {
+            Log.e(TAG, "MatchingEngine is closed. Not opening.");
+            return;
+        }
         eventBusRegister();
         if (channelStatus != ChannelStatus.reconnecting) {
             channelStatus = ChannelStatus.opening;
@@ -452,23 +461,29 @@ public class EdgeEventsConnection {
         sender = asyncStub.streamEdgeEvent(receiver);
 
         // Client identifies itself with an Init message to DME EdgeEvents Connection upon opening the connection.
-        AppClient.ClientEdgeEvent initDmeEvent = AppClient.ClientEdgeEvent.newBuilder()
-                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
-                .setSessionCookie(me.mSessionCookie)
-                .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
-                .build();
-        send(initDmeEvent);
+        String sessionCookie = me.mSessionCookie;
+        String edgeEventsCookie = me.mFindCloudletReply != null ?me.mFindCloudletReply.getEdgeEventsCookie() : null;
+        if (sessionCookie != null && edgeEventsCookie != null) {
+            AppClient.ClientEdgeEvent initDmeEvent = AppClient.ClientEdgeEvent.newBuilder()
+                    .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
+                    .setSessionCookie(me.mSessionCookie)
+                    .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
+                    .build();
+            send(initDmeEvent);
+        } else {
+            Log.e(TAG, "Missing info for INIT. Not opening.");
+            channelStatus = ChannelStatus.closed;
+        }
     }
 
     /*!
      * Peer connection clear from onComplete, onError.
      */
-    synchronized void closeInternal() {
+    void closeInternal() {
         Log.d(TAG, "stream closing...");
         channelStatus = ChannelStatus.closing;
         sender = null;
         receiver = null;
-
         if (channel != null && !isShutdown()) {
             sendTerminate();
         }
@@ -480,21 +495,22 @@ public class EdgeEventsConnection {
     /*!
      * Call this to shutdown EdgeEvents cleanly. Instance cannot be reopened.
      */
-    synchronized void close() {
-        synchronized (openAwaiter) {
-            openAwaiter.notifyAll();
-            openAwaiter = null;
-        }
+    void close() {
         if (!isShutdown()) {
             Log.d(TAG, "closing...");
             eventBusUnRegister();
             closeInternal();
             lastConnectionDetails = null;
         }
+        synchronized (openAwaiter) {
+            Log.d(TAG, "notify...");
+            openAwaiter.notifyAll();
+            openAwaiter = null;
+        }
     }
 
-    synchronized public boolean isShutdown() {
-        if (channel == null) {
+    public boolean isShutdown() {
+        if (channel == null || channelStatus == ChannelStatus.closed) {
             return true;
         }
 
@@ -517,7 +533,11 @@ public class EdgeEventsConnection {
                 reconnect();
             }
             if (sender != null) {
-                sender.onNext(clientEdgeEvent);
+                // Submit from one thread to GRPC.
+                CompletableFuture.runAsync(
+                        () -> {
+                            sender.onNext(clientEdgeEvent);
+                        }, me.threadpool);
                 Log.d(TAG, "Posted!");
             }
             else {
@@ -531,29 +551,36 @@ public class EdgeEventsConnection {
         return true;
     }
 
-    synchronized boolean sendTerminate() {
-        if (isShutdown()) {
+    boolean sendTerminate() {
+        if (isShutdown() || me.isShutdown())  {
             return false;
         }
 
-        AppClient.ClientEdgeEvent clientEdgeEvent = AppClient.ClientEdgeEvent.newBuilder()
-                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_TERMINATE_CONNECTION)
-                .build();
+        // Submit to execution pool:
+        CompletableFuture future = CompletableFuture.runAsync(() -> {
+            AppClient.ClientEdgeEvent clientEdgeEvent = AppClient.ClientEdgeEvent.newBuilder()
+                    .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_TERMINATE_CONNECTION)
+                    .build();
 
-        if (sender != null) {
-            sender.onNext(clientEdgeEvent);
-        }
+            if (sender != null) {
+                sender.onNext(clientEdgeEvent);
+            }
 
-        try {
-            channel.shutdown();
-            Log.d(TAG, "Awaiting termination...");
-            channel.awaitTermination(5, TimeUnit.SECONDS);
-            Log.d(TAG, "Done awaiting.");
-            receiver = null;
-            sender = null;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+            try {
+                channel.shutdown();
+                Log.d(TAG, "Awaiting termination...");
+                channel.awaitTermination(5, TimeUnit.SECONDS);
+                Log.d(TAG, "Done awaiting.");
+                receiver = null;
+                sender = null;
+                channel = null;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }, me.threadpool);
+
+        Log.d(TAG, "Submitted termination.");
+
         return true;
     }
 
@@ -589,7 +616,8 @@ public class EdgeEventsConnection {
      * \snippet MainActivity.java basic_location_handler_example
      */
     synchronized public boolean postLocationUpdate(Location location) {
-        if (me.isShutdown()) {
+        if (isShutdown() || me.isShutdown())  {
+            Log.w(TAG, "Connection not currently open. Message dropped.");
             return false;
         }
         if (!me.isMatchingEngineLocationAllowed()) {
@@ -644,7 +672,8 @@ public class EdgeEventsConnection {
      * \ingroup functions_edge_events_api
      */
     synchronized public boolean postLatencyUpdate(Site site, Location location) {
-        if (me.isShutdown()) {
+        if (isShutdown() || me.isShutdown())  {
+            Log.w(TAG, "Connection not currently open. Message dropped.");
             return false;
         }
         if (!me.isMatchingEngineLocationAllowed()) {
@@ -708,7 +737,8 @@ public class EdgeEventsConnection {
      * \ingroup functions_edge_events_api
      */
     synchronized public boolean testPingAndPostLatencyUpdate(Location location) {
-        if (me.isShutdown()) {
+        if (isShutdown() || me.isShutdown())  {
+            Log.w(TAG, "Connection not currently open. Message dropped.");
             return false;
         }
         if (!me.isMatchingEngineLocationAllowed()) {
@@ -816,7 +846,8 @@ public class EdgeEventsConnection {
      * \ingroup functions_edge_events_api
      */
     synchronized public boolean testConnectAndPostLatencyUpdate(int internalPort, Location location) {
-        if (me.isShutdown()) {
+        if (isShutdown() || me.isShutdown())  {
+            Log.w(TAG, "Connection not currently open. Message dropped.");
             return false;
         }
         if (!me.isMatchingEngineLocationAllowed()) {
@@ -931,7 +962,8 @@ public class EdgeEventsConnection {
      */
     synchronized public boolean runEdgeEvents() {
         try {
-            if (me.isShutdown()) {
+            if (isShutdown() || me.isShutdown())  {
+                Log.w(TAG, "Connection not currently open. Interval Tests will not run.");
                 return false;
             }
             if (!me.isEnableEdgeEvents()) {
@@ -1032,11 +1064,11 @@ public class EdgeEventsConnection {
         }
     }
 
-    synchronized public void stopEdgeEvents() {
+    public void stopEdgeEvents() {
+        Log.d(TAG, "stopEdgeEvents()");
         for (EdgeEventsIntervalHandler eh : edgeEventsIntervalHandlers) {
             removeEdgeEventsIntervalTask(eh);
         }
-        closeInternal();
     }
 
     // Configured Defaults:
@@ -1094,7 +1126,7 @@ public class EdgeEventsConnection {
 
     // Non raw ServerEdgeEvent.
     synchronized boolean doClientFindCloudlet(FindCloudletEventTrigger reason) {
-        if (isShutdown()) {
+        if (isShutdown() && me.isShutdown()) {
             return false;
         }
         Location loc;
