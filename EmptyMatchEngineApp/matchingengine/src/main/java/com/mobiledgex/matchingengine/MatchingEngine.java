@@ -288,9 +288,8 @@ public class MatchingEngine {
      */
     public EdgeEventsConfig createDefaultEdgeEventsConfig(double latencyUpdateIntervalSeconds,
                                                           double locationUpdateIntervalSeconds,
-                                                          double latencyThresholdTriggerMs,
-                                                          ClientEventsConfig.UpdatePattern updatePattern) {
-        return EdgeEventsConfig.createDefaultEdgeEventsConfig(latencyUpdateIntervalSeconds, locationUpdateIntervalSeconds, latencyThresholdTriggerMs, updatePattern);
+                                                          double latencyThresholdTriggerMs) {
+        return EdgeEventsConfig.createDefaultEdgeEventsConfig(latencyUpdateIntervalSeconds, locationUpdateIntervalSeconds, latencyThresholdTriggerMs);
     }
 
     /*!
