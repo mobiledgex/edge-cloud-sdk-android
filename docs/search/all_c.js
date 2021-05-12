@@ -9,7 +9,7 @@ var searchData=
   ['requestpermissions_88',['RequestPermissions',['../classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_request_permissions.html',1,'com::mobiledgex::matchingengine::util']]],
   ['resetnetworktodefault_89',['resetNetworkToDefault',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a17939379441681d9fae0ce330b6c3d5e',1,'com::mobiledgex::matchingengine::NetworkManager']]],
   ['restartedgeevents_90',['restartEdgeEvents',['../group__functions__edge__events__api.html#ga486a584a47aa147c16a1b986f3495a9e',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
-  ['restartedgeeventsfuture_91',['restartEdgeEventsFuture',['../group__functions__edge__events__api.html#gac1a1a5efd79335c82b227d328bf6f11f',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
+  ['restartedgeeventsfuture_91',['restartEdgeEventsFuture',['../group__functions__edge__events__api.html#ga167fb7976006f90d40c494451b375265',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
   ['retrievecellid_92',['retrieveCellId',['../group__functions__dmeutils.html#gafb5d397ccb93ffc4b49efbf134650014',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
   ['runedgeevents_93',['runEdgeEvents',['../group__functions__edge__events__api.html#ga9e5c720f356679cfd006c21ea496b8f5',1,'com::mobiledgex::matchingengine::EdgeEventsConnection']]],
   ['runnettest_94',['RunNetTest',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a4284120d8fe157f79a02617f315cb10b',1,'com::mobiledgex::matchingengine::performancemetrics::NetTest']]]

@@ -104,17 +104,18 @@ public class EdgeEventsConfig {
     public static EdgeEventsConfig createDefaultEdgeEventsConfig(double latencyUpdateIntervalSeconds,
                                                                  double locationUpdateIntervalSeconds,
                                                                  double latencyThresholdTriggerMs,
-                                                                 ClientEventsConfig.UpdatePattern updatePattern) {
+                                                                 int latencyInternalPort) {
         EdgeEventsConfig eeConfig = new EdgeEventsConfig();
         eeConfig.latencyThresholdTrigger = latencyThresholdTriggerMs;
+        eeConfig.latencyInternalPort = latencyInternalPort;
 
         eeConfig.latencyUpdateConfig.updateIntervalSeconds = latencyUpdateIntervalSeconds;
-        eeConfig.latencyUpdateConfig.updatePattern = updatePattern;
+        eeConfig.latencyUpdateConfig.updatePattern = ClientEventsConfig.UpdatePattern.onInterval;
 
         // This one will require location to be posted to the EdgeEvents state machine
         // by the Android location handler. Then, it posts that result at this interval.
         eeConfig.locationUpdateConfig.updateIntervalSeconds = locationUpdateIntervalSeconds;
-        eeConfig.locationUpdateConfig.updatePattern = updatePattern;
+        eeConfig.locationUpdateConfig.updatePattern = ClientEventsConfig.UpdatePattern.onInterval;
 
         return eeConfig;
     }
