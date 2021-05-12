@@ -360,7 +360,7 @@ public class FindCloudlet implements Callable {
         if (fcReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
             try {
                 // The engine is allowed to use a default config, should the config be null.
-                mMatchingEngine.startEdgeEventsInternal(mMatchingEngine.mEdgeEventsConfig);
+                mMatchingEngine.startEdgeEventsInternal(mHost, mPort, network, mMatchingEngine.mEdgeEventsConfig);
             } catch (Exception e) {
                 // Non fatal, but print an error. No background events available.
                 Log.e(TAG, "Configured EdgeEventsConfig background tasks cannot be started. Exception was: " + e.getMessage());

@@ -355,7 +355,7 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         @Override
         public Network call() throws InterruptedException, NetworkRequestTimeoutException, NetworkRequestNoSubscriptionInfoException {
             if (mNetworkSwitchingEnabled == false) {
-                Log.e(TAG, "NetworkManager is disabled.");
+                Log.i(TAG, "NetworkManager is disabled.");
                 if (mNetwork == null) {
                     mNetwork = mConnectivityManager.getActiveNetwork();
                 }

@@ -31,6 +31,7 @@ import android.os.Looper;
 import android.provider.Settings;
 
 import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.app.ActivityCompat;
 
 import android.telephony.CarrierConfigManager;
@@ -276,7 +277,6 @@ public class MatchingEngine {
      * Helper util to create a useful config.
      */
     public EdgeEventsConfig createDefaultEdgeEventsConfig() {
-
         return EdgeEventsConfig.createDefaultEdgeEventsConfig();
     }
     /*!
@@ -284,12 +284,12 @@ public class MatchingEngine {
      * \param latencyUpdateIntervalSeconds how often the edgeEvents tests latency to configured server.
      * \param locationUpdateIntervalSeconds how often edgeEvents will send GPS to the server. Set the location, or enable location permissions in MatchingEngine to get the location to send.
      * \param latencyThresholdTriggerMs sets the upper bound of acceptable latency, and then informs the app.
+     * \param internalPort this is the internal port for your application.
      */
     public EdgeEventsConfig createDefaultEdgeEventsConfig(double latencyUpdateIntervalSeconds,
                                                           double locationUpdateIntervalSeconds,
-                                                          double latencyThresholdTriggerMs,
-                                                          ClientEventsConfig.UpdatePattern updatePattern) {
-        return EdgeEventsConfig.createDefaultEdgeEventsConfig(latencyUpdateIntervalSeconds, locationUpdateIntervalSeconds, latencyThresholdTriggerMs, updatePattern);
+                                                          double latencyThresholdTriggerMs, int internalPort) {
+        return EdgeEventsConfig.createDefaultEdgeEventsConfig(latencyUpdateIntervalSeconds, locationUpdateIntervalSeconds, latencyThresholdTriggerMs, internalPort);
     }
 
     /*!
@@ -344,25 +344,26 @@ public class MatchingEngine {
         }
     }
 
-    synchronized boolean startEdgeEventsInternal(EdgeEventsConfig edgeEventsConfig) {
+    synchronized boolean startEdgeEventsInternal(String host, int port, Network network, EdgeEventsConfig edgeEventsConfig) {
         if (edgeEventsConfig == null) {
-            Log.e(TAG, "Will create a minimal config for EdgeEvents use.");
+            Log.e(TAG, "No config for EdgeEvents to use. Creating a do nothing config for event monitoring only.");
             edgeEventsConfig = createDefaultEdgeEventsConfig();
+            edgeEventsConfig.latencyUpdateConfig = null;
+            edgeEventsConfig.locationUpdateConfig = null;
         }
         if (isShutdown()) {
             return false;
         }
         mAppInitiatedRunEdgeEvents = false;
         try {
-            return startEdgeEvents(null, 0, null, edgeEventsConfig);
+            return startEdgeEvents(host, port, network, edgeEventsConfig);
         } catch (DmeDnsException dde) {
             Log.e(TAG, "Failed to start DME EdgeEvents Connection, could not create DME hostname. The configuration given will be used for next attempt.");
             return false;
         }
     }
 
-    // Do not use in production. DME will likely change, this sets the initial DME connection.
-    synchronized public CompletableFuture<Boolean> startEdgeEventsFuture(final String dmeHost,
+    private CompletableFuture<Boolean> startEdgeEventsFuture(final String dmeHost,
                                                                          final int dmePort,
                                                                          final Network network,
                                                                          final EdgeEventsConfig edgeEventsConfig) {
@@ -378,9 +379,7 @@ public class MatchingEngine {
         });
     }
 
-    // Do not use in production. DME will likely change, this sets the initial DME connection.
-    // This does not attempt to execute runEdgeEvents unless the appInitiated version is run first.
-    synchronized public boolean startEdgeEvents(String dmeHost,
+    synchronized private boolean startEdgeEvents(String dmeHost,
                                                 int dmePort,
                                                 Network network,
                                                 EdgeEventsConfig edgeEventsConfig) throws DmeDnsException {
@@ -391,24 +390,16 @@ public class MatchingEngine {
         }
 
         if (edgeEventsConfig == null && !mAppInitiatedRunEdgeEvents) {
-            Log.w(TAG, "Cannot start edgeEvents without a configuration. Using Default.");
-            mEdgeEventsConfig = createDefaultEdgeEventsConfig();
+            Log.w(TAG, "Cannot start edgeEvents without a configuration. Doing nothing.");
+            return false;
         } else {
             mEdgeEventsConfig = edgeEventsConfig;
         }
+        Log.i(TAG, "EdgeEvents Configuration has been updated.");
+
         // This is an exposed path to start/restart EdgeEvents, state check everything.
         if (!validateEdgeEventsConfig()) {
             return false; // NOT started.
-        }
-
-        if ((dmeHost == null || dmeHost.isEmpty()) || dmePort <= 0) {
-            try {
-                dmeHost = generateDmeHostAddress();
-                dmePort = port;
-            } catch (DmeDnsException dde) {
-                Log.e(TAG, "Cannot create EdgeEventsConnection. If needed, use WifiOnly setting.");
-                throw dde;
-            }
         }
 
         // Start, if not already, the edgeEvents connection. It also starts any deferred events.
@@ -419,15 +410,17 @@ public class MatchingEngine {
             } catch (DmeDnsException e) {
                 Log.e(TAG, "Cannot start edge events. Reason: " + e.getLocalizedMessage());
                 e.printStackTrace();
+                return false;
             }
             Log.i(TAG, "EdgeEventsConnection is now started.");
         } else {
             try {
-                Log.i(TAG, "EdgeEventsConnection is already running. Restarting.");
-                mEdgeEventsConnection.reconnect(dmeHost, dmePort, network, edgeEventsConfig);
+                Log.i(TAG, "EdgeEventsConnection will be restarted.");
+                mEdgeEventsConnection.reconnect();
             } catch (DmeDnsException e) {
                 Log.e(TAG, "Failed to restart connection. DME Host name not found: " + dmeHost);
                 e.printStackTrace();
+                return false;
             }
         }
         return true;
@@ -441,7 +434,7 @@ public class MatchingEngine {
      * \ingroup functions_edge_events_api
      * \section startedgeevents_example Example
      */
-    synchronized public CompletableFuture<Boolean> restartEdgeEventsFuture() {
+    public CompletableFuture<Boolean> restartEdgeEventsFuture() {
         return CompletableFuture.supplyAsync(new Supplier<Boolean>() {
             @Override
             public Boolean get() {
@@ -495,7 +488,7 @@ public class MatchingEngine {
      * \return A future for stopEdgeEvents running on MatchingEngine's ExecutorService pool.
      * \ingroup functions_edge_events_api
      */
-    synchronized public CompletableFuture<Boolean> stopEdgeEventsFuture() {
+    public CompletableFuture<Boolean> stopEdgeEventsFuture() {
         return CompletableFuture.supplyAsync(new Supplier<Boolean>() {
             @Override
             public Boolean get() {
@@ -511,10 +504,6 @@ public class MatchingEngine {
     synchronized public boolean stopEdgeEvents() {
         warnIfUIThread();
         mAppInitiatedRunEdgeEvents = false;
-        if (mEdgeEventsConnection.isShutdown()) {
-            Log.i(TAG, "EdgeEventsConnection is already stopped.");
-            return false;
-        }
         mEdgeEventsConnection.stopEdgeEvents();
         return true;
     }
@@ -824,8 +813,10 @@ public class MatchingEngine {
      * \ingroup functions_dmeutils
      */
     public HashMap<String, String> getDeviceInfo() {
-
         HashMap<String, String> map = new HashMap<>();
+        if (isShutdown()) {
+            return null;
+        }
 
         TelephonyManager telManager = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
         if (telManager == null) {

@@ -14,7 +14,7 @@ var searchData=
   ['startedgeevents_225',['startEdgeEvents',['../group__functions__edge__events__api.html#gae8a4bba07fbab05abab5698a2d8e0d8e',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
   ['startedgeeventsfuture_226',['startEdgeEventsFuture',['../group__functions__edge__events__api.html#ga3ae318da27afaadebc961784ebeaa552',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
   ['stopedgeevents_227',['stopEdgeEvents',['../group__functions__edge__events__api.html#ga7a4eed97ee649d41b7a7910d4b2b2928',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
-  ['stopedgeeventsfuture_228',['stopEdgeEventsFuture',['../group__functions__edge__events__api.html#ga562d847816fbcc4d83b38b17ea7a1cbf',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
+  ['stopedgeeventsfuture_228',['stopEdgeEventsFuture',['../group__functions__edge__events__api.html#ga335f5501801a98401a54a03b2a3cc245',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
   ['switchedtonextcloudlet_229',['switchedToNextCloudlet',['../group__functions__edge__events__api.html#gaf422e306d140500f77163c4ce829653f',1,'com::mobiledgex::matchingengine::MatchingEngine']]],
   ['switchtocellularinternetnetworkblocking_230',['switchToCellularInternetNetworkBlocking',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#ae15a36664af7cf1dca2207d15fd92a09',1,'com::mobiledgex::matchingengine::NetworkManager']]],
   ['switchtocellularinternetnetworkfuture_231',['switchToCellularInternetNetworkFuture',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#ab6e9fd558c8defd7e1b1b1ca9f0dd9cc',1,'com::mobiledgex::matchingengine::NetworkManager']]],
