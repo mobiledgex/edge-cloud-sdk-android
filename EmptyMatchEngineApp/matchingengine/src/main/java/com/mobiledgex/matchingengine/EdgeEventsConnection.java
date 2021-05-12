@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
@@ -47,6 +48,11 @@ public class EdgeEventsConnection {
     // Persistent connection:
     private MatchingEngine me;
     private ManagedChannel channel;
+
+    public final long OPEN_TIMEOUT_MS = 10 * 1000;
+    public final long SHUTDOWN_TIMEOUT_MS = 10 * 1000;
+    private long openTimeoutMs = OPEN_TIMEOUT_MS;
+    private long shutdownTimeoutMs = SHUTDOWN_TIMEOUT_MS;
 
     public MatchEngineApiGrpc.MatchEngineApiStub asyncStub;
 
@@ -208,7 +214,7 @@ public class EdgeEventsConnection {
             }
             Log.d(TAG, "Not open. Waiting...");
             try {
-                openAwaiter.wait(10 * 1000);
+                openAwaiter.wait(getOpenTimeoutMs());
             } catch (InterruptedException e) {
                 Log.w(TAG, "awaitOpen() was Interrupted.");
                 e.printStackTrace();
@@ -328,6 +334,43 @@ public class EdgeEventsConnection {
             return;
         }
         awaitOpen();
+    }
+
+    /*!
+     * Gets the timeout for opening a connection.
+     */
+    public long getOpenTimeoutMs() {
+        return openTimeoutMs;
+    }
+
+    /*!
+     * Sets the timeout to open a connection.
+     * \param timeoutMs timeout in MS. If <= 0, uses default.
+     */
+    public void setOpenTimeout(long timeoutMs) {
+        if (timeoutMs <= 0) {
+            openTimeoutMs = OPEN_TIMEOUT_MS;
+        } else {
+            openTimeoutMs = timeoutMs;
+        }
+    }
+
+    /*!
+     * Gets the timeout for closing a connection.
+     */
+    public long getShutdownTimeoutMs() {
+        return shutdownTimeoutMs;
+    }
+
+    /*!
+     * Sets the timeout for connection shutdown.
+     */
+    public void setShutdownTimeoutMs(long shutdownTimeoutMs) {
+        if (shutdownTimeoutMs <= 0) {
+            this.shutdownTimeoutMs = shutdownTimeoutMs;
+        } else {
+            this.shutdownTimeoutMs = shutdownTimeoutMs;
+        }
     }
 
     /*!
@@ -569,16 +612,25 @@ public class EdgeEventsConnection {
             try {
                 channel.shutdown();
                 Log.d(TAG, "Awaiting termination...");
-                channel.awaitTermination(5, TimeUnit.SECONDS);
+                channel.awaitTermination(getShutdownTimeoutMs(), TimeUnit.MILLISECONDS);
                 Log.d(TAG, "Done awaiting.");
-                receiver = null;
-                sender = null;
-                channel = null;
+
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }, me.threadpool);
-
+        try {
+            future.get(getShutdownTimeoutMs(), TimeUnit.MILLISECONDS);
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
+        receiver = null;
+        sender = null;
+        channel = null;
         Log.d(TAG, "Submitted termination.");
 
         return true;
@@ -1021,7 +1073,7 @@ public class EdgeEventsConnection {
 
             switch (locationUpdateConfig.updatePattern) {
                 case onStart:
-                    postLocationUpdate(getLastLocationPosted());
+                    postLocationUpdate(getLocation());
                     break;
                 case onTrigger:
                     eventBusRegister(); // Attach Subscriber for triggers.
@@ -1044,9 +1096,9 @@ public class EdgeEventsConnection {
             switch (latencyUpdateConfig.updatePattern) {
                 case onStart:
                     if (mEdgeEventsConfig.latencyInternalPort <= 0) {
-                        testPingAndPostLatencyUpdate(getLastLocationPosted());
+                        testPingAndPostLatencyUpdate(getLocation());
                     } else {
-                        testConnectAndPostLatencyUpdate(getLastLocationPosted());
+                        testConnectAndPostLatencyUpdate(getLocation());
                     }
                     break;
                 case onTrigger:
@@ -1140,13 +1192,7 @@ public class EdgeEventsConnection {
         }
 
         // FindCloudlet needs location:
-        loc = getLastLocationPosted();
-        if (loc == null) {
-            loc = getLocation();
-            if (loc == null) {
-                return false;
-            }
-        }
+        loc = getLocation();
 
         AppClient.FindCloudletRequest request = me.createDefaultFindCloudletRequest(me.mContext, loc)
                 .build();
@@ -1331,7 +1377,7 @@ public class EdgeEventsConnection {
                     }
 
                     if (mEdgeEventsConfig.latencyInternalPort <= 0 || mEdgeEventsConfig.latencyTestType == NetTest.TestType.PING) {
-                        me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(getLastLocationPosted());
+                        me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(getLocation());
                         return false;
                     }
 
@@ -1358,7 +1404,7 @@ public class EdgeEventsConnection {
                         };
                     }
 
-                    return me.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host), getLastLocationPosted());
+                    return me.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host), getLocation());
                 } catch (Exception e) {
                     Log.e(TAG, "Exception running latency test: " + e.getMessage());
                     e.printStackTrace();

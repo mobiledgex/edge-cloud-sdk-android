@@ -17,8 +17,10 @@
 
 package com.mobiledgex.matchingengine;
 
+import android.app.UiAutomation;
 import android.content.Context;
 import android.location.Location;
+import android.os.Build;
 import android.os.Looper;
 import androidx.test.platform.app.InstrumentationRegistry;
 
@@ -109,6 +111,24 @@ public class EdgeEventsConnectionTest {
                 return;
             }
             latch.countDown();
+        }
+    }
+
+    @Before
+    public void grantPermissions() {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+            uiAutomation.grantRuntimePermission(
+                    InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
+                    "android.permission.READ_PHONE_STATE");
+            uiAutomation.grantRuntimePermission(
+                    InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
+                    "android.permission.ACCESS_COARSE_LOCATION");
+            uiAutomation.grantRuntimePermission(
+                    InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
+                    "android.permission.ACCESS_FINE_LOCATION"
+            );
         }
     }
 
@@ -227,7 +247,7 @@ public class EdgeEventsConnectionTest {
             //enableMockLocation(context,true);
 
             // Cannot use the older API if overriding.
-            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, edmontonLoc)
                     .setCarrierName(findCloudletCarrierOverride)
                     .build();
             EdgeEventsConfig edgeEventsConfig = me.createDefaultEdgeEventsConfig();
@@ -243,7 +263,7 @@ public class EdgeEventsConnectionTest {
             }
             findCloudletReply1 = response1.get();
             assertSame("FindCloudlet1 did not succeed!", findCloudletReply1.getStatus(), FIND_FOUND);
-            latch.await(GRPC_TIMEOUT_MS * 1, TimeUnit.MILLISECONDS);
+            latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
             // This is actually unbounded, as the default is infinity latency Processed resposnes, should you wait long enough for that many to start arriving.
             long expectedNum = 1; // edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates;
             Log.i(TAG, "EdgeEvent :  " + responses.size());
