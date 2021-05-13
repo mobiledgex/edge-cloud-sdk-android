@@ -511,6 +511,7 @@ public class EdgeEventsConnection {
                     .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
                     .setSessionCookie(me.mSessionCookie)
                     .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
+                    .mergeDeviceInfoStatic(me.getDeviceInfoStaticProto())
                     .build();
             send(initDmeEvent);
         } else {
@@ -699,9 +700,9 @@ public class EdgeEventsConnection {
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
                 .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LOCATION_UPDATE)
                 .setGpsLocation(loc);
-        Appcommon.DeviceInfo deviceInfo = me.getDeviceInfoProto();
-        if (deviceInfo != null) {
-            clientEdgeEventBuilder.mergeDeviceInfo(deviceInfo);
+        Appcommon.DeviceInfoDynamic deviceInfoDynamic = me.getDeviceInfoDynamicProto();
+        if (deviceInfoDynamic != null) {
+            clientEdgeEventBuilder.setDeviceInfoDynamic(deviceInfoDynamic);
         }
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
@@ -765,9 +766,9 @@ public class EdgeEventsConnection {
                     .setValue(site.samples[i]);
             clientEdgeEventBuilder.addSamples(sampleBuilder.build());
         }
-        Appcommon.DeviceInfo deviceInfo = me.getDeviceInfoProto();
-        if (deviceInfo != null) {
-            clientEdgeEventBuilder.mergeDeviceInfo(deviceInfo);
+        Appcommon.DeviceInfoDynamic deviceInfoDynamic = me.getDeviceInfoDynamicProto();
+        if (deviceInfoDynamic != null) {
+            clientEdgeEventBuilder.mergeDeviceInfoDynamic(deviceInfoDynamic);
         }
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
@@ -831,9 +832,9 @@ public class EdgeEventsConnection {
         AppClient.ClientEdgeEvent.Builder clientEdgeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
                 .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_LATENCY_SAMPLES)
                 .setGpsLocation(loc);
-        Appcommon.DeviceInfo deviceInfo = me.getDeviceInfoProto();
-        if (deviceInfo != null) {
-            clientEdgeEventBuilder.mergeDeviceInfo(deviceInfo);
+        Appcommon.DeviceInfoDynamic deviceInfoDynamic = me.getDeviceInfoDynamicProto();
+        if (deviceInfoDynamic != null) {
+            clientEdgeEventBuilder.mergeDeviceInfoDynamic(deviceInfoDynamic);
         }
 
         Site site = new Site(me.mContext, NetTest.TestType.PING,
@@ -972,9 +973,9 @@ public class EdgeEventsConnection {
                     .setValue(site.samples[i]);
             clientEdgeEventBuilder.addSamples(sampleBuilder.build());
         }
-        Appcommon.DeviceInfo deviceInfo = me.getDeviceInfoProto();
-        if (deviceInfo != null) {
-            clientEdgeEventBuilder.mergeDeviceInfo(deviceInfo);
+        Appcommon.DeviceInfoDynamic deviceInfoDynamic = me.getDeviceInfoDynamicProto();
+        if (deviceInfoDynamic != null) {
+            clientEdgeEventBuilder.mergeDeviceInfoDynamic(deviceInfoDynamic);
         }
 
         AppClient.ClientEdgeEvent clientEdgeEvent = clientEdgeEventBuilder.build();
