@@ -157,24 +157,43 @@ public class EdgeEventsConnection {
     /*!
      * Errors on EdgeEvents
      */
-    public enum EdgeEventsError {
+    public interface EdgeEventsErrorMessage {
+        String message = null;
+    }
+    public enum EdgeEventsError implements EdgeEventsErrorMessage {
         missingSessionCookie,
         missingEdgeEventsCookie,
+
         unableToGetLastLocation,
         missingGetLastLocationFunction,
+
+        invalidEdgeEventsSetup,
         missingEdgeEventsConfig,
+        missingLatencyUpdateConfig,
+        missingLocationUpdateConfig,
+
         missingNewFindCloudletHandler,
         missingServerEventsHandler,
+
+        missingLatencyThreshold,
+        invalidLatencyThreshold,
+
         missingUpdateInterval,
         invalidUpdateInterval,
+
         hasNotDoneFindCloudlet,
         emptyAppPorts,
         portDoesNotExist,
         uninitializedEdgeEventsConnection,
         failedToClose,
-        edgeEventsConnectionError,
+        connectionAlreadyClosed,
+        unableToCleanup,
+        gpsLocationDidNotChange,
+
+        eventTriggeredButCurrentCloudletIsBest,
+
         missingDmeDnsEntry,
-        eventTriggeredButCurrentCloudletIsBest
+        eventError // Extended error. See message field.
     }
 
     /*!
@@ -471,7 +490,7 @@ public class EdgeEventsConnection {
                 // Shutdown invocation will also land here.
                 Log.w(TAG, "Encountered error in DMEConnection: ", t);
                 if (me.getEdgeEventsBus() != null) {
-                    me.getEdgeEventsBus().post(EdgeEventsError.edgeEventsConnectionError);
+                    me.getEdgeEventsBus().post(EdgeEventsError.uninitializedEdgeEventsConnection);
                 }
                 // Reopen DME connection.
                 try {
@@ -513,6 +532,7 @@ public class EdgeEventsConnection {
                     .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
                     .setGpsLocation(me.androidLocToMeLoc(getLastLocationPosted()))
                     .mergeDeviceInfoStatic(me.getDeviceInfoStaticProto())
+                    .mergeDeviceInfoDynamic(me.getDeviceInfoDynamicProto())
                     .build();
             send(initDmeEvent);
         } else {
@@ -1184,7 +1204,7 @@ public class EdgeEventsConnection {
     }
 
 
-    // Non raw ServerEdgeEvent.
+    // Non raw ServerEdgeEvent, this will create a FindCloudlet.
     CompletableFuture<Boolean> doClientFindCloudlet(FindCloudletEventTrigger reason) {
         return CompletableFuture.supplyAsync( () -> {
             if (isShutdown() && me.isShutdown()) {
@@ -1213,6 +1233,7 @@ public class EdgeEventsConnection {
                         lastConnectionDetails.port,
                         me.getNetworkManager().getTimeout(),
                         MatchingEngine.FindCloudletMode.PERFORMANCE);
+
                 if (reply != null) {
                     FindCloudletEvent event = new FindCloudletEvent(reply, reason);
 
@@ -1269,7 +1290,8 @@ public class EdgeEventsConnection {
                 }
             }
         } else {
-            Log.e(TAG, "Error: Server is missing a findClooudlet!");
+            Log.e(TAG, "Error: Server is missing an expected findCloudlet!");
+            postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
             return false;
         }
 
@@ -1294,12 +1316,9 @@ public class EdgeEventsConnection {
             case UNRECOGNIZED: // Presumably if not OK, means to get a new FindCloudlet.
             default:
                 Log.i(TAG, "AppInst Health event. Doing FindCloudlet. Reason: " + event.getHealthCheck());
-                doClientFindCloudlet(FindCloudletEventTrigger.AppInstHealthChanged).thenApply( result -> {
-                    if (!result) {
-                        postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
-                    }
-                    return result;
-                });
+                if (mEdgeEventsConfig.triggers.contains(FindCloudletEventTrigger.AppInstHealthChanged)) {
+                    handleFindCloudletServerPush(event, FindCloudletEventTrigger.AppInstHealthChanged);
+                }
                 break;
         }
         return true;
@@ -1314,13 +1333,9 @@ public class EdgeEventsConnection {
             // Handle event:
             case UNDER_MAINTENANCE:
                 Log.i(TAG,"Maintenance state changed! Finding new Cloudlet. Reason: " + event.getMaintenanceState());
-                doClientFindCloudlet(FindCloudletEventTrigger.CloudletMaintenanceStateChanged).thenApply( result -> {
-                    if (!result) {
-                        postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
-                    }
-                    return result;
-                });
-                break;
+                if (mEdgeEventsConfig.triggers.contains(FindCloudletEventTrigger.CloudletMaintenanceStateChanged)) {
+                    handleFindCloudletServerPush(event, FindCloudletEventTrigger.CloudletMaintenanceStateChanged);
+                }
             // Informational.
             case NORMAL_OPERATION:
             case MAINTENANCE_START: // all fall through
@@ -1358,12 +1373,9 @@ public class EdgeEventsConnection {
             case CLOUDLET_STATE_NEED_SYNC:
             default:
                 Log.i(TAG,"Cloudlet State Change. Doing findCloudlet. Reason: " + event.getCloudletState());
-                doClientFindCloudlet(FindCloudletEventTrigger.CloudletStateChanged).thenApply( result -> {
-                    if (!result) {
-                        postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
-                    }
-                    return result;
-                });
+                if (mEdgeEventsConfig.triggers.contains(FindCloudletEventTrigger.CloudletStateChanged)) {
+                    handleFindCloudletServerPush(event, FindCloudletEventTrigger.CloudletStateChanged);
+                }
                 break;
         }
         return true;

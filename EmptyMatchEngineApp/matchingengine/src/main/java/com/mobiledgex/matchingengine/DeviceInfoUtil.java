@@ -21,7 +21,7 @@ public class DeviceInfoUtil {
 
     // Dynamic values:
     /*!
-     * \returns dataNetworkType object.
+     * \return dataNetworkType object.
      */
     static NetworkManager.DataNetworkType getDataNetworkType(Context context) {
         NetworkManager.DataNetworkType dataNetworkType = null;

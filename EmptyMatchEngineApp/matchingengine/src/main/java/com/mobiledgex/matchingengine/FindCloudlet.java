@@ -366,7 +366,7 @@ public class FindCloudlet implements Callable {
                 Log.e(TAG, "Configured EdgeEventsConfig background tasks cannot be started. Exception was: " + e.getMessage());
                 e.printStackTrace();
                 if (mMatchingEngine.getEdgeEventsBus() != null) {
-                    mMatchingEngine.getEdgeEventsBus().post(EdgeEventsConnection.EdgeEventsError.edgeEventsConnectionError);
+                    mMatchingEngine.getEdgeEventsBus().post(EdgeEventsConnection.EdgeEventsError.invalidEdgeEventsSetup);
                 }
             }
         }
