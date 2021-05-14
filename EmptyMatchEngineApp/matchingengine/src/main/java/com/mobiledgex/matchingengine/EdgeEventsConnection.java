@@ -511,6 +511,7 @@ public class EdgeEventsConnection {
                     .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
                     .setSessionCookie(me.mSessionCookie)
                     .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
+                    .setGpsLocation(me.androidLocToMeLoc(getLastLocationPosted()))
                     .mergeDeviceInfoStatic(me.getDeviceInfoStaticProto())
                     .build();
             send(initDmeEvent);
@@ -848,9 +849,12 @@ public class EdgeEventsConnection {
         // Trigger(s):
         if (site.average >= mEdgeEventsConfig.latencyThresholdTrigger) {
             Log.i(TAG, "Latency higher than requested during Ping latency test.");
-            if (!doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh)) {
-                postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
-            };
+            doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh).thenApply( result -> {
+                if (!result) {
+                    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                }
+                return result;
+            });
         }
 
         for (int i = 0; i < site.samples.length; i++) {
@@ -961,9 +965,12 @@ public class EdgeEventsConnection {
         // Trigger(s):
         if (site.average >= mEdgeEventsConfig.latencyThresholdTrigger) {
             Log.i(TAG, "Latency higher than requested during Connect latency test.");
-            if (!doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh)) {
-                postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
-            }
+            doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh).thenApply( result -> {
+                if (!result) {
+                    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                }
+                return result;
+            });
         }
 
         for (int i = 0; i < site.samples.length; i++) {
@@ -1178,54 +1185,56 @@ public class EdgeEventsConnection {
 
 
     // Non raw ServerEdgeEvent.
-    synchronized boolean doClientFindCloudlet(FindCloudletEventTrigger reason) {
-        if (isShutdown() && me.isShutdown()) {
-            return false;
-        }
-        Location loc;
-
-        // Need app details to attempt posting.
-        if (me.getLastRegisterClientRequest() == null) {
-            return false;
-        }
-        if (me.getMatchingEngineStatus() == null || me.getMatchingEngineStatus().getSessionCookie() == null) {
-            return false;
-        }
-
-        // FindCloudlet needs location:
-        loc = getLocation();
-
-        AppClient.FindCloudletRequest request = me.createDefaultFindCloudletRequest(me.mContext, loc)
-                .build();
-
-        try {
-            AppClient.FindCloudletReply reply = me.findCloudlet(
-                    request,
-                    lastConnectionDetails.host,
-                    lastConnectionDetails.port,
-                    me.getNetworkManager().getTimeout(),
-                    MatchingEngine.FindCloudletMode.PERFORMANCE);
-            if (reply != null) {
-                FindCloudletEvent event = new FindCloudletEvent(reply, reason);
-
-                // TODO: Check if this is a new FindCloudlet before posting.
-                postToFindCloudletEventHandler(event);
-                if (me.isAutoMigrateEdgeEventsConnection()) {
-                    reconnect();
-                }
-                return true;
+    CompletableFuture<Boolean> doClientFindCloudlet(FindCloudletEventTrigger reason) {
+        return CompletableFuture.supplyAsync( () -> {
+            if (isShutdown() && me.isShutdown()) {
+                return false;
             }
-            // Caller decides what happens on failure.
+            Location loc;
 
-        } catch (DmeDnsException e) {
-            Log.d(TAG, "DME DNS Exception doing auto doClientFindCloudlet(): " + e.getMessage());
-        } catch (InterruptedException e) {
-            // do nothing.
-        } catch (ExecutionException e) {
-            Log.d(TAG, "EdgeEvents ExecutionException doing auto doClientFindCloudlet(): " + e.getMessage());
-            e.printStackTrace();
-        }
-        return false;
+            // Need app details to attempt posting.
+            if (me.getLastRegisterClientRequest() == null) {
+                return false;
+            }
+            if (me.getMatchingEngineStatus() == null || me.getMatchingEngineStatus().getSessionCookie() == null) {
+                return false;
+            }
+
+            // FindCloudlet needs location:
+            loc = getLocation();
+
+            AppClient.FindCloudletRequest request = me.createDefaultFindCloudletRequest(me.mContext, loc)
+                    .build();
+
+            try {
+                AppClient.FindCloudletReply reply = me.findCloudlet(
+                        request,
+                        lastConnectionDetails.host,
+                        lastConnectionDetails.port,
+                        me.getNetworkManager().getTimeout(),
+                        MatchingEngine.FindCloudletMode.PERFORMANCE);
+                if (reply != null) {
+                    FindCloudletEvent event = new FindCloudletEvent(reply, reason);
+
+                    // TODO: Check if this is a new FindCloudlet before posting.
+                    postToFindCloudletEventHandler(event);
+                    if (me.isAutoMigrateEdgeEventsConnection()) {
+                        reconnect();
+                    }
+                    return true;
+                }
+                // Caller decides what happens on failure.
+
+            } catch (DmeDnsException e) {
+                Log.d(TAG, "DME DNS Exception doing auto doClientFindCloudlet(): " + e.getMessage());
+            } catch (InterruptedException e) {
+                // do nothing.
+            } catch (ExecutionException e) {
+                Log.d(TAG, "EdgeEvents ExecutionException doing auto doClientFindCloudlet(): " + e.getMessage());
+                e.printStackTrace();
+            }
+            return false;
+        }, me.threadpool);
     }
 
     synchronized boolean handleFindCloudletServerPush(AppClient.ServerEdgeEvent event, FindCloudletEventTrigger reason) {
@@ -1285,9 +1294,12 @@ public class EdgeEventsConnection {
             case UNRECOGNIZED: // Presumably if not OK, means to get a new FindCloudlet.
             default:
                 Log.i(TAG, "AppInst Health event. Doing FindCloudlet. Reason: " + event.getHealthCheck());
-                if (!doClientFindCloudlet(FindCloudletEventTrigger.AppInstHealthChanged)) {
-                    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
-                }
+                doClientFindCloudlet(FindCloudletEventTrigger.AppInstHealthChanged).thenApply( result -> {
+                    if (!result) {
+                        postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                    }
+                    return result;
+                });
                 break;
         }
         return true;
@@ -1302,9 +1314,12 @@ public class EdgeEventsConnection {
             // Handle event:
             case UNDER_MAINTENANCE:
                 Log.i(TAG,"Maintenance state changed! Finding new Cloudlet. Reason: " + event.getMaintenanceState());
-                if (!doClientFindCloudlet(FindCloudletEventTrigger.CloudletMaintenanceStateChanged)) {
-                    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
-                }
+                doClientFindCloudlet(FindCloudletEventTrigger.CloudletMaintenanceStateChanged).thenApply( result -> {
+                    if (!result) {
+                        postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                    }
+                    return result;
+                });
                 break;
             // Informational.
             case NORMAL_OPERATION:
@@ -1343,7 +1358,12 @@ public class EdgeEventsConnection {
             case CLOUDLET_STATE_NEED_SYNC:
             default:
                 Log.i(TAG,"Cloudlet State Change. Doing findCloudlet. Reason: " + event.getCloudletState());
-                doClientFindCloudlet(FindCloudletEventTrigger.CloudletStateChanged);
+                doClientFindCloudlet(FindCloudletEventTrigger.CloudletStateChanged).thenApply( result -> {
+                    if (!result) {
+                        postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                    }
+                    return result;
+                });
                 break;
         }
         return true;
@@ -1400,9 +1420,12 @@ public class EdgeEventsConnection {
                     // Trigger(s):
                     if (site.average >= mEdgeEventsConfig.latencyThresholdTrigger) {
                         Log.i(TAG, "Latency higher than requested");
-                        if (!doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh)) {
-                            postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
-                        };
+                        doClientFindCloudlet(FindCloudletEventTrigger.LatencyTooHigh).thenApply( result -> {
+                            if (!result) {
+                                postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                            }
+                            return result;
+                        });
                     }
 
                     return me.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host), getLocation());
