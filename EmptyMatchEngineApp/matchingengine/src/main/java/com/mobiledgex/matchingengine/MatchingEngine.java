@@ -1323,7 +1323,6 @@ public class MatchingEngine {
 
         Loc aLoc = androidLocToMeLoc(location);
         if (mEdgeEventsConnection != null) {
-            // For INIT...to repost to DME.
             mEdgeEventsConnection.setLastLocationPosted(location);
         }
 

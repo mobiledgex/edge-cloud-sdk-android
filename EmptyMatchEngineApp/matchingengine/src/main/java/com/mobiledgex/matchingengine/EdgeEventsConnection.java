@@ -280,7 +280,9 @@ public class EdgeEventsConnection {
         return mLastLocationPosted;
     }
     synchronized public void setLastLocationPosted(Location mLastLocationPosted) {
-        this.mLastLocationPosted = mLastLocationPosted;
+        if (mLastLocationPosted != null) {
+            this.mLastLocationPosted = mLastLocationPosted;
+        }
     }
 
 
@@ -518,22 +520,35 @@ public class EdgeEventsConnection {
         // No deadline, since it's streaming:
         sender = asyncStub.streamEdgeEvent(receiver);
 
-        // Client identifies itself with an Init message to DME EdgeEvents Connection upon opening the connection.
         String sessionCookie = me.mSessionCookie;
         String edgeEventsCookie = me.mFindCloudletReply != null ?me.mFindCloudletReply.getEdgeEventsCookie() : null;
+
         if (sessionCookie != null && edgeEventsCookie != null) {
-            AppClient.ClientEdgeEvent initDmeEvent = AppClient.ClientEdgeEvent.newBuilder()
+            AppClient.ClientEdgeEvent.Builder initDmeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
                     .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
                     .setSessionCookie(me.mSessionCookie)
                     .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
-                    .setGpsLocation(me.androidLocToMeLoc(getLastLocationPosted()))
                     .mergeDeviceInfoStatic(me.getDeviceInfoStaticProto())
-                    .mergeDeviceInfoDynamic(me.getDeviceInfoDynamicProto())
-                    .build();
-            send(initDmeEvent);
+                    .mergeDeviceInfoDynamic(me.getDeviceInfoDynamicProto());
+
+            // Location based edgeEvents permissions are need:
+            Location loc = getLocation();
+            if (loc == null) {
+                Log.w(TAG, "There does not appear to be a current app location service running to get location. Trying to use last location to init EdgeEventsConnection.");
+                loc = getLastLocationPosted();
+            }
+            if (loc != null) {
+                send(initDmeEventBuilder.setGpsLocation(me.androidLocToMeLoc(loc)).build());
+                setLastLocationPosted(loc);
+            } else {
+                Log.w(TAG, "Location missing and cannot be retrieved. Cannot initialize EdgeEventsConnection.");
+                postErrorToEventHandler(EdgeEventsError.uninitializedEdgeEventsConnection);
+                closeInternal();
+            }
         } else {
             Log.e(TAG, "Missing info for INIT. Not opening.");
-            channelStatus = ChannelStatus.closed;
+            postErrorToEventHandler(EdgeEventsError.uninitializedEdgeEventsConnection);
+            closeInternal();
         }
     }
 
