@@ -337,7 +337,7 @@ public class EdgeEventsConnectionTest {
                     deviceInfoStatic.getDeviceOs().length() > "Android_Version_".length());
 
             if (isEmulator(context)) {
-                assertTrue("Should have deviceModel, depends on device: ", "".equals(deviceInfoStatic.getDeviceModel()));
+                assertTrue("Should have deviceModel, depends on device: ", !deviceInfoStatic.getDeviceModel().isEmpty()); // TODO: "Android SDK built for x86", etc.
             } else {
                 assertTrue("Should have deviceModel, depends on device: ", !deviceInfoStatic.getDeviceModel().isEmpty());
             }
@@ -687,10 +687,12 @@ public class EdgeEventsConnectionTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
         class EventReceiver2 {
             ConcurrentLinkedQueue<FindCloudletEvent> responses;
+            ConcurrentLinkedQueue<EdgeEventsConnection.EdgeEventsError> errors;
             CountDownLatch latch;
 
             public EventReceiver2() {
                 responses = new ConcurrentLinkedQueue<>();
+                errors = new ConcurrentLinkedQueue<>();
             }
 
             public CountDownLatch setLatch(int count) {
@@ -703,6 +705,16 @@ public class EdgeEventsConnectionTest {
                 assertNotNull("Should have a Cloudlet!", fce.newCloudlet);
                 assertTrue("Should be a LatencyTooHigh trigger!",fce.trigger == FindCloudletEventTrigger.LatencyTooHigh);
                 responses.add(fce);
+                if (latch == null) {
+                    return;
+                }
+                latch.countDown();
+            }
+
+            @Subscribe
+            void HandleEdgeEvent(EdgeEventsConnection.EdgeEventsError error) {
+                assertTrue("Should be a LatencyTooHigh still best trigger!", error == EdgeEventsConnection.EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                errors.add(error);
                 if (latch == null) {
                     return;
                 }
@@ -743,10 +755,10 @@ public class EdgeEventsConnectionTest {
 
             // Waiting for 1 (or more).
             er.setLatch(1);
-            er.latch.await(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
 
             assertEquals("Expected that the configured latency is too high!", 0, er.latch.getCount());
-            assertTrue("Response must be too high.", er.responses.peek().trigger == FindCloudletEventTrigger.LatencyTooHigh);
+            assertTrue("Response must be too high, but still best.", er.errors.peek() == EdgeEventsConnection.EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
 
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));

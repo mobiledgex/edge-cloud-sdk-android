@@ -157,10 +157,7 @@ public class EdgeEventsConnection {
     /*!
      * Errors on EdgeEvents
      */
-    public interface EdgeEventsErrorMessage {
-        String message = null;
-    }
-    public enum EdgeEventsError implements EdgeEventsErrorMessage {
+    public enum EdgeEventsError {
         missingSessionCookie,
         missingEdgeEventsCookie,
 
@@ -192,8 +189,7 @@ public class EdgeEventsConnection {
 
         eventTriggeredButCurrentCloudletIsBest,
 
-        missingDmeDnsEntry,
-        eventError // Extended error. See message field.
+        missingDmeDnsEntry
     }
 
     /*!
@@ -1233,6 +1229,12 @@ public class EdgeEventsConnection {
                         lastConnectionDetails.port,
                         me.getNetworkManager().getTimeout(),
                         MatchingEngine.FindCloudletMode.PERFORMANCE);
+
+                if (reply != null && reply.equals(me.getLastFindCloudletReply())) {
+                    Log.w(TAG, "The old and new cloudlets have the same content. Not posting findCloudlet, but inform app of latency issue encountered.");
+                    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                    return true;
+                }
 
                 if (reply != null) {
                     FindCloudletEvent event = new FindCloudletEvent(reply, reason);
