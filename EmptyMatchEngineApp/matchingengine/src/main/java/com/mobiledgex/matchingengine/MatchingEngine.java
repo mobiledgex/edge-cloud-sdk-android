@@ -851,12 +851,10 @@ public class MatchingEngine {
             map.put("SimCountryCodeIso", siso);
         }
 
-        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.READ_PHONE_STATE)
-                == PackageManager.PERMISSION_GRANTED) {
-            int nType = telManager.getDataNetworkType(); // Type Name is not visible.
-            NetworkManager.DataNetworkType dataType = NetworkManager.DataNetworkType.intMap.get(nType);
-            map.put("DataNetworkType", dataType.name());
-        }
+
+        NetworkManager.DataNetworkType dataType = DeviceInfoUtil.getDataNetworkType(mContext);
+        map.put("DataNetworkType", dataType.name());
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             SignalStrength s = telManager.getSignalStrength();
@@ -881,42 +879,31 @@ public class MatchingEngine {
         return map;
     }
 
-    // Utility functions below:
-    // Why are we duplicating this? And only some?
-    Appcommon.DeviceInfo getDeviceInfoProto() {
-        Appcommon.DeviceInfo.Builder deviceInfoBuilder = Appcommon.DeviceInfo.newBuilder();
-        HashMap<String, String> hmap = getDeviceInfo();
-        if (hmap == null || hmap.size() == 0) {
-            return null;
-        }
+    Appcommon.DeviceInfoStatic getDeviceInfoStaticProto() {
+        Appcommon.DeviceInfoStatic.Builder deviceInfoBuilder = Appcommon.DeviceInfoStatic.newBuilder();
 
-        for (Map.Entry<String, String> entry : hmap.entrySet()) {
-            String key;
-            key = entry.getKey();
-            if (entry.getValue() != null && entry.getValue().length() > 0) {
-                switch (key) {
-                    case "PhoneType":
-                        deviceInfoBuilder.setDeviceOs(entry.getValue());
-                        break;
-                    case "DataNetworkType":
-                        deviceInfoBuilder.setDataNetworkType(entry.getValue());
-                        break;
-                    case "ManufacturerCode":
-                        deviceInfoBuilder.setDeviceModel(entry.getValue());
-                        break;
-                    case "SignalStrength":
-                        try {
-                            // This is an abstract "getLevel()" for the last known radio signal update.
-                            deviceInfoBuilder.setSignalStrength(new Integer(entry.getValue()));
-                        } catch (NumberFormatException e) {
-                            Log.e(TAG, "Cannot attach signal strength. Reason: " + e.getMessage());
-                        }
-                        break;
-                }
-            }
-        }
+        deviceInfoBuilder.setDeviceOs(DeviceInfoUtil.getDeviceOS());
+        deviceInfoBuilder.setDeviceModel(DeviceInfoUtil.getDeviceModel());
         return deviceInfoBuilder.build();
     }
+
+    Appcommon.DeviceInfoDynamic getDeviceInfoDynamicProto() {
+        Appcommon.DeviceInfoDynamic.Builder deviceInfoBuilder = Appcommon.DeviceInfoDynamic.newBuilder();
+
+        NetworkManager.DataNetworkType dataNetworkType = DeviceInfoUtil.getDataNetworkType(mContext);
+        if (dataNetworkType != null) {
+            deviceInfoBuilder.setDataNetworkType(dataNetworkType.name());
+        }
+
+        String mccmnc = getMccMnc(mContext);
+        if (mccmnc != null) {
+            deviceInfoBuilder.setCarrierName(mccmnc);
+        }
+        deviceInfoBuilder.setSignalStrength(DeviceInfoUtil.getSignalStrengthLevel(mContext));
+        return deviceInfoBuilder.build();
+    }
+
+    // Utility functions below:
 
     /*!
      * Returns the carrier's mcc+mnc which is mapped to a carrier in the backend (ie. 26201 -> GDDT).
@@ -1335,7 +1322,10 @@ public class MatchingEngine {
         ensureSessionCookie();
 
         Loc aLoc = androidLocToMeLoc(location);
-
+        if (mEdgeEventsConnection != null) {
+            // For INIT...to repost to DME.
+            mEdgeEventsConnection.setLastLocationPosted(location);
+        }
 
 
         FindCloudletRequest.Builder builder = FindCloudletRequest.newBuilder()
@@ -1343,11 +1333,6 @@ public class MatchingEngine {
                 .setCarrierName(getCarrierName(context))
                 .setGpsLocation(aLoc)
                 .setCellId(0);
-
-        Appcommon.DeviceInfo deviceInfo = getDeviceInfoProto();
-        if (deviceInfo != null) {
-            builder.mergeDeviceInfo(deviceInfo);
-        }
         return builder;
     }
 

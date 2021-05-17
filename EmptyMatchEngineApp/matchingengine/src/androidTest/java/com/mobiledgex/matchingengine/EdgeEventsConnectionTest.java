@@ -72,16 +72,16 @@ public class EdgeEventsConnectionTest {
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
-    public static final String organizationName = "MobiledgeX-Samples";
+    public static final String organizationName = "MobiledgeX";
     // Other globals:
-    public static final String applicationName = "sdktest"; // "automation-sdk-porttest";
-    public static final String appVersion = "9.0";
+    public static final String applicationName = "automation-sdk-porttest"; // "automation-sdk-porttest";
+    public static final String appVersion = "1.0";
 
     FusedLocationProviderClient fusedLocationClient;
 
-    public static String hostOverride = "wifi.dme.mobiledgex.net";
+    public static String hostOverride = "eu-qa.dme.mobiledgex.net";
     public static int portOverride = 50051;
-    public static String findCloudletCarrierOverride = "TELUS"; // Allow "Any" if using "", but this likely breaks test cases.
+    public static String findCloudletCarrierOverride = ""; // Allow "Any" if using "", but this likely breaks test cases.
 
     public boolean useHostOverride = true;
     public boolean useWifiOnly = true; // This also disables network switching, since the android default is WiFi.
@@ -139,7 +139,7 @@ public class EdgeEventsConnectionTest {
             Looper.prepare();
     }
 
-    Location edmontonLoc, montrealLoc;
+    Location edmontonLoc, montrealLoc, automationFairviewCloudlet, automationHawkinsCloudlet;
     Location [] toggleLocations;
     int locationIndex = 0;
 
@@ -152,6 +152,14 @@ public class EdgeEventsConnectionTest {
         montrealLoc = getTestLocation();
         montrealLoc.setLatitude(45.5017); // Montreal
         montrealLoc.setLongitude(-73.5673);
+
+        automationFairviewCloudlet = getTestLocation();
+        automationFairviewCloudlet.setLatitude(50.110922);
+        automationFairviewCloudlet.setLongitude(8.682127);
+
+        automationHawkinsCloudlet = getTestLocation();
+        automationHawkinsCloudlet.setLatitude(10);
+        automationHawkinsCloudlet.setLongitude(10);
 
         toggleLocations = new Location[] {edmontonLoc, montrealLoc};
     }
@@ -319,16 +327,24 @@ public class EdgeEventsConnectionTest {
 
             assertNotNull("Should have an EdgeEventsConnection after FIND_FOUND", eec);
 
-            Appcommon.DeviceInfo deviceInfo = me.getDeviceInfoProto();
+            Appcommon.DeviceInfoStatic deviceInfoStatic = me.getDeviceInfoStaticProto();
+            Appcommon.DeviceInfoDynamic deviceInfoDynamic = me.getDeviceInfoDynamicProto();
+
+
+            assertTrue("DeviceOS must be non-empty for device: ",
+                    deviceInfoStatic.getDeviceOs() != null &&
+                    deviceInfoStatic.getDeviceOs().contains("Android_Version_") &&
+                    deviceInfoStatic.getDeviceOs().length() > "Android_Version_".length());
 
             if (isEmulator(context)) {
-                assertTrue("Should have deviceModel, depends on device: ", "".equals(deviceInfo.getDeviceModel()));
+                assertTrue("Should have deviceModel, depends on device: ", "".equals(deviceInfoStatic.getDeviceModel()));
             } else {
-                assertTrue("Should have deviceModel, depends on device: ", !deviceInfo.getDeviceModel().isEmpty());
+                assertTrue("Should have deviceModel, depends on device: ", !deviceInfoStatic.getDeviceModel().isEmpty());
             }
-            assertFalse("Should have networkType, depends on device: ", deviceInfo.getDataNetworkType().isEmpty());
-            assertFalse("Should have deviceOS, depends on device: ", deviceInfo.getDeviceOs().isEmpty());
-            assertTrue("Should have a signal strength for last known network, depends on device: ", deviceInfo.getSignalStrength() >= 0);
+            assertTrue("Carrier must be non-empty for real device: ", deviceInfoDynamic.getCarrierName() != null && !deviceInfoDynamic.getCarrierName().isEmpty());
+            assertTrue("DataNetworkTyppe must be non-empty for real device: ", deviceInfoDynamic.getDataNetworkType() != null && !deviceInfoDynamic.getDataNetworkType().isEmpty());
+            assertTrue("Signal must be more than -1: ", deviceInfoDynamic.getSignalStrength() > -1);
+
         } catch (Exception e) {
             e.printStackTrace();
             assertTrue("Test failed.", false);
@@ -505,7 +521,7 @@ public class EdgeEventsConnectionTest {
             config.locationUpdateConfig = null;
 
             // Cannot use the older API if overriding.
-            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(me.mContext, edmontonLoc)
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(me.mContext, automationFairviewCloudlet)
                     .setCarrierName(findCloudletCarrierOverride)
                     .build();
 
@@ -522,19 +538,19 @@ public class EdgeEventsConnectionTest {
 
             assertSame("FindCloudlet1 did not succeed!", findCloudletReply1.getStatus(), FIND_FOUND);
 
-            me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
+            me.getEdgeEventsConnection().postLocationUpdate(automationHawkinsCloudlet);
             er.setLatch(1);
-            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 3, TimeUnit.MILLISECONDS);
             assertEquals("Wrong number of responses", 1, er.responses.size());
 
-            me.getEdgeEventsConnection().postLocationUpdate(edmontonLoc);
+            me.getEdgeEventsConnection().postLocationUpdate(automationFairviewCloudlet);
             er.setLatch(1);
-            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 3, TimeUnit.MILLISECONDS);
             assertEquals("Wrong number of responses", 2, er.responses.size());
 
-            me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
+            me.getEdgeEventsConnection().postLocationUpdate(automationHawkinsCloudlet);
             er.setLatch(1);
-            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 3, TimeUnit.MILLISECONDS);
             assertEquals("Wrong number of responses", 3, er.responses.size());
 
             me.getEdgeEventsBus().unregister(er);
@@ -593,7 +609,7 @@ public class EdgeEventsConnectionTest {
             config.locationUpdateConfig = null; // No tasks at all, must test under test control.
             config.latencyUpdateConfig = null;
 
-            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, edmontonLoc)
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, automationFairviewCloudlet)
                     .setCarrierName(findCloudletCarrierOverride)
                     .build();
 
@@ -609,22 +625,22 @@ public class EdgeEventsConnectionTest {
 
             assertSame("FindCloudlet1 did not succeed!",  AppClient.FindCloudletReply.FindStatus.FIND_FOUND, findCloudletReply1.getStatus());
 
-            me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
+            me.getEdgeEventsConnection().postLocationUpdate(automationHawkinsCloudlet);
             er.setLatch(1);
-            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 3, TimeUnit.MILLISECONDS);
             me.switchedToNextCloudlet(); // This is just an alias to the blocking version of restartEdgeEvents()/restartEdgeEventsFuture.
 
             assertEquals("Wrong number of responses", 1, er.responses.size());
 
-            me.getEdgeEventsConnection().postLocationUpdate(edmontonLoc);
+            me.getEdgeEventsConnection().postLocationUpdate(automationFairviewCloudlet);
             er.setLatch(1);
-            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 3, TimeUnit.MILLISECONDS);
             me.switchedToNextCloudlet();
             assertEquals("Wrong number of responses", 2, er.responses.size());
 
-            me.getEdgeEventsConnection().postLocationUpdate(montrealLoc);
+            me.getEdgeEventsConnection().postLocationUpdate(automationHawkinsCloudlet);
             er.setLatch(1);
-            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 3, TimeUnit.MILLISECONDS);
             me.switchedToNextCloudlet();
             assertEquals("Wrong number of responses", 3, er.responses.size());
 
