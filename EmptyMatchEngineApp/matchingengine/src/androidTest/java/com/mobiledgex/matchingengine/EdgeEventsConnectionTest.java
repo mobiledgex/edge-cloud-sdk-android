@@ -402,11 +402,82 @@ public class EdgeEventsConnectionTest {
                     opening == me.getEdgeEventsConnection().channelStatus);
             assertFalse("Should throw no exceptions!", restartFuture.isCompletedExceptionally());
 
-
             CompletableFuture<Boolean> stopFuture;
             boolean stopped = (stopFuture = me.stopEdgeEventsFuture()).get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             assertTrue("Should stop successfully. Completion failed!", stopped);
             assertFalse("Should throw no exceptions!", stopFuture.isCompletedExceptionally());
+            Log.i(TAG, "XXX Done stop.");
+        } catch (Exception e) {
+            Log.e(TAG, "Exception: " + e + ", " + e.getLocalizedMessage());
+            e.printStackTrace();
+            fail("Test failed.");
+        } finally {
+            if (me != null) {
+                me.close();
+            }
+        }
+    }
+
+    //@Test
+    public void testEdgeConnectionJustWait() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        AppClient.FindCloudletReply findCloudletReply1;
+
+        MatchingEngine me = null;
+        try {
+            me = new MatchingEngine(context);
+            me.setMatchingEngineLocationAllowed(true);
+            registerClient(me);
+            Location location = automationHamburgCloudlet;
+
+            CountDownLatch latch = new CountDownLatch(2);
+            ConcurrentLinkedQueue<AppClient.ServerEdgeEvent> responses = new ConcurrentLinkedQueue<>();
+            ConcurrentLinkedQueue<FindCloudletEvent> latencyNewCloudletResponses = new ConcurrentLinkedQueue<>();
+            class EventReceiver2 {
+                @Subscribe
+                void HandleEdgeEvent(AppClient.ServerEdgeEvent edgeEvent) {
+                    switch (edgeEvent.getEventType()) {
+                        case EVENT_LATENCY_PROCESSED:
+                            Log.i(TAG, "Received a latency processed response: " + edgeEvent);
+                            responses.add(edgeEvent);
+                            latch.countDown();
+                            break;
+                    }
+                }
+
+                @Subscribe
+                void HandleFindCloudlet(FindCloudletEvent fce) {
+                    latencyNewCloudletResponses.add(fce);
+                }
+            }
+            EventReceiver2 er = new EventReceiver2();
+            me.getEdgeEventsBus().register(er);
+
+            EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
+            // Some of this can spuriously break the DME connection for reconnection.
+            config.latencyUpdateConfig = null; // Disable. This could break the test with spurious newFindCloudlets.
+            config.locationUpdateConfig.maxNumberOfUpdates = 0; // Infinity.
+
+            // Set orgName and location, then override the rest for testing:
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName(findCloudletCarrierOverride)
+                    .build();
+            if (useHostOverride) {
+                findCloudletReply1 = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                findCloudletReply1 = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
+            }
+            assertEquals("Not successful findCloudlet", FIND_FOUND, findCloudletReply1.getStatus());
+
+            // Probably is false, since we didn't wait.
+            CompletableFuture<Boolean> startFuture = me.startEdgeEventsFuture(config);
+
+            // More patient get:
+            boolean value = startFuture.get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            assertTrue("Did not start. Completion failed!", value);
+            assertFalse("Should throw no exceptions!", startFuture.isCompletedExceptionally());
+
+            Thread.sleep(900000);
             Log.i(TAG, "XXX Done stop.");
         } catch (Exception e) {
             Log.e(TAG, "Exception: " + e + ", " + e.getLocalizedMessage());

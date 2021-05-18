@@ -715,6 +715,7 @@ public class EdgeEventsConnection {
 
         LocOuterClass.Loc loc;
         if (location == null) {
+            Log.w(TAG, "Location passed was passed null. Getting location automatically.");
             location = getLocation();
         }
         if (location == null) {
@@ -722,6 +723,7 @@ public class EdgeEventsConnection {
             postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
             return false;
         }
+
         loc = me.androidLocToMeLoc(location);
         if (loc == null) {
             Log.e(TAG, "Location Loc cannot be null!");
@@ -1243,7 +1245,7 @@ public class EdgeEventsConnection {
                         lastConnectionDetails.host,
                         lastConnectionDetails.port,
                         me.getNetworkManager().getTimeout(),
-                        MatchingEngine.FindCloudletMode.PERFORMANCE);
+                        me.mEdgeEventsConfig.latencyTriggerTestMode);
 
                 if (reply != null && reply.equals(me.getLastFindCloudletReply())) {
                     Log.w(TAG, "The old and new cloudlets have the same content. Not posting findCloudlet, but inform app of latency issue encountered.");
@@ -1282,12 +1284,19 @@ public class EdgeEventsConnection {
 
         Log.i(TAG, "Received a new Edge FindCloudlet. Pushing to new FindCloudlet subscribers.");
         if (event.hasNewCloudlet()) {
-            FindCloudletEvent fce = new FindCloudletEvent(
-                    event.getNewCloudlet(),
-                    reason);
+
+            if (event.getNewCloudlet().equals(me.getLastFindCloudletReply())) {
+                Log.w(TAG, "newCloudlet from server is the same a the last one. Nothing to do. Posting error message.");
+                postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                return true;
+            }
 
             // Update MatchingEngine.
             me.setFindCloudletResponse(event.getNewCloudlet());
+
+            FindCloudletEvent fce = new FindCloudletEvent(
+                    event.getNewCloudlet(),
+                    reason);
 
             // Post to new FindCloudletEvent Handler subscribers, if any, on the same EventBus:
             postToFindCloudletEventHandler(fce);
