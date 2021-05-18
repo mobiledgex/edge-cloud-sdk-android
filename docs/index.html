@@ -177,7 +177,8 @@ Setup EdgeEvents</h2>
 <div class="line">            backgroundEdgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;</div>
 <div class="line">            <span class="comment">// This is the internal port, that has not been remapped to a public port for a particular appInst.</span></div>
 <div class="line">            backgroundEdgeEventsConfig.latencyInternalPort = internalPort;</div>
-<div class="line">            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 10; <span class="comment">// Or Long.MAX_VALUE if you want. Default is 0.</span></div>
+<div class="line">            <span class="comment">// Latency config. There is also a very similar location update config.</span></div>
+<div class="line">            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 10; <span class="comment">// Default is 0, which means test forever.</span></div>
 <div class="line">            backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; <span class="comment">// The default is 30.</span></div>
 </div><!-- fragment --><p> Once defined, you can start monitoring with the following. Monitoring starts when the first successful FIND_FOUND FindCloudlet Reply is returned in the next few lines of code. </p><div class="fragment"><div class="line">            me.startEdgeEvents(backgroundEdgeEventsConfig);</div>
 </div><!-- fragment --> <h2><a class="anchor" id="register_and_findcloudlet"></a>

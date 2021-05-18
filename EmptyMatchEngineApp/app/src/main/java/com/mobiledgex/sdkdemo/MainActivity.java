@@ -284,7 +284,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             backgroundEdgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;
             // This is the internal port, that has not been remapped to a public port for a particular appInst.
             backgroundEdgeEventsConfig.latencyInternalPort = internalPort;
-            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 10; // Or Long.MAX_VALUE if you want. Default is 0.
+            // Latency config. There is also a very similar location update config.
+            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 10; // Default is 0, which means test forever.
             backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; // The default is 30.
             //! [edgeevents_subsscriber_setup_example]
 
