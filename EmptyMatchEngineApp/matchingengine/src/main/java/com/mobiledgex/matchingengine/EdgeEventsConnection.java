@@ -1278,10 +1278,6 @@ public class EdgeEventsConnection {
     }
 
     synchronized boolean handleFindCloudletServerPush(AppClient.ServerEdgeEvent event, FindCloudletEventTrigger reason) {
-        if (event.getEventType() != ServerEventType.EVENT_CLOUDLET_UPDATE) {
-            return false;
-        }
-
         Log.i(TAG, "Received a new Edge FindCloudlet. Pushing to new FindCloudlet subscribers.");
         if (event.hasNewCloudlet()) {
 
@@ -1341,7 +1337,7 @@ public class EdgeEventsConnection {
             case HEALTH_CHECK_FAIL_SERVER_FAIL:
             case UNRECOGNIZED: // Presumably if not OK, means to get a new FindCloudlet.
             default:
-                Log.i(TAG, "AppInst Health event. Doing FindCloudlet. Reason: " + event.getHealthCheck());
+                Log.i(TAG, "AppInst Health event. Reason: " + event.getHealthCheck());
                 if (mEdgeEventsConfig.triggers.contains(FindCloudletEventTrigger.AppInstHealthChanged)) {
                     handleFindCloudletServerPush(event, FindCloudletEventTrigger.AppInstHealthChanged);
                 }
@@ -1358,7 +1354,7 @@ public class EdgeEventsConnection {
         switch (event.getMaintenanceState()) {
             // Handle event:
             case UNDER_MAINTENANCE:
-                Log.i(TAG,"Maintenance state changed! Finding new Cloudlet. Reason: " + event.getMaintenanceState());
+                Log.i(TAG,"Maintenance state changed! Reason: " + event.getMaintenanceState());
                 if (mEdgeEventsConfig.triggers.contains(FindCloudletEventTrigger.CloudletMaintenanceStateChanged)) {
                     handleFindCloudletServerPush(event, FindCloudletEventTrigger.CloudletMaintenanceStateChanged);
                 }
@@ -1398,7 +1394,7 @@ public class EdgeEventsConnection {
             case CLOUDLET_STATE_UPGRADE:
             case CLOUDLET_STATE_NEED_SYNC:
             default:
-                Log.i(TAG,"Cloudlet State Change. Doing findCloudlet. Reason: " + event.getCloudletState());
+                Log.i(TAG,"Cloudlet State Change. Reason: " + event.getCloudletState());
                 if (mEdgeEventsConfig.triggers.contains(FindCloudletEventTrigger.CloudletStateChanged)) {
                     handleFindCloudletServerPush(event, FindCloudletEventTrigger.CloudletStateChanged);
                 }
