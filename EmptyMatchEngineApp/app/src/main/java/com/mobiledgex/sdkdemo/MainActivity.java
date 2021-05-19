@@ -297,13 +297,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // This is the internal port, that has not been remapped to a public port for a particular appInst.
             backgroundEdgeEventsConfig.latencyInternalPort = internalPort;
             // Latency config. There is also a very similar location update config.
-            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 10; // Default is 0, which means test forever.
-            backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 30; // The default is 30.
-            backgroundEdgeEventsConfig.latencyThresholdTrigger = 300;
+            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 0; // Default is 0, which means test forever.
+            backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 40; // The default is 30.
+            backgroundEdgeEventsConfig.latencyThresholdTrigger = 50;
 
-            backgroundEdgeEventsConfig.latencyUpdateConfig = null;
-            backgroundEdgeEventsConfig.locationUpdateConfig = null; // app driven.
             //! [edgeevents_subsscriber_setup_example]
+            //backgroundEdgeEventsConfig.latencyUpdateConfig = null;
+            //backgroundEdgeEventsConfig.locationUpdateConfig = null; // app driven.
 
             //! [startedgeevents_example]
             me.startEdgeEvents(backgroundEdgeEventsConfig);

@@ -47,7 +47,7 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
         }
 
         timer.schedule(new LocationTask(cfg),
-                0, // inital delay
+                (long)(cfg.updateIntervalSeconds * 1000), // inital delay
                 (long)(cfg.updateIntervalSeconds * 1000)); // milliseconds interval
     }
 

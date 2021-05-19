@@ -271,8 +271,8 @@ public class EdgeEventsConnectionTest {
             }
             findCloudletReply1 = response1.get();
             assertSame("FindCloudlet1 did not succeed!", findCloudletReply1.getStatus(), FIND_FOUND);
-            latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
-            // This is actually unbounded, as the default is infinity latency Processed resposnes, should you wait long enough for that many to start arriving.
+            latch.await((long)edgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds * 4, TimeUnit.SECONDS);
+            // This is actually unbounded, as the default is infinity latency Processed responses, should you wait long enough for that many to start arriving.
             long expectedNum = 1; // edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates;
             Log.i(TAG, "EdgeEvent :  " + responses.size());
             assertTrue("Must get at LEAST [" + expectedNum + "] responses back from server.", responses.size() >= expectedNum);
@@ -806,6 +806,7 @@ public class EdgeEventsConnectionTest {
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
             config.locationUpdateConfig = null; // Don't want anything.
             config.latencyUpdateConfig.maxNumberOfUpdates = 1; // num <= 0 means "infinity".
+            config.latencyUpdateConfig.updateIntervalSeconds = 5; // also sets initial delay.
             config.latencyThresholdTrigger = 10; // Likely very low for our test servers.
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, edmontonLoc)
@@ -892,6 +893,7 @@ public class EdgeEventsConnectionTest {
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
             config.locationUpdateConfig.maxNumberOfUpdates = 0;
             config.latencyUpdateConfig.maxNumberOfUpdates = 1;
+            config.latencyUpdateConfig.updateIntervalSeconds = 5; // This is also initial delay seconds day.
             config.latencyThresholdTrigger = 300; // Likely very high for our test servers.
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, edmontonLoc)

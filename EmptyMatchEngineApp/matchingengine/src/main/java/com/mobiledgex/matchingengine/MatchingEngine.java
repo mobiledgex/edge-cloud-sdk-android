@@ -354,8 +354,8 @@ public class MatchingEngine {
         if (isShutdown()) {
             return false;
         }
-        mAppInitiatedRunEdgeEvents = false;
         if (mEdgeEventsConnection.channelStatus != EdgeEventsConnection.ChannelStatus.closed) {
+            stopEdgeEvents(); // If any.
             mEdgeEventsConnection.closeInternal(); // Restartable close.
         }
         try {
@@ -408,23 +408,11 @@ public class MatchingEngine {
         // Start, if not already, the edgeEvents connection. It also starts any deferred events.
         // Reconnecting via FindCloudlet, will also call startEdgeEvents.
         if (mEdgeEventsConnection.isShutdown()) {
-            try {
-                mEdgeEventsConnection.open(dmeHost, dmePort, network, edgeEventsConfig);
-            } catch (DmeDnsException e) {
-                Log.e(TAG, "Cannot start edge events. Reason: " + e.getLocalizedMessage());
-                e.printStackTrace();
-                return false;
-            }
+            mEdgeEventsConnection.open(dmeHost, dmePort, network, edgeEventsConfig);
             Log.i(TAG, "EdgeEventsConnection is now started.");
         } else {
-            try {
-                Log.i(TAG, "EdgeEventsConnection will be restarted.");
-                mEdgeEventsConnection.reconnect();
-            } catch (DmeDnsException e) {
-                Log.e(TAG, "Failed to restart connection. DME Host name not found: " + dmeHost);
-                e.printStackTrace();
-                return false;
-            }
+            Log.i(TAG, "EdgeEventsConnection will be restarted.");
+            mEdgeEventsConnection.reconnect();
         }
         return true;
     }
