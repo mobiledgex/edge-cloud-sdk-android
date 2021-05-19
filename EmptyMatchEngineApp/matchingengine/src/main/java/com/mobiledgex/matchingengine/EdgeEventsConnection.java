@@ -23,8 +23,8 @@ import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
@@ -50,9 +50,7 @@ public class EdgeEventsConnection {
     private ManagedChannel channel;
 
     public final long OPEN_TIMEOUT_MS = 10 * 1000;
-    public final long SHUTDOWN_TIMEOUT_MS = 10 * 1000;
     private long openTimeoutMs = OPEN_TIMEOUT_MS;
-    private long shutdownTimeoutMs = SHUTDOWN_TIMEOUT_MS;
 
     public MatchEngineApiGrpc.MatchEngineApiStub asyncStub;
 
@@ -373,24 +371,6 @@ public class EdgeEventsConnection {
     }
 
     /*!
-     * Gets the timeout for closing a connection.
-     */
-    public long getShutdownTimeoutMs() {
-        return shutdownTimeoutMs;
-    }
-
-    /*!
-     * Sets the timeout for connection shutdown.
-     */
-    public void setShutdownTimeoutMs(long shutdownTimeoutMs) {
-        if (shutdownTimeoutMs <= 0) {
-            this.shutdownTimeoutMs = shutdownTimeoutMs;
-        } else {
-            this.shutdownTimeoutMs = shutdownTimeoutMs;
-        }
-    }
-
-    /*!
      * Use this to open a DME connection to nearest DME.
      */
     synchronized void open() throws DmeDnsException {
@@ -485,34 +465,26 @@ public class EdgeEventsConnection {
 
             @Override
             public void onError(Throwable t) {
-                // Shutdown invocation will also land here.
+                channelStatus = ChannelStatus.closed;
                 Log.w(TAG, "Encountered error in DMEConnection: ", t);
                 if (me.getEdgeEventsBus() != null) {
                     me.getEdgeEventsBus().post(EdgeEventsError.uninitializedEdgeEventsConnection);
                 }
-                // Reopen DME connection.
-                try {
-                    closeInternal();
-                    if (channelStatus != ChannelStatus.closing && channelStatus != ChannelStatus.closed) {
-                        reconnect();
-                    }
-                } catch (Exception e) {
-                    Log.e("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
-                }
+                Log.e("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
             }
 
             @Override
             public void onCompleted() {
+                channelStatus = ChannelStatus.closed;
                 Log.i(TAG, "Stream closed.");
 
                 // Reopen DME connection.
                 try {
-                    closeInternal();
-                    if (channelStatus != ChannelStatus.closing && channelStatus != ChannelStatus.closed) {
-                        reconnect();
-                    }
+                    reconnect();
+                }catch (DmeDnsException dde) {
+                    Log.e(TAG, "Message: " + dde.getLocalizedMessage());
                 } catch (Exception e) {
-                    Log.e("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
+                    Log.e(TAG, "Message: " + e.getLocalizedMessage() + " Exception. DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
                 }
             }
         };
@@ -532,10 +504,10 @@ public class EdgeEventsConnection {
                     .mergeDeviceInfoDynamic(me.getDeviceInfoDynamicProto());
 
             // Location based edgeEvents permissions are need:
-            Location loc = getLocation();
+            Location loc = getLastLocationPosted();
             if (loc == null) {
-                Log.w(TAG, "There does not appear to be a current app location service running to get location. Trying to use last location to init EdgeEventsConnection.");
-                loc = getLastLocationPosted();
+                Log.w(TAG, "There does not appear to be a current app location service running to get location. Trying retrieve new location to init EdgeEventsConnection.");
+                loc = getLocation();
             }
             if (loc != null) {
                 send(initDmeEventBuilder.setGpsLocation(me.androidLocToMeLoc(loc)).build());
@@ -556,6 +528,10 @@ public class EdgeEventsConnection {
      * Peer connection clear from onComplete, onError.
      */
     void closeInternal() {
+        if (channelStatus == ChannelStatus.closed) {
+            return;
+        }
+
         Log.d(TAG, "stream closing...");
         channelStatus = ChannelStatus.closing;
         sender = null;
@@ -632,34 +608,17 @@ public class EdgeEventsConnection {
             return false;
         }
 
-        // Submit to execution pool:
-        CompletableFuture future = CompletableFuture.runAsync(() -> {
-            AppClient.ClientEdgeEvent clientEdgeEvent = AppClient.ClientEdgeEvent.newBuilder()
-                    .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_TERMINATE_CONNECTION)
-                    .build();
+        AppClient.ClientEdgeEvent clientEdgeEvent = AppClient.ClientEdgeEvent.newBuilder()
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_TERMINATE_CONNECTION)
+                .build();
 
-            if (sender != null) {
-                sender.onNext(clientEdgeEvent);
-            }
-
-            try {
-                channel.shutdown();
-                Log.d(TAG, "Awaiting termination...");
-                channel.awaitTermination(getShutdownTimeoutMs(), TimeUnit.MILLISECONDS);
-                Log.d(TAG, "Done awaiting.");
-
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }, me.threadpool);
-        try {
-            future.get(getShutdownTimeoutMs(), TimeUnit.MILLISECONDS);
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (TimeoutException e) {
-            e.printStackTrace();
+        if (sender != null) {
+            Log.d(TAG, "Submitting connection termination message to server.");
+            CompletableFuture.runAsync(
+                    () -> {
+                        sender.onNext(clientEdgeEvent);
+                    }, me.threadpool);
+            Log.d(TAG, "Posted!");
         }
         receiver = null;
         sender = null;
