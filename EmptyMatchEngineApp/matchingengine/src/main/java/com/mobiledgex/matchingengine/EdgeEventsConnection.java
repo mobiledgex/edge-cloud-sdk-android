@@ -5,6 +5,7 @@ import android.net.Network;
 import android.os.NetworkOnMainThreadException;
 import android.util.Log;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.edgeeventhandlers.EdgeEventsIntervalHandler;
@@ -25,6 +26,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
@@ -60,7 +62,6 @@ public class EdgeEventsConnection {
     enum ChannelStatus {
         open,
         opening,
-        reconnecting,
         closing,
         closed
     }
@@ -335,7 +336,6 @@ public class EdgeEventsConnection {
         }
         mEdgeEventsConfig = eeConfig;
         Log.d(TAG, "Reconnecting...");
-        channelStatus = ChannelStatus.reconnecting;
         stopEdgeEvents();
         closeInternal();
 
@@ -383,14 +383,14 @@ public class EdgeEventsConnection {
     }
 
     synchronized void open(String host, int port, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
+        Log.d(TAG, "Current channel state: " + channelStatus);
         if (me.isShutdown()) {
             Log.e(TAG, "MatchingEngine is closed. Not opening.");
             return;
         }
         eventBusRegister();
-        if (channelStatus != ChannelStatus.reconnecting) {
-            channelStatus = ChannelStatus.opening;
-        }
+        channelStatus = ChannelStatus.opening;
+
 
         // If there's a no EventBus handler (Deadhandler is called when there's no subscribers)
         // the default handler takes over for future messages, and puts warnings into the logs via
@@ -481,7 +481,7 @@ public class EdgeEventsConnection {
                 // Reopen DME connection.
                 try {
                     reconnect();
-                }catch (DmeDnsException dde) {
+                } catch (DmeDnsException dde) {
                     Log.e(TAG, "Message: " + dde.getLocalizedMessage());
                 } catch (Exception e) {
                     Log.e(TAG, "Message: " + e.getLocalizedMessage() + " Exception. DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
@@ -504,10 +504,10 @@ public class EdgeEventsConnection {
                     .mergeDeviceInfoDynamic(me.getDeviceInfoDynamicProto());
 
             // Location based edgeEvents permissions are need:
-            Location loc = getLastLocationPosted();
+            Location loc = getLocation();
             if (loc == null) {
-                Log.w(TAG, "There does not appear to be a current app location service running to get location. Trying retrieve new location to init EdgeEventsConnection.");
-                loc = getLocation();
+                Log.w(TAG, "There does not appear to be a current app location service running to get location. Trying retrieve previous location to init EdgeEventsConnection.");
+                loc = getLastLocationPosted();
             }
             if (loc != null) {
                 send(initDmeEventBuilder.setGpsLocation(me.androidLocToMeLoc(loc)).build());
@@ -534,8 +534,6 @@ public class EdgeEventsConnection {
 
         Log.d(TAG, "stream closing...");
         channelStatus = ChannelStatus.closing;
-        sender = null;
-        receiver = null;
         if (channel != null && !isShutdown()) {
             sendTerminate();
         }
@@ -562,7 +560,11 @@ public class EdgeEventsConnection {
     }
 
     public boolean isShutdown() {
-        if (channel == null || channelStatus == ChannelStatus.closed) {
+        if (channel == null) {
+            return true;
+        }
+
+        if (channelStatus == ChannelStatus.closed) {
             return true;
         }
 
@@ -604,6 +606,7 @@ public class EdgeEventsConnection {
     }
 
     boolean sendTerminate() {
+        channelStatus = ChannelStatus.closed;
         if (isShutdown() || me.isShutdown())  {
             return false;
         }
@@ -614,14 +617,29 @@ public class EdgeEventsConnection {
 
         if (sender != null) {
             Log.d(TAG, "Submitting connection termination message to server.");
-            CompletableFuture.runAsync(
-                    () -> {
-                        sender.onNext(clientEdgeEvent);
-                    }, me.threadpool);
+            try {
+                CompletableFuture.runAsync(
+                        () -> {
+                            sender.onNext(clientEdgeEvent);
+                            sender = null;
+                        }, me.threadpool).get();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             Log.d(TAG, "Posted!");
         }
         receiver = null;
         sender = null;
+        channel.shutdown();
+        try {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            channel.awaitTermination(10, TimeUnit.SECONDS);
+            Log.e(TAG, "Time to terminate: " + stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         channel = null;
         Log.d(TAG, "Submitted termination.");
 
@@ -1262,7 +1280,6 @@ public class EdgeEventsConnection {
             }
             else {
                 try {
-                    channelStatus = ChannelStatus.reconnecting;
                     closeInternal();
                     reconnect();
                 } catch (DmeDnsException dde) {

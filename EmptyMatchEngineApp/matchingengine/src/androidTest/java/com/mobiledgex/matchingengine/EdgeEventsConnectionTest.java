@@ -68,7 +68,7 @@ import static org.junit.Assert.fail;
 
 public class EdgeEventsConnectionTest {
     public static final String TAG = "EdgeEventsConnectionTest";
-    public static final long GRPC_TIMEOUT_MS = 25000;
+    public static final long GRPC_TIMEOUT_MS = 15000;
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
