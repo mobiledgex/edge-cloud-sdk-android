@@ -355,6 +355,9 @@ public class MatchingEngine {
             return false;
         }
         mAppInitiatedRunEdgeEvents = false;
+        if (mEdgeEventsConnection.channelStatus != EdgeEventsConnection.ChannelStatus.closed) {
+            mEdgeEventsConnection.closeInternal(); // Restartable close.
+        }
         try {
             return startEdgeEvents(host, port, network, edgeEventsConfig);
         } catch (DmeDnsException dde) {
