@@ -1053,6 +1053,10 @@ public class EdgeEventsConnection {
             }
             int internalPort = mEdgeEventsConfig.latencyInternalPort;
             Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(me.mFindCloudletReply, mEdgeEventsConfig.latencyInternalPort);
+            if (appPort == null) {
+                Log.e(TAG, "The latencyInternalPort [" + mEdgeEventsConfig.latencyInternalPort + "] was not found. EdgeEvents cannot start.");
+                return false;
+            }
             String host = me.getAppConnectionManager().getHost(me.mFindCloudletReply, appPort);
 
             int publicPort = me.getAppConnectionManager().getPublicPort(me.mFindCloudletReply, internalPort);
