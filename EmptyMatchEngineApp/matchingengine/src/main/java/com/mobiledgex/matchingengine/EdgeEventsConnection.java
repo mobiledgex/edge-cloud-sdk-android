@@ -5,6 +5,7 @@ import android.net.Network;
 import android.os.NetworkOnMainThreadException;
 import android.util.Log;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.eventbus.DeadEvent;
 import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.edgeeventhandlers.EdgeEventsIntervalHandler;
@@ -23,8 +24,9 @@ import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
@@ -50,9 +52,7 @@ public class EdgeEventsConnection {
     private ManagedChannel channel;
 
     public final long OPEN_TIMEOUT_MS = 10 * 1000;
-    public final long SHUTDOWN_TIMEOUT_MS = 10 * 1000;
     private long openTimeoutMs = OPEN_TIMEOUT_MS;
-    private long shutdownTimeoutMs = SHUTDOWN_TIMEOUT_MS;
 
     public MatchEngineApiGrpc.MatchEngineApiStub asyncStub;
 
@@ -62,7 +62,6 @@ public class EdgeEventsConnection {
     enum ChannelStatus {
         open,
         opening,
-        reconnecting,
         closing,
         closed
     }
@@ -157,10 +156,7 @@ public class EdgeEventsConnection {
     /*!
      * Errors on EdgeEvents
      */
-    public interface EdgeEventsErrorMessage {
-        String message = null;
-    }
-    public enum EdgeEventsError implements EdgeEventsErrorMessage {
+    public enum EdgeEventsError {
         missingSessionCookie,
         missingEdgeEventsCookie,
 
@@ -192,8 +188,7 @@ public class EdgeEventsConnection {
 
         eventTriggeredButCurrentCloudletIsBest,
 
-        missingDmeDnsEntry,
-        eventError // Extended error. See message field.
+        missingDmeDnsEntry
     }
 
     /*!
@@ -284,7 +279,9 @@ public class EdgeEventsConnection {
         return mLastLocationPosted;
     }
     synchronized public void setLastLocationPosted(Location mLastLocationPosted) {
-        this.mLastLocationPosted = mLastLocationPosted;
+        if (mLastLocationPosted != null) {
+            this.mLastLocationPosted = mLastLocationPosted;
+        }
     }
 
 
@@ -339,7 +336,6 @@ public class EdgeEventsConnection {
         }
         mEdgeEventsConfig = eeConfig;
         Log.d(TAG, "Reconnecting...");
-        channelStatus = ChannelStatus.reconnecting;
         stopEdgeEvents();
         closeInternal();
 
@@ -375,24 +371,6 @@ public class EdgeEventsConnection {
     }
 
     /*!
-     * Gets the timeout for closing a connection.
-     */
-    public long getShutdownTimeoutMs() {
-        return shutdownTimeoutMs;
-    }
-
-    /*!
-     * Sets the timeout for connection shutdown.
-     */
-    public void setShutdownTimeoutMs(long shutdownTimeoutMs) {
-        if (shutdownTimeoutMs <= 0) {
-            this.shutdownTimeoutMs = shutdownTimeoutMs;
-        } else {
-            this.shutdownTimeoutMs = shutdownTimeoutMs;
-        }
-    }
-
-    /*!
      * Use this to open a DME connection to nearest DME.
      */
     synchronized void open() throws DmeDnsException {
@@ -405,14 +383,14 @@ public class EdgeEventsConnection {
     }
 
     synchronized void open(String host, int port, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
+        Log.d(TAG, "Current channel state: " + channelStatus);
         if (me.isShutdown()) {
             Log.e(TAG, "MatchingEngine is closed. Not opening.");
             return;
         }
         eventBusRegister();
-        if (channelStatus != ChannelStatus.reconnecting) {
-            channelStatus = ChannelStatus.opening;
-        }
+        channelStatus = ChannelStatus.opening;
+
 
         // If there's a no EventBus handler (Deadhandler is called when there's no subscribers)
         // the default handler takes over for future messages, and puts warnings into the logs via
@@ -487,34 +465,26 @@ public class EdgeEventsConnection {
 
             @Override
             public void onError(Throwable t) {
-                // Shutdown invocation will also land here.
+                channelStatus = ChannelStatus.closed;
                 Log.w(TAG, "Encountered error in DMEConnection: ", t);
                 if (me.getEdgeEventsBus() != null) {
                     me.getEdgeEventsBus().post(EdgeEventsError.uninitializedEdgeEventsConnection);
                 }
-                // Reopen DME connection.
-                try {
-                    closeInternal();
-                    if (channelStatus != ChannelStatus.closing && channelStatus != ChannelStatus.closed) {
-                        reconnect();
-                    }
-                } catch (Exception e) {
-                    Log.e("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
-                }
+                Log.e("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
             }
 
             @Override
             public void onCompleted() {
+                channelStatus = ChannelStatus.closed;
                 Log.i(TAG, "Stream closed.");
 
                 // Reopen DME connection.
                 try {
-                    closeInternal();
-                    if (channelStatus != ChannelStatus.closing && channelStatus != ChannelStatus.closed) {
-                        reconnect();
-                    }
+                    reconnect();
+                } catch (DmeDnsException dde) {
+                    Log.e(TAG, "Message: " + dde.getLocalizedMessage());
                 } catch (Exception e) {
-                    Log.e("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
+                    Log.e(TAG, "Message: " + e.getLocalizedMessage() + " Exception. DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
                 }
             }
         };
@@ -522,22 +492,35 @@ public class EdgeEventsConnection {
         // No deadline, since it's streaming:
         sender = asyncStub.streamEdgeEvent(receiver);
 
-        // Client identifies itself with an Init message to DME EdgeEvents Connection upon opening the connection.
         String sessionCookie = me.mSessionCookie;
         String edgeEventsCookie = me.mFindCloudletReply != null ?me.mFindCloudletReply.getEdgeEventsCookie() : null;
+
         if (sessionCookie != null && edgeEventsCookie != null) {
-            AppClient.ClientEdgeEvent initDmeEvent = AppClient.ClientEdgeEvent.newBuilder()
+            AppClient.ClientEdgeEvent.Builder initDmeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
                     .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
                     .setSessionCookie(me.mSessionCookie)
                     .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
-                    .setGpsLocation(me.androidLocToMeLoc(getLastLocationPosted()))
                     .mergeDeviceInfoStatic(me.getDeviceInfoStaticProto())
-                    .mergeDeviceInfoDynamic(me.getDeviceInfoDynamicProto())
-                    .build();
-            send(initDmeEvent);
+                    .mergeDeviceInfoDynamic(me.getDeviceInfoDynamicProto());
+
+            // Location based edgeEvents permissions are need:
+            Location loc = getLocation();
+            if (loc == null) {
+                Log.w(TAG, "There does not appear to be a current app location service running to get location. Trying retrieve previous location to init EdgeEventsConnection.");
+                loc = getLastLocationPosted();
+            }
+            if (loc != null) {
+                send(initDmeEventBuilder.setGpsLocation(me.androidLocToMeLoc(loc)).build());
+                setLastLocationPosted(loc);
+            } else {
+                Log.w(TAG, "Location missing and cannot be retrieved. Cannot initialize EdgeEventsConnection.");
+                postErrorToEventHandler(EdgeEventsError.uninitializedEdgeEventsConnection);
+                closeInternal();
+            }
         } else {
             Log.e(TAG, "Missing info for INIT. Not opening.");
-            channelStatus = ChannelStatus.closed;
+            postErrorToEventHandler(EdgeEventsError.uninitializedEdgeEventsConnection);
+            closeInternal();
         }
     }
 
@@ -545,10 +528,12 @@ public class EdgeEventsConnection {
      * Peer connection clear from onComplete, onError.
      */
     void closeInternal() {
+        if (channelStatus == ChannelStatus.closed) {
+            return;
+        }
+
         Log.d(TAG, "stream closing...");
         channelStatus = ChannelStatus.closing;
-        sender = null;
-        receiver = null;
         if (channel != null && !isShutdown()) {
             sendTerminate();
         }
@@ -575,7 +560,11 @@ public class EdgeEventsConnection {
     }
 
     public boolean isShutdown() {
-        if (channel == null || channelStatus == ChannelStatus.closed) {
+        if (channel == null) {
+            return true;
+        }
+
+        if (channelStatus == ChannelStatus.closed) {
             return true;
         }
 
@@ -617,41 +606,40 @@ public class EdgeEventsConnection {
     }
 
     boolean sendTerminate() {
+        channelStatus = ChannelStatus.closed;
         if (isShutdown() || me.isShutdown())  {
             return false;
         }
 
-        // Submit to execution pool:
-        CompletableFuture future = CompletableFuture.runAsync(() -> {
-            AppClient.ClientEdgeEvent clientEdgeEvent = AppClient.ClientEdgeEvent.newBuilder()
-                    .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_TERMINATE_CONNECTION)
-                    .build();
+        AppClient.ClientEdgeEvent clientEdgeEvent = AppClient.ClientEdgeEvent.newBuilder()
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_TERMINATE_CONNECTION)
+                .build();
 
-            if (sender != null) {
-                sender.onNext(clientEdgeEvent);
-            }
-
+        if (sender != null) {
+            Log.d(TAG, "Submitting connection termination message to server.");
             try {
-                channel.shutdown();
-                Log.d(TAG, "Awaiting termination...");
-                channel.awaitTermination(getShutdownTimeoutMs(), TimeUnit.MILLISECONDS);
-                Log.d(TAG, "Done awaiting.");
-
+                CompletableFuture.runAsync(
+                        () -> {
+                            sender.onNext(clientEdgeEvent);
+                            sender = null;
+                        }, me.threadpool).get();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        }, me.threadpool);
-        try {
-            future.get(getShutdownTimeoutMs(), TimeUnit.MILLISECONDS);
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (TimeoutException e) {
-            e.printStackTrace();
+            Log.d(TAG, "Posted!");
         }
         receiver = null;
         sender = null;
+        channel.shutdown();
+        try {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            channel.awaitTermination(10, TimeUnit.SECONDS);
+            Log.e(TAG, "Time to terminate: " + stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         channel = null;
         Log.d(TAG, "Submitted termination.");
 
@@ -704,6 +692,7 @@ public class EdgeEventsConnection {
 
         LocOuterClass.Loc loc;
         if (location == null) {
+            Log.w(TAG, "Location passed was passed null. Getting location automatically.");
             location = getLocation();
         }
         if (location == null) {
@@ -711,6 +700,7 @@ public class EdgeEventsConnection {
             postErrorToEventHandler(EdgeEventsError.unableToGetLastLocation);
             return false;
         }
+
         loc = me.androidLocToMeLoc(location);
         if (loc == null) {
             Log.e(TAG, "Location Loc cannot be null!");
@@ -1063,6 +1053,10 @@ public class EdgeEventsConnection {
             }
             int internalPort = mEdgeEventsConfig.latencyInternalPort;
             Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(me.mFindCloudletReply, mEdgeEventsConfig.latencyInternalPort);
+            if (appPort == null) {
+                Log.e(TAG, "The latencyInternalPort [" + mEdgeEventsConfig.latencyInternalPort + "] was not found. EdgeEvents cannot start.");
+                return false;
+            }
             String host = me.getAppConnectionManager().getHost(me.mFindCloudletReply, appPort);
 
             int publicPort = me.getAppConnectionManager().getPublicPort(me.mFindCloudletReply, internalPort);
@@ -1227,25 +1221,34 @@ public class EdgeEventsConnection {
                     .build();
 
             try {
+                // If the latency trigger spec is not met, no auto-migrate happens.
                 AppClient.FindCloudletReply reply = me.findCloudlet(
                         request,
                         lastConnectionDetails.host,
                         lastConnectionDetails.port,
                         me.getNetworkManager().getTimeout(),
-                        MatchingEngine.FindCloudletMode.PERFORMANCE);
+                        me.mEdgeEventsConfig.latencyTriggerTestMode,
+                        (long)me.mEdgeEventsConfig.latencyThresholdTrigger);
 
-                if (reply != null) {
-                    FindCloudletEvent event = new FindCloudletEvent(reply, reason);
+                if (reply == null || reply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_NOTFOUND) {
+                    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                    return false;
+                }
 
-                    // TODO: Check if this is a new FindCloudlet before posting.
-                    postToFindCloudletEventHandler(event);
-                    if (me.isAutoMigrateEdgeEventsConnection()) {
-                        reconnect();
-                    }
+                if (reply.equals(me.getLastFindCloudletReply())) {
+                    Log.w(TAG, "The old and new cloudlets have the same content. Not posting findCloudlet, but inform app of latency issue encountered.");
+                    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
                     return true;
                 }
-                // Caller decides what happens on failure.
 
+                FindCloudletEvent event = new FindCloudletEvent(reply, reason);
+
+                postToFindCloudletEventHandler(event);
+                if (me.isAutoMigrateEdgeEventsConnection()) {
+                    reconnect();
+                }
+                return true;
+                // Caller decides what happens on failure.
             } catch (DmeDnsException e) {
                 Log.d(TAG, "DME DNS Exception doing auto doClientFindCloudlet(): " + e.getMessage());
             } catch (InterruptedException e) {
@@ -1259,18 +1262,21 @@ public class EdgeEventsConnection {
     }
 
     synchronized boolean handleFindCloudletServerPush(AppClient.ServerEdgeEvent event, FindCloudletEventTrigger reason) {
-        if (event.getEventType() != ServerEventType.EVENT_CLOUDLET_UPDATE) {
-            return false;
-        }
-
         Log.i(TAG, "Received a new Edge FindCloudlet. Pushing to new FindCloudlet subscribers.");
         if (event.hasNewCloudlet()) {
-            FindCloudletEvent fce = new FindCloudletEvent(
-                    event.getNewCloudlet(),
-                    reason);
+
+            if (event.getNewCloudlet().equals(me.getLastFindCloudletReply())) {
+                Log.w(TAG, "newCloudlet from server is the same a the last one. Nothing to do. Posting error message.");
+                postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                return true;
+            }
 
             // Update MatchingEngine.
             me.setFindCloudletResponse(event.getNewCloudlet());
+
+            FindCloudletEvent fce = new FindCloudletEvent(
+                    event.getNewCloudlet(),
+                    reason);
 
             // Post to new FindCloudletEvent Handler subscribers, if any, on the same EventBus:
             postToFindCloudletEventHandler(fce);
@@ -1281,7 +1287,6 @@ public class EdgeEventsConnection {
             }
             else {
                 try {
-                    channelStatus = ChannelStatus.reconnecting;
                     closeInternal();
                     reconnect();
                 } catch (DmeDnsException dde) {
@@ -1315,7 +1320,7 @@ public class EdgeEventsConnection {
             case HEALTH_CHECK_FAIL_SERVER_FAIL:
             case UNRECOGNIZED: // Presumably if not OK, means to get a new FindCloudlet.
             default:
-                Log.i(TAG, "AppInst Health event. Doing FindCloudlet. Reason: " + event.getHealthCheck());
+                Log.i(TAG, "AppInst Health event. Reason: " + event.getHealthCheck());
                 if (mEdgeEventsConfig.triggers.contains(FindCloudletEventTrigger.AppInstHealthChanged)) {
                     handleFindCloudletServerPush(event, FindCloudletEventTrigger.AppInstHealthChanged);
                 }
@@ -1332,7 +1337,7 @@ public class EdgeEventsConnection {
         switch (event.getMaintenanceState()) {
             // Handle event:
             case UNDER_MAINTENANCE:
-                Log.i(TAG,"Maintenance state changed! Finding new Cloudlet. Reason: " + event.getMaintenanceState());
+                Log.i(TAG,"Maintenance state changed! Reason: " + event.getMaintenanceState());
                 if (mEdgeEventsConfig.triggers.contains(FindCloudletEventTrigger.CloudletMaintenanceStateChanged)) {
                     handleFindCloudletServerPush(event, FindCloudletEventTrigger.CloudletMaintenanceStateChanged);
                 }
@@ -1372,7 +1377,7 @@ public class EdgeEventsConnection {
             case CLOUDLET_STATE_UPGRADE:
             case CLOUDLET_STATE_NEED_SYNC:
             default:
-                Log.i(TAG,"Cloudlet State Change. Doing findCloudlet. Reason: " + event.getCloudletState());
+                Log.i(TAG,"Cloudlet State Change. Reason: " + event.getCloudletState());
                 if (mEdgeEventsConfig.triggers.contains(FindCloudletEventTrigger.CloudletStateChanged)) {
                     handleFindCloudletServerPush(event, FindCloudletEventTrigger.CloudletStateChanged);
                 }
@@ -1422,6 +1427,10 @@ public class EdgeEventsConnection {
                     }
                     // Test with default network in use:
                     Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(me.mFindCloudletReply, mEdgeEventsConfig.latencyInternalPort);
+                    if (appPort == null) {
+                        postErrorToEventHandler(EdgeEventsError.portDoesNotExist);
+                        return false;
+                    }
                     String host = appPort.getFqdnPrefix() + me.mFindCloudletReply.getFqdn();
 
                     Site site = new Site(me.mContext, NetTest.TestType.CONNECT, DEFAULT_NUM_SAMPLES, host, publicPort);

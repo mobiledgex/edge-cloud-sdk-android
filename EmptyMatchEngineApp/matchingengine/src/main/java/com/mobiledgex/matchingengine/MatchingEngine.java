@@ -354,7 +354,10 @@ public class MatchingEngine {
         if (isShutdown()) {
             return false;
         }
-        mAppInitiatedRunEdgeEvents = false;
+        if (mEdgeEventsConnection.channelStatus != EdgeEventsConnection.ChannelStatus.closed) {
+            stopEdgeEvents(); // If any.
+            mEdgeEventsConnection.closeInternal(); // Restartable close.
+        }
         try {
             return startEdgeEvents(host, port, network, edgeEventsConfig);
         } catch (DmeDnsException dde) {
@@ -405,23 +408,11 @@ public class MatchingEngine {
         // Start, if not already, the edgeEvents connection. It also starts any deferred events.
         // Reconnecting via FindCloudlet, will also call startEdgeEvents.
         if (mEdgeEventsConnection.isShutdown()) {
-            try {
-                mEdgeEventsConnection.open(dmeHost, dmePort, network, edgeEventsConfig);
-            } catch (DmeDnsException e) {
-                Log.e(TAG, "Cannot start edge events. Reason: " + e.getLocalizedMessage());
-                e.printStackTrace();
-                return false;
-            }
+            mEdgeEventsConnection.open(dmeHost, dmePort, network, edgeEventsConfig);
             Log.i(TAG, "EdgeEventsConnection is now started.");
         } else {
-            try {
-                Log.i(TAG, "EdgeEventsConnection will be restarted.");
-                mEdgeEventsConnection.reconnect();
-            } catch (DmeDnsException e) {
-                Log.e(TAG, "Failed to restart connection. DME Host name not found: " + dmeHost);
-                e.printStackTrace();
-                return false;
-            }
+            Log.i(TAG, "EdgeEventsConnection will be restarted.");
+            mEdgeEventsConnection.reconnect();
         }
         return true;
     }
@@ -1323,7 +1314,6 @@ public class MatchingEngine {
 
         Loc aLoc = androidLocToMeLoc(location);
         if (mEdgeEventsConnection != null) {
-            // For INIT...to repost to DME.
             mEdgeEventsConnection.setLastLocationPosted(location);
         }
 
@@ -1545,7 +1535,7 @@ public class MatchingEngine {
     public FindCloudletReply findCloudlet(FindCloudletRequest request,
                                           long timeoutInMilliseconds)
             throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
-        return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
+        return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, FindCloudletMode.PROXIMITY, -1);
     }
 
     /*!
@@ -1561,11 +1551,11 @@ public class MatchingEngine {
      * \exception ExecutionException
      * \ingroup functions_dmeapis
    */
-  public FindCloudletReply findCloudlet(FindCloudletRequest request,
-                                        long timeoutInMilliseconds, FindCloudletMode mode)
-          throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
-      return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, mode);
-  }
+    public FindCloudletReply findCloudlet(FindCloudletRequest request,
+                                          long timeoutInMilliseconds, FindCloudletMode mode)
+            throws DmeDnsException, StatusRuntimeException, InterruptedException, ExecutionException {
+        return findCloudlet(request, generateDmeHostAddress(), getPort(), timeoutInMilliseconds, mode, -1);
+    }
 
     /*!
    * findCloudlet finds the closest cloudlet instance as per request.
@@ -1587,7 +1577,7 @@ public class MatchingEngine {
       FindCloudlet findCloudlet = new FindCloudlet(this);
 
       // This also needs some info for MEL.
-      findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
+      findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PROXIMITY, -1);
 
       Log.i(TAG, "DME host is: " + host);
       return findCloudlet.call();
@@ -1613,7 +1603,35 @@ public class MatchingEngine {
         FindCloudlet findCloudlet = new FindCloudlet(this);
 
         // This also needs some info for MEL.
-        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, mode);
+        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, mode, -1);
+
+        Log.i(TAG, "DME host is: " + host);
+        return findCloudlet.call();
+    }
+
+    /*!
+     * findCloudlet finds the closest cloudlet instance as per request.
+     * FindCloudlet overload with hardcoded DME host and port. Only use for testing.
+     * \param request (FindCloudletRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \param mode (FindCloudletMode): to use to find edge cloudlets.
+     * \param maxLatencyMs maximum latency in milliseconds. Do not auto-migrate if current performance mode is faster.
+     * \return cloudlet URIs
+     * \exception StatusRuntimeException
+     * \ingroup functions_dmeapis
+     */
+    FindCloudletReply findCloudlet(FindCloudletRequest request,
+                                          String host, int port,
+                                          long timeoutInMilliseconds,
+                                          FindCloudletMode mode,
+                                          long maxLatencyMs)
+            throws StatusRuntimeException, InterruptedException, ExecutionException {
+        FindCloudlet findCloudlet = new FindCloudlet(this);
+
+        // This also needs some info for MEL.
+        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, mode, maxLatencyMs);
 
         Log.i(TAG, "DME host is: " + host);
         return findCloudlet.call();
@@ -1660,7 +1678,7 @@ public class MatchingEngine {
                                                         String host, int port,
                                                         long timeoutInMilliseconds) {
       FindCloudlet findCloudlet = new FindCloudlet(this);
-      findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PROXIMITY);
+      findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, FindCloudletMode.PROXIMITY, -1);
       return submit(findCloudlet);
     }
 
@@ -1679,7 +1697,7 @@ public class MatchingEngine {
                                                         long timeoutInMilliseconds,
                                                         FindCloudletMode mode) {
         FindCloudlet findCloudlet = new FindCloudlet(this);
-        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, mode);
+        findCloudlet.setRequest(request, host, port, timeoutInMilliseconds, mode, -1);
         return submit(findCloudlet);
     }
 
@@ -2155,7 +2173,7 @@ public class MatchingEngine {
                     useMode = FindCloudletMode.PROXIMITY;
                 }
                 FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest,
-                        host, port, me.getNetworkManager().getTimeout(), useMode);
+                        host, port, me.getNetworkManager().getTimeout(), useMode, -1);
 
                 return findCloudletReply;
             }

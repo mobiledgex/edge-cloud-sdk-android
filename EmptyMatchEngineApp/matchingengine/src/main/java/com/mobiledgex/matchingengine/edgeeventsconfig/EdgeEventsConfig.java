@@ -17,6 +17,8 @@
 
 package com.mobiledgex.matchingengine.edgeeventsconfig;
 
+import com.mobiledgex.matchingengine.FindCloudlet;
+import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 
 import java.util.EnumSet;
@@ -34,6 +36,7 @@ public class EdgeEventsConfig {
 
     // Configure how to respond to events
     public double latencyThresholdTrigger; // latency threshold in ms when new FindCloudlet is triggered
+    public MatchingEngine.FindCloudletMode latencyTriggerTestMode = MatchingEngine.FindCloudletMode.PERFORMANCE;
     public EnumSet<FindCloudletEventTrigger> triggers;// events that application wants a new find cloudlet for
 
     // Defaults:

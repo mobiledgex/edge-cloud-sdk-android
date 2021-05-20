@@ -28,21 +28,28 @@ var group__classes =
     ] ],
     [ "EdgeEventsConnection", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html", [
       [ "EdgeEventsError", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html", [
-        [ "edgeEventsConnectionError", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a224610e81b679d643de6516c4c76ec02", null ],
+        [ "connectionAlreadyClosed", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#ace1109ccdc5028bf5b116a942ecf8889", null ],
         [ "emptyAppPorts", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a846e8a455dbd44e0b079b69eb8fb2cb9", null ],
         [ "eventTriggeredButCurrentCloudletIsBest", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#af40bd3d4266bc6bf39706633ddb5f8b1", null ],
         [ "failedToClose", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a7daada3b113f9cae1ba231f0ad12b377", null ],
+        [ "gpsLocationDidNotChange", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#afe31d97d7d81c8d5ede1c7ccf8d14aed", null ],
         [ "hasNotDoneFindCloudlet", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a15260443d630700dc614c10c4915efa4", null ],
+        [ "invalidEdgeEventsSetup", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a694b683aa65a3ee612c97ea8b68aa2da", null ],
+        [ "invalidLatencyThreshold", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#afcf86d635ae85f9bae6546d1fe2f438d", null ],
         [ "invalidUpdateInterval", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#adfedfb63d640e4406ddaf82f482b83ef", null ],
         [ "missingDmeDnsEntry", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#aee3513f06d355bef70d302b7f4ef48fe", null ],
         [ "missingEdgeEventsConfig", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a34d474d3f85ef45b0ff7cbe3ccd8c150", null ],
         [ "missingEdgeEventsCookie", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#abd4f806d083ebd2abfbb449b0bc170ee", null ],
         [ "missingGetLastLocationFunction", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a25ccc9a383245f2d08405615f6e16461", null ],
+        [ "missingLatencyThreshold", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a80b1f1210ba0715b0eaae7c115a4de0e", null ],
+        [ "missingLatencyUpdateConfig", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a416982e3990f00b51dc2be6a0c2aad90", null ],
+        [ "missingLocationUpdateConfig", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a240b7cc5b2c0364a65f0d71293139b16", null ],
         [ "missingNewFindCloudletHandler", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a8e29343231ea83d0eb5114c90de51f3b", null ],
         [ "missingServerEventsHandler", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#aee9b1b4327457b57c4bca3eec7ad17ab", null ],
         [ "missingSessionCookie", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#aa5b3a82d657b8539996d2a1ad04a3056", null ],
         [ "missingUpdateInterval", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#abfa69660a307d21e263219d12f7cee70", null ],
         [ "portDoesNotExist", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#ad2007f9790a780c0bdfc35908441cb72", null ],
+        [ "unableToCleanup", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a71fa1bc9664f6826888fa62959cb3362", null ],
         [ "unableToGetLastLocation", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a760cfa08552b695757655092576109ba", null ],
         [ "uninitializedEdgeEventsConnection", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection_1_1_edge_events_error.html#a9b2df4c007d8775d97d1975b2a5cbd07", null ]
       ] ],
@@ -53,6 +60,7 @@ var group__classes =
       [ "addEdgeEventsIntervalTask", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a4276bc805ff6b14d780a6016f38336a2", null ],
       [ "getLastLocationPosted", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a49c0a44ed162673c7a2b3dac9f8aeb7f", null ],
       [ "getLocation", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a6ebddde8cebf412ec0449ca035146996", null ],
+      [ "getOpenTimeoutMs", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#ade45ea0e43d441cb2634179049334c0f", null ],
       [ "isShutdown", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a24744a69d3f551ac5957363bc1f7a435", null ],
       [ "postLatencyUpdate", "group__functions__edge__events__api.html#ga3ca4aed2892998633663476b538af3f0", null ],
       [ "postLocationUpdate", "group__functions__edge__events__api.html#gafba5e6b5c12c52332b7b54031c3d0688", null ],
@@ -61,11 +69,13 @@ var group__classes =
       [ "runEdgeEvents", "group__functions__edge__events__api.html#ga9e5c720f356679cfd006c21ea496b8f5", null ],
       [ "send", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a8539dbaea395821ecdba82b624d20c89", null ],
       [ "setLastLocationPosted", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a23800605e77ed00991344def7760e0bd", null ],
+      [ "setOpenTimeout", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#abf0f5e531657fe7339b4313035062b20", null ],
       [ "stopEdgeEvents", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a853b4833bcd88ba2785745add65fe40b", null ],
       [ "testConnectAndPostLatencyUpdate", "group__functions__edge__events__api.html#ga2880e4df0bf19fa835b7a7cd3ed39709", null ],
       [ "testConnectAndPostLatencyUpdate", "group__functions__edge__events__api.html#ga26438f5604f55f8ad8e7fbe01e3a18a4", null ],
       [ "testPingAndPostLatencyUpdate", "group__functions__edge__events__api.html#ga17d2336c6019bbbd58ff94b5c6e715af", null ],
-      [ "asyncStub", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a3c94d0cf5c8b8fd4721332fcaa86b15c", null ]
+      [ "asyncStub", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a3c94d0cf5c8b8fd4721332fcaa86b15c", null ],
+      [ "OPEN_TIMEOUT_MS", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#afa60cafa4c01a4161cd2c3b319fcdaf2", null ]
     ] ],
     [ "MatchingEngine", "classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html", [
       [ "FindCloudletMode", "enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html", [

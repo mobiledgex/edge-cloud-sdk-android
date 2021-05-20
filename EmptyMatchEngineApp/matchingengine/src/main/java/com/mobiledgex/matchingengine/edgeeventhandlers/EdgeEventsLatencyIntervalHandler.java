@@ -53,7 +53,7 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler 
             cfg.updateIntervalSeconds = 30;
         }
         timer.schedule(new EdgeEventsLatencyIntervalHandler.LatencyTask(testType, cfg),
-                0, // initial delay
+                (long)(cfg.updateIntervalSeconds * 1000), // initial delay
                 (long)(cfg.updateIntervalSeconds * 1000)); // milliseconds interval
     }
 
