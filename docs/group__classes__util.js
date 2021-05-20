@@ -76,6 +76,7 @@ var group__classes__util =
       [ "Site", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#af10b10244fc27b7205ac680bb27fa262", null ],
       [ "Site", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#aa320db7fbfed29dc3075c755dc290721", null ],
       [ "addSample", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#aad06ca25ec0345e51f21fd529c7c236f", null ],
+      [ "hasSuccessfulTests", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a72032404ca13115799a67c08e7fed325", null ],
       [ "recalculateStats", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a1519e25df8163d985a1821420f96b628", null ],
       [ "sameSite", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a1d2aecb33458ee4035015424208ca3c7", null ],
       [ "setAppinstance", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a913e265f442dbe1d712a54d4665d1a01", null ],

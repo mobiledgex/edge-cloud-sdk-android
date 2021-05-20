@@ -97,6 +97,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private LocationResult mLastLocationResult;
     private boolean mDoLocationUpdates;
 
+    Location automationFrankfurtCloudlet = new Location("appProvided");
+    Location automationHamburgCloudlet = new Location("appProvided");
+    Location edmontonLoc = new Location("appProvided");
+    Location montrealLoc = new Location("appProvided");
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -137,6 +142,18 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        automationFrankfurtCloudlet.setLatitude(50.110922);
+        automationFrankfurtCloudlet.setLongitude(8.682127);
+
+        automationHamburgCloudlet.setLatitude(10);
+        automationHamburgCloudlet.setLongitude(10);
+
+        edmontonLoc.setLatitude(53.5461); // Edmonton
+        edmontonLoc.setLongitude(-113.4938);
+
+        montrealLoc.setLatitude(45.5017); // Montreal
+        montrealLoc.setLongitude(-73.5673);
 
         //! [basic_location_handler_example]
         mLocationCallback = new LocationCallback() {
@@ -179,14 +196,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         edmontonButton.setOnClickListener(new  View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Location edmontonLoc = new Location("Button");
-                edmontonLoc.setLatitude(53.5461); // Edmonton
-                edmontonLoc.setLongitude(-113.4938);
                 // Post location update:
                 me.getEdgeEventsConnectionFuture()
                         .thenApply(connection -> {
                             if (connection != null) {
-                                connection.postLocationUpdate(edmontonLoc);
+                                connection.postLocationUpdate(automationFrankfurtCloudlet);
                             }
                             return null;
                         });
@@ -197,14 +211,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         montrealButton.setOnClickListener(new  View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Location montrealLoc = new Location("Button");
-                montrealLoc.setLatitude(45.5017); // Montreal
-                montrealLoc.setLongitude(-73.5673);
                 // Post into matching engine:
                 me.getEdgeEventsConnectionFuture()
                         .thenApply(connection -> {
                             if (connection != null) {
-                                connection.postLocationUpdate(montrealLoc);
+                                connection.postLocationUpdate(automationHamburgCloudlet);
                             }
                             return null;
                         });
@@ -282,11 +293,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // There is also a parameterized version to further customize.
             EdgeEventsConfig backgroundEdgeEventsConfig = me.createDefaultEdgeEventsConfig();
             backgroundEdgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;
+
             // This is the internal port, that has not been remapped to a public port for a particular appInst.
-            backgroundEdgeEventsConfig.latencyInternalPort = internalPort;
-            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 10; // Or Long.MAX_VALUE if you want. Default is 0.
+            backgroundEdgeEventsConfig.latencyInternalPort = 3765; // 0 will grab first UDP port but will favor the first TCP port if found.
+            // Latency config. There is also a very similar location update config.
+            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 0; // Default is 0, which means test forever.
             backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; // The default is 30.
+            backgroundEdgeEventsConfig.latencyThresholdTrigger = 50;
+
             //! [edgeevents_subsscriber_setup_example]
+            //backgroundEdgeEventsConfig.latencyUpdateConfig = null;
+            //backgroundEdgeEventsConfig.locationUpdateConfig = null; // app driven.
 
             //! [startedgeevents_example]
             me.startEdgeEvents(backgroundEdgeEventsConfig);
@@ -696,7 +713,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 // For Demo app, we use the wifi dme server to continue to MobiledgeX.
                 dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
             }
-            dmeHostAddress = "wifi." + MatchingEngine.baseDmeHost;
+            dmeHostAddress = "eu-qa." + MatchingEngine.baseDmeHost;
             me.setUseWifiOnly(true);
             me.setSSLEnabled(true);
             //mMatchingEngine.setNetworkSwitchingEnabled(true);
@@ -705,12 +722,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
             int port = me.getPort(); // Keep same port.
 
-            String orgName = "MobiledgeX-Samples"; // Always supplied by application, and in the MobiledgeX web admin console.
+            String orgName = "MobiledgeX"; // Always supplied by application, and in the MobiledgeX web admin console.
             // For illustration, the matching engine can be used to programmatically get the name of your application details
             // so it can go to the correct appInst version. That AppInst on the server side must match the application
             // version or else it won't be found and cannot be used.
-            String appName = "sdktest"; // AppName must be added to the MobiledgeX web admin console.
-            String appVers = "9.0"; // override the version of that known registered app.
+            String appName = "automation-sdk-porttest"; // AppName must be added to the MobiledgeX web admin console.
+            String appVers = "1.0"; // override the version of that known registered app.
 
             // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
             // like AuthToken or Tag key value pairs.
@@ -739,7 +756,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
             // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
             AppClient.FindCloudletRequest findCloudletRequest =
-                    me.createDefaultFindCloudletRequest(ctx, location) // location)
+                    me.createDefaultFindCloudletRequest(ctx, automationFrankfurtCloudlet) // location)
                             .setCarrierName("")
                             .build();
             AppClient.FindCloudletReply closestCloudlet = me.findCloudlet(findCloudletRequest,

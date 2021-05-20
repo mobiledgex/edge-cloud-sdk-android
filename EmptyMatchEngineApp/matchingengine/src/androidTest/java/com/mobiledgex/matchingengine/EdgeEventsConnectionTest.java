@@ -68,7 +68,7 @@ import static org.junit.Assert.fail;
 
 public class EdgeEventsConnectionTest {
     public static final String TAG = "EdgeEventsConnectionTest";
-    public static final long GRPC_TIMEOUT_MS = 25000;
+    public static final long GRPC_TIMEOUT_MS = 15000;
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
@@ -271,8 +271,8 @@ public class EdgeEventsConnectionTest {
             }
             findCloudletReply1 = response1.get();
             assertSame("FindCloudlet1 did not succeed!", findCloudletReply1.getStatus(), FIND_FOUND);
-            latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
-            // This is actually unbounded, as the default is infinity latency Processed resposnes, should you wait long enough for that many to start arriving.
+            latch.await((long)edgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds * 4, TimeUnit.SECONDS);
+            // This is actually unbounded, as the default is infinity latency Processed responses, should you wait long enough for that many to start arriving.
             long expectedNum = 1; // edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates;
             Log.i(TAG, "EdgeEvent :  " + responses.size());
             assertTrue("Must get at LEAST [" + expectedNum + "] responses back from server.", responses.size() >= expectedNum);
@@ -337,7 +337,7 @@ public class EdgeEventsConnectionTest {
                     deviceInfoStatic.getDeviceOs().length() > "Android_Version_".length());
 
             if (isEmulator(context)) {
-                assertTrue("Should have deviceModel, depends on device: ", "".equals(deviceInfoStatic.getDeviceModel()));
+                assertTrue("Should have deviceModel, depends on device: ", !deviceInfoStatic.getDeviceModel().isEmpty()); // TODO: "Android SDK built for x86", etc.
             } else {
                 assertTrue("Should have deviceModel, depends on device: ", !deviceInfoStatic.getDeviceModel().isEmpty());
             }
@@ -402,11 +402,82 @@ public class EdgeEventsConnectionTest {
                     opening == me.getEdgeEventsConnection().channelStatus);
             assertFalse("Should throw no exceptions!", restartFuture.isCompletedExceptionally());
 
-
             CompletableFuture<Boolean> stopFuture;
             boolean stopped = (stopFuture = me.stopEdgeEventsFuture()).get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             assertTrue("Should stop successfully. Completion failed!", stopped);
             assertFalse("Should throw no exceptions!", stopFuture.isCompletedExceptionally());
+            Log.i(TAG, "XXX Done stop.");
+        } catch (Exception e) {
+            Log.e(TAG, "Exception: " + e + ", " + e.getLocalizedMessage());
+            e.printStackTrace();
+            fail("Test failed.");
+        } finally {
+            if (me != null) {
+                me.close();
+            }
+        }
+    }
+
+    //@Test
+    public void testEdgeConnectionJustWait() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        AppClient.FindCloudletReply findCloudletReply1;
+
+        MatchingEngine me = null;
+        try {
+            me = new MatchingEngine(context);
+            me.setMatchingEngineLocationAllowed(true);
+            registerClient(me);
+            Location location = automationHamburgCloudlet;
+
+            CountDownLatch latch = new CountDownLatch(2);
+            ConcurrentLinkedQueue<AppClient.ServerEdgeEvent> responses = new ConcurrentLinkedQueue<>();
+            ConcurrentLinkedQueue<FindCloudletEvent> latencyNewCloudletResponses = new ConcurrentLinkedQueue<>();
+            class EventReceiver2 {
+                @Subscribe
+                void HandleEdgeEvent(AppClient.ServerEdgeEvent edgeEvent) {
+                    switch (edgeEvent.getEventType()) {
+                        case EVENT_LATENCY_PROCESSED:
+                            Log.i(TAG, "Received a latency processed response: " + edgeEvent);
+                            responses.add(edgeEvent);
+                            latch.countDown();
+                            break;
+                    }
+                }
+
+                @Subscribe
+                void HandleFindCloudlet(FindCloudletEvent fce) {
+                    latencyNewCloudletResponses.add(fce);
+                }
+            }
+            EventReceiver2 er = new EventReceiver2();
+            me.getEdgeEventsBus().register(er);
+
+            EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
+            // Some of this can spuriously break the DME connection for reconnection.
+            config.latencyUpdateConfig = null; // Disable. This could break the test with spurious newFindCloudlets.
+            config.locationUpdateConfig.maxNumberOfUpdates = 0; // Infinity.
+
+            // Set orgName and location, then override the rest for testing:
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName(findCloudletCarrierOverride)
+                    .build();
+            if (useHostOverride) {
+                findCloudletReply1 = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                findCloudletReply1 = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
+            }
+            assertEquals("Not successful findCloudlet", FIND_FOUND, findCloudletReply1.getStatus());
+
+            // Probably is false, since we didn't wait.
+            CompletableFuture<Boolean> startFuture = me.startEdgeEventsFuture(config);
+
+            // More patient get:
+            boolean value = startFuture.get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            assertTrue("Did not start. Completion failed!", value);
+            assertFalse("Should throw no exceptions!", startFuture.isCompletedExceptionally());
+
+            Thread.sleep(900000);
             Log.i(TAG, "XXX Done stop.");
         } catch (Exception e) {
             Log.e(TAG, "Exception: " + e + ", " + e.getLocalizedMessage());
@@ -687,10 +758,12 @@ public class EdgeEventsConnectionTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
         class EventReceiver2 {
             ConcurrentLinkedQueue<FindCloudletEvent> responses;
+            ConcurrentLinkedQueue<EdgeEventsConnection.EdgeEventsError> errors;
             CountDownLatch latch;
 
             public EventReceiver2() {
                 responses = new ConcurrentLinkedQueue<>();
+                errors = new ConcurrentLinkedQueue<>();
             }
 
             public CountDownLatch setLatch(int count) {
@@ -703,6 +776,16 @@ public class EdgeEventsConnectionTest {
                 assertNotNull("Should have a Cloudlet!", fce.newCloudlet);
                 assertTrue("Should be a LatencyTooHigh trigger!",fce.trigger == FindCloudletEventTrigger.LatencyTooHigh);
                 responses.add(fce);
+                if (latch == null) {
+                    return;
+                }
+                latch.countDown();
+            }
+
+            @Subscribe
+            void HandleEdgeEvent(EdgeEventsConnection.EdgeEventsError error) {
+                assertTrue("Should be a LatencyTooHigh still best trigger!", error == EdgeEventsConnection.EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                errors.add(error);
                 if (latch == null) {
                     return;
                 }
@@ -723,6 +806,7 @@ public class EdgeEventsConnectionTest {
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
             config.locationUpdateConfig = null; // Don't want anything.
             config.latencyUpdateConfig.maxNumberOfUpdates = 1; // num <= 0 means "infinity".
+            config.latencyUpdateConfig.updateIntervalSeconds = 5; // also sets initial delay.
             config.latencyThresholdTrigger = 10; // Likely very low for our test servers.
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, edmontonLoc)
@@ -743,10 +827,10 @@ public class EdgeEventsConnectionTest {
 
             // Waiting for 1 (or more).
             er.setLatch(1);
-            er.latch.await(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
 
             assertEquals("Expected that the configured latency is too high!", 0, er.latch.getCount());
-            assertTrue("Response must be too high.", er.responses.peek().trigger == FindCloudletEventTrigger.LatencyTooHigh);
+            assertTrue("Response must be too high, but still best.", er.errors.peek() == EdgeEventsConnection.EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
 
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
@@ -809,6 +893,7 @@ public class EdgeEventsConnectionTest {
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
             config.locationUpdateConfig.maxNumberOfUpdates = 0;
             config.latencyUpdateConfig.maxNumberOfUpdates = 1;
+            config.latencyUpdateConfig.updateIntervalSeconds = 5; // This is also initial delay seconds day.
             config.latencyThresholdTrigger = 300; // Likely very high for our test servers.
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, edmontonLoc)
