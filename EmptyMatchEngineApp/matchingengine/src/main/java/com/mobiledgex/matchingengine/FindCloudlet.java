@@ -52,13 +52,16 @@ public class FindCloudlet implements Callable {
     private String mHost;
     private int mPort;
     private long mTimeoutInMilliseconds = -1;
+    private long mMaximumLatencyMs = -1;
     private MatchingEngine.FindCloudletMode mMode;
+
+    private boolean mDoLatencyMigration = false;
 
     public FindCloudlet(MatchingEngine matchingEngine) {
         mMatchingEngine = matchingEngine;
     }
 
-    public boolean setRequest(FindCloudletRequest request, String host, int port, long timeoutInMilliseconds, MatchingEngine.FindCloudletMode mode) {
+    public boolean setRequest(FindCloudletRequest request, String host, int port, long timeoutInMilliseconds, MatchingEngine.FindCloudletMode mode, long maxLatencyInMilliseconds) {
         if (request == null) {
             throw new IllegalArgumentException("Request object must not be null.");
         } else if (!mMatchingEngine.isMatchingEngineLocationAllowed()) {
@@ -74,6 +77,7 @@ public class FindCloudlet implements Callable {
         mHost = host;
         mPort = port;
         mMode = mode;
+        mMaximumLatencyMs = maxLatencyInMilliseconds;
 
         if (timeoutInMilliseconds <= 0) {
             throw new IllegalArgumentException("FindCloudlet timeout must be positive.");
@@ -99,6 +103,39 @@ public class FindCloudlet implements Callable {
         return null;
     }
 
+    private Appcommon.AppPort getAppInstancePort(AppClient.Appinstance appinstance, int internalPort) {
+        Appcommon.AppPort appPort = null;
+        for (Appcommon.AppPort aPort : appinstance.getPortsList()) {
+            int end = aPort.getEndPort() == 0 ? aPort.getInternalPort() : aPort.getEndPort();
+            int range = aPort.getInternalPort() - end;
+            boolean valid = internalPort - aPort.getInternalPort() <= range;
+            if (valid) {
+                appPort = aPort;
+                break;
+            }
+        }
+        return appPort;
+    }
+
+    private Appcommon.AppPort getOneAppPort(AppClient.Appinstance appInstance) {
+        Appcommon.AppPort appPort = null;
+        for (Appcommon.AppPort aPort : appInstance.getPortsList()) {
+            if (aPort.getProto() == Appcommon.LProto.L_PROTO_UDP) {
+                if (appPort == null) {
+                    appPort = aPort;
+                }
+                continue;
+            }
+            if (aPort.getProto() == Appcommon.LProto.L_PROTO_TCP) {
+                // Stop on first TCP.
+                appPort = aPort;
+                break;
+            }
+
+        }
+        return appPort;
+    }
+
     // If UDP, then ICMP must respond. TODO: Allow UDP "response"?
     private void insertAppInstances(NetTest netTest, Network network, AppClient.AppInstListReply appInstListReply) {
         int numSamples = Site.DEFAULT_NUM_SAMPLES;
@@ -114,7 +151,18 @@ public class FindCloudlet implements Callable {
                     if (appInstance.getPortsCount() <= 0) {
                         continue; // Odd. Skip.
                     }
-                    Appcommon.AppPort appPort = appInstance.getPorts(0);
+                    // Favor Connect of each appInst.
+                    Appcommon.AppPort appPort;
+                    int internalPort = mMatchingEngine.mEdgeEventsConfig == null ? 0 : mMatchingEngine.mEdgeEventsConfig.latencyInternalPort;
+                    if (internalPort == 0) {
+                        appPort = getOneAppPort(appInstance);
+                    } else {
+                        appPort = getAppInstancePort(appInstance, internalPort);
+                    }
+
+                    if (appPort == null) {
+                        continue;
+                    }
 
                     Site site = null;
                     switch (appPort.getProto()) {
@@ -202,7 +250,6 @@ public class FindCloudlet implements Callable {
             // Remaining mode(s) is Performance:
 
             // GetAppInstList, using the same FindCloudlet Request values.
-
             AppClient.AppInstListRequest appInstListRequest = GetAppInstList.createFromFindCloudletRequest(mRequest)
                 // Do non-trivial transfer, stuffing Tag to do so.
                 .setCarrierName(mRequest.getCarrierName() == null ?
@@ -239,6 +286,15 @@ public class FindCloudlet implements Callable {
                 .build();
             fcreply = bestFindCloudletReply;
 
+            // If average is better, allow migration.
+            if (bestSite.hasSuccessfulTests() &&
+                    bestSite.average < mMaximumLatencyMs &&
+                    mMaximumLatencyMs >= 0) {
+                mDoLatencyMigration = true;
+            } else {
+                Log.i(TAG, "Performance tests did not find a better cloudlet.");
+                return fcreply;
+            }
         } catch (Exception e) {
             Log.e(TAG, "Exception during FindCloudlet: " + e.getMessage());
             throw e;
@@ -354,10 +410,11 @@ public class FindCloudlet implements Callable {
             fcReply = FindCloudletWithMode(); // Regular FindCloudlet.
         }
 
-        mMatchingEngine.setFindCloudletResponse(fcReply);
-
         // Create message channel for DME EdgeEvents:
-        if (fcReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
+        if (!mDoLatencyMigration && mMode == MatchingEngine.FindCloudletMode.PERFORMANCE) {
+            Log.d(TAG, "Cloudlet performance wasn't better. Not auto-migrating and returning nothing.");
+            fcReply = null;
+        } else if (fcReply != null && fcReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
             try {
                 // The engine is allowed to use a default config, should the config be null.
                 mMatchingEngine.startEdgeEventsInternal(mHost, mPort, network, mMatchingEngine.mEdgeEventsConfig);
@@ -369,6 +426,9 @@ public class FindCloudlet implements Callable {
                     mMatchingEngine.getEdgeEventsBus().post(EdgeEventsConnection.EdgeEventsError.invalidEdgeEventsSetup);
                 }
             }
+        }
+        if (fcReply != null) {
+            mMatchingEngine.setFindCloudletResponse(fcReply);
         }
         return fcReply;
     }

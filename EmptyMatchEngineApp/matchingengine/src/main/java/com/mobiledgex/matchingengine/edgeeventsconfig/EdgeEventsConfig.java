@@ -36,7 +36,7 @@ public class EdgeEventsConfig {
 
     // Configure how to respond to events
     public double latencyThresholdTrigger; // latency threshold in ms when new FindCloudlet is triggered
-    public MatchingEngine.FindCloudletMode latencyTriggerTestMode = MatchingEngine.FindCloudletMode.PROXIMITY;
+    public MatchingEngine.FindCloudletMode latencyTriggerTestMode = MatchingEngine.FindCloudletMode.PERFORMANCE;
     public EnumSet<FindCloudletEventTrigger> triggers;// events that application wants a new find cloudlet for
 
     // Defaults:

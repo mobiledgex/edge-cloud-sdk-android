@@ -1217,31 +1217,34 @@ public class EdgeEventsConnection {
                     .build();
 
             try {
+                // If the latency trigger spec is not met, no auto-migrate happens.
                 AppClient.FindCloudletReply reply = me.findCloudlet(
                         request,
                         lastConnectionDetails.host,
                         lastConnectionDetails.port,
                         me.getNetworkManager().getTimeout(),
-                        me.mEdgeEventsConfig.latencyTriggerTestMode);
+                        me.mEdgeEventsConfig.latencyTriggerTestMode,
+                        (long)me.mEdgeEventsConfig.latencyThresholdTrigger);
 
-                if (reply != null && reply.equals(me.getLastFindCloudletReply())) {
+                if (reply == null || reply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_NOTFOUND) {
+                    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                    return false;
+                }
+
+                if (reply.equals(me.getLastFindCloudletReply())) {
                     Log.w(TAG, "The old and new cloudlets have the same content. Not posting findCloudlet, but inform app of latency issue encountered.");
                     postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
                     return true;
                 }
 
-                if (reply != null) {
-                    FindCloudletEvent event = new FindCloudletEvent(reply, reason);
+                FindCloudletEvent event = new FindCloudletEvent(reply, reason);
 
-                    // TODO: Check if this is a new FindCloudlet before posting.
-                    postToFindCloudletEventHandler(event);
-                    if (me.isAutoMigrateEdgeEventsConnection()) {
-                        reconnect();
-                    }
-                    return true;
+                postToFindCloudletEventHandler(event);
+                if (me.isAutoMigrateEdgeEventsConnection()) {
+                    reconnect();
                 }
+                return true;
                 // Caller decides what happens on failure.
-
             } catch (DmeDnsException e) {
                 Log.d(TAG, "DME DNS Exception doing auto doClientFindCloudlet(): " + e.getMessage());
             } catch (InterruptedException e) {
@@ -1420,6 +1423,10 @@ public class EdgeEventsConnection {
                     }
                     // Test with default network in use:
                     Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(me.mFindCloudletReply, mEdgeEventsConfig.latencyInternalPort);
+                    if (appPort == null) {
+                        postErrorToEventHandler(EdgeEventsError.portDoesNotExist);
+                        return false;
+                    }
                     String host = appPort.getFqdnPrefix() + me.mFindCloudletReply.getFqdn();
 
                     Site site = new Site(me.mContext, NetTest.TestType.CONNECT, DEFAULT_NUM_SAMPLES, host, publicPort);

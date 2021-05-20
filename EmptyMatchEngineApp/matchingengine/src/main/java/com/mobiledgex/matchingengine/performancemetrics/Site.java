@@ -121,6 +121,10 @@ public class Site
         idx = idx % samples.length;
     }
 
+    public boolean hasSuccessfulTests() {
+        return size > 0;
+    }
+
     public void recalculateStats()
     {
         double acc = 0d;
