@@ -107,7 +107,7 @@ public class FindCloudlet implements Callable {
         Appcommon.AppPort appPort = null;
         for (Appcommon.AppPort aPort : appinstance.getPortsList()) {
             int end = aPort.getEndPort() == 0 ? aPort.getInternalPort() : aPort.getEndPort();
-            int range = aPort.getInternalPort() - end;
+            int range = end - aPort.getInternalPort();
             boolean valid = internalPort - aPort.getInternalPort() <= range;
             if (valid) {
                 appPort = aPort;
@@ -208,7 +208,7 @@ public class FindCloudlet implements Callable {
                 netTest.testSitesOnExecutor(timeout - stopwatch.elapsed(TimeUnit.MILLISECONDS));
             } catch (Exception e) {
                 // Allow continuation.
-                Log.e(TAG, "Threaded Excecution issue testing site performance: " + "Cause: " + e.getCause() + "Stack: " + e.getStackTrace());
+                Log.e(TAG, "Threaded Execution issue testing site performance: " + "Cause: " + e.getCause() + "Stack: " + e.getStackTrace());
             } finally {
                 netTest.setExecutorService(null);
                 if (executorService != null && !executorService.isShutdown()) {

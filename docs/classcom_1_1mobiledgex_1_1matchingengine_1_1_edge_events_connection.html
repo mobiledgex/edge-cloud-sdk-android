@@ -144,10 +144,6 @@ synchronized void&#160;</td><td class="memItemRight" valign="bottom"><b>setLastL
 <tr class="separator:ade45ea0e43d441cb2634179049334c0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abf0f5e531657fe7339b4313035062b20"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#abf0f5e531657fe7339b4313035062b20">setOpenTimeout</a> (long timeoutMs)</td></tr>
 <tr class="separator:abf0f5e531657fe7339b4313035062b20"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4935751d32f267230527f8c6aec77469"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a4935751d32f267230527f8c6aec77469">getShutdownTimeoutMs</a> ()</td></tr>
-<tr class="separator:a4935751d32f267230527f8c6aec77469"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5daad2fd0276a2819b604cde1a373b2c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a5daad2fd0276a2819b604cde1a373b2c">setShutdownTimeoutMs</a> (long shutdownTimeoutMs)</td></tr>
-<tr class="separator:a5daad2fd0276a2819b604cde1a373b2c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a24744a69d3f551ac5957363bc1f7a435"><td class="memItemLeft" align="right" valign="top"><a id="a24744a69d3f551ac5957363bc1f7a435"></a>
 boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isShutdown</b> ()</td></tr>
 <tr class="separator:a24744a69d3f551ac5957363bc1f7a435"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -177,9 +173,6 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:afa60cafa4c01a4161cd2c3b319fcdaf2"><td class="memItemLeft" align="right" valign="top"><a id="afa60cafa4c01a4161cd2c3b319fcdaf2"></a>
 final long&#160;</td><td class="memItemRight" valign="bottom"><b>OPEN_TIMEOUT_MS</b> = 10 * 1000</td></tr>
 <tr class="separator:afa60cafa4c01a4161cd2c3b319fcdaf2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a59fd973b687abdf354e0e61f7b70f954"><td class="memItemLeft" align="right" valign="top"><a id="a59fd973b687abdf354e0e61f7b70f954"></a>
-final long&#160;</td><td class="memItemRight" valign="bottom"><b>SHUTDOWN_TIMEOUT_MS</b> = 10 * 1000</td></tr>
-<tr class="separator:a59fd973b687abdf354e0e61f7b70f954"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3c94d0cf5c8b8fd4721332fcaa86b15c"><td class="memItemLeft" align="right" valign="top"><a id="a3c94d0cf5c8b8fd4721332fcaa86b15c"></a>
 MatchEngineApiGrpc.MatchEngineApiStub&#160;</td><td class="memItemRight" valign="bottom"><b>asyncStub</b></td></tr>
 <tr class="separator:a3c94d0cf5c8b8fd4721332fcaa86b15c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -253,24 +246,6 @@ static final String&#160;</td><td class="memItemRight" valign="bottom"><b>TAG</b
 
 </div>
 </div>
-<a id="a4935751d32f267230527f8c6aec77469"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4935751d32f267230527f8c6aec77469">&#9670;&nbsp;</a></span>getShutdownTimeoutMs()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">long com.mobiledgex.matchingengine.EdgeEventsConnection.getShutdownTimeoutMs </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Gets the timeout for closing a connection. </p>
-
-</div>
-</div>
 <a id="a2dfcb1662e56aba11af511dfbbfff5fb"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a2dfcb1662e56aba11af511dfbbfff5fb">&#9670;&nbsp;</a></span>reconnect()</h2>
 
@@ -334,25 +309,6 @@ static final String&#160;</td><td class="memItemRight" valign="bottom"><b>TAG</b
   </table>
   </dd>
 </dl>
-
-</div>
-</div>
-<a id="a5daad2fd0276a2819b604cde1a373b2c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5daad2fd0276a2819b604cde1a373b2c">&#9670;&nbsp;</a></span>setShutdownTimeoutMs()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void com.mobiledgex.matchingengine.EdgeEventsConnection.setShutdownTimeoutMs </td>
-          <td>(</td>
-          <td class="paramtype">long&#160;</td>
-          <td class="paramname"><em>shutdownTimeoutMs</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Sets the timeout for connection shutdown. </p>
 
 </div>
 </div>
