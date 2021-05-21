@@ -81,6 +81,7 @@ public class EdgeEventsConnection {
     }
 
     private Location mLastLocationPosted = null;
+    private AppClient.FindCloudletReply mLastPostedFindCloudletReply;
 
     // TODO: Use Site.DEFAULT_NUM_SAMPLES ?
     final int DEFAULT_NUM_SAMPLES = 5;
@@ -1222,6 +1223,7 @@ public class EdgeEventsConnection {
 
             try {
                 // If the latency trigger spec is not met, no auto-migrate happens.
+                AppClient.FindCloudletReply lastMeReply = me.getLastFindCloudletReply();
                 AppClient.FindCloudletReply reply = me.findCloudlet(
                         request,
                         lastConnectionDetails.host,
@@ -1235,22 +1237,39 @@ public class EdgeEventsConnection {
                     return false;
                 }
 
-                if (reply.equals(me.getLastFindCloudletReply())) {
-                    Log.w(TAG, "The old and new cloudlets have the same content. Not posting findCloudlet, but inform app of latency issue encountered.");
+                boolean doPost = false;
+
+                if (mLastPostedFindCloudletReply == null) {
+                    // First post.
+                    mLastPostedFindCloudletReply = lastMeReply;
+                }
+
+                // If exactly equal, nothing to do.
+                if (reply.equals(mLastPostedFindCloudletReply)) {
                     postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
-                    return true;
+                    return false;
+                }
+                // Weaker check, without the edgeCookie update.
+                else if (!reply.getStatus().equals(mLastPostedFindCloudletReply.getStatus()) ||
+                         !reply.getCloudletLocation().equals(mLastPostedFindCloudletReply.getCloudletLocation()) ||
+                         !reply.getPortsList().equals(mLastPostedFindCloudletReply.getPortsList()) ||
+                         !reply.getFqdn().equals(mLastPostedFindCloudletReply.getFqdn())
+                ) {
+                    doPost = true;
                 }
 
+                if (!doPost) {
+                    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
+                    return false;
+                }
+
+                // Note: Auto start or AutoMigrate of edgeEvents already happened as necessary in FindCloudlet.
+                // Just post here. NewCloudlet push is, however, subject to AutoMigrate flag.
+                Log.i(TAG, "Different cloudlet than last posted.");
+                mLastPostedFindCloudletReply = reply;
                 FindCloudletEvent event = new FindCloudletEvent(reply, reason);
-
                 postToFindCloudletEventHandler(event);
-                if (me.isAutoMigrateEdgeEventsConnection()) {
-                    reconnect();
-                }
                 return true;
-                // Caller decides what happens on failure.
-            } catch (DmeDnsException e) {
-                Log.d(TAG, "DME DNS Exception doing auto doClientFindCloudlet(): " + e.getMessage());
             } catch (InterruptedException e) {
                 // do nothing.
             } catch (ExecutionException e) {
