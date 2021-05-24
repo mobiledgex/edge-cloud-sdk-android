@@ -241,7 +241,7 @@ public class AppConnectionManager {
                     aPort = p;
                 }
             } catch (InvalidPortException e) {
-                Log.d(TAG, "Internal Port [" + internalPort + "] Not found in AppPort, continuing to next port...");
+                Log.d(TAG, "Internal Port [" + internalPort + "] not found in this AppPort, continuing to next AppPort...");
                 continue;
             }
         }

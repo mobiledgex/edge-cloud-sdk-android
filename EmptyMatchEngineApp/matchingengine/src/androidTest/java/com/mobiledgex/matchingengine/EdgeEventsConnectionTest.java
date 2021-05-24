@@ -158,8 +158,8 @@ public class EdgeEventsConnectionTest {
         automationFrankfurtCloudlet.setLongitude(8.682127);
 
         automationHamburgCloudlet = getTestLocation();
-        automationHamburgCloudlet.setLatitude(10);
-        automationHamburgCloudlet.setLongitude(10);
+        automationHamburgCloudlet.setLatitude(53.5511);
+        automationHamburgCloudlet.setLongitude(9.9937);
 
         toggleLocations = new Location[] {edmontonLoc, montrealLoc};
     }
