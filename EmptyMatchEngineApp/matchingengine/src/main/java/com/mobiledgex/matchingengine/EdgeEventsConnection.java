@@ -503,21 +503,7 @@ public class EdgeEventsConnection {
                     .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
                     .mergeDeviceInfoStatic(me.getDeviceInfoStaticProto())
                     .mergeDeviceInfoDynamic(me.getDeviceInfoDynamicProto());
-
-            // Location based edgeEvents permissions are need:
-            Location loc = getLocation();
-            if (loc == null) {
-                Log.w(TAG, "There does not appear to be a current app location service running to get location. Trying retrieve previous location to init EdgeEventsConnection.");
-                loc = getLastLocationPosted();
-            }
-            if (loc != null) {
-                send(initDmeEventBuilder.setGpsLocation(me.androidLocToMeLoc(loc)).build());
-                setLastLocationPosted(loc);
-            } else {
-                Log.w(TAG, "Location missing and cannot be retrieved. Cannot initialize EdgeEventsConnection.");
-                postErrorToEventHandler(EdgeEventsError.uninitializedEdgeEventsConnection);
-                closeInternal();
-            }
+                send(initDmeEventBuilder.build());
         } else {
             Log.e(TAG, "Missing info for INIT. Not opening.");
             postErrorToEventHandler(EdgeEventsError.uninitializedEdgeEventsConnection);
@@ -1238,23 +1224,13 @@ public class EdgeEventsConnection {
                 }
 
                 boolean doPost = false;
-
                 if (mLastPostedFindCloudletReply == null) {
                     // First post.
                     mLastPostedFindCloudletReply = lastMeReply;
                 }
 
-                // If exactly equal, nothing to do.
-                if (reply.equals(mLastPostedFindCloudletReply)) {
-                    postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
-                    return false;
-                }
-                // Weaker check, without the edgeCookie update.
-                else if (!reply.getStatus().equals(mLastPostedFindCloudletReply.getStatus()) ||
-                         !reply.getCloudletLocation().equals(mLastPostedFindCloudletReply.getCloudletLocation()) ||
-                         !reply.getPortsList().equals(mLastPostedFindCloudletReply.getPortsList()) ||
-                         !reply.getFqdn().equals(mLastPostedFindCloudletReply.getFqdn())
-                ) {
+                // Weak check: FQDN changed.
+                if (!reply.getFqdn().equals(mLastPostedFindCloudletReply.getFqdn())) {
                     doPost = true;
                 }
 
@@ -1284,7 +1260,11 @@ public class EdgeEventsConnection {
         Log.i(TAG, "Received a new Edge FindCloudlet. Pushing to new FindCloudlet subscribers.");
         if (event.hasNewCloudlet()) {
 
-            if (event.getNewCloudlet().equals(me.getLastFindCloudletReply())) {
+
+            if (me.getLastFindCloudletReply() == null) {
+                Log.i(TAG, "No previous cloudlet.");
+            }
+            else if (event.getNewCloudlet().getFqdn().equals(me.getLastFindCloudletReply().getFqdn())) {
                 Log.w(TAG, "newCloudlet from server is the same a the last one. Nothing to do. Posting error message.");
                 postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
                 return true;
@@ -1306,7 +1286,6 @@ public class EdgeEventsConnection {
             }
             else {
                 try {
-                    closeInternal();
                     reconnect();
                 } catch (DmeDnsException dde) {
                     postErrorToEventHandler(EdgeEventsError.missingDmeDnsEntry);

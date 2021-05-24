@@ -146,8 +146,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         automationFrankfurtCloudlet.setLatitude(50.110922);
         automationFrankfurtCloudlet.setLongitude(8.682127);
 
-        automationHamburgCloudlet.setLatitude(10);
-        automationHamburgCloudlet.setLongitude(10);
+        automationHamburgCloudlet.setLatitude(53.5511);
+        automationHamburgCloudlet.setLongitude(9.9937);
 
         edmontonLoc.setLatitude(53.5461); // Edmonton
         edmontonLoc.setLongitude(-113.4938);
