@@ -410,6 +410,9 @@ public class FindCloudlet implements Callable {
             fcReply = FindCloudletWithMode(); // Regular FindCloudlet.
         }
 
+        // Always update, the session edgeEventsCookie is needed for future edge connections.
+        mMatchingEngine.setFindCloudletResponse(fcReply);
+
         // Create message channel for DME EdgeEvents:
         if (!mDoLatencyMigration && mMode == MatchingEngine.FindCloudletMode.PERFORMANCE) {
             Log.d(TAG, "Cloudlet performance wasn't better. Not auto-migrating and returning nothing.");
@@ -426,9 +429,6 @@ public class FindCloudlet implements Callable {
                     mMatchingEngine.getEdgeEventsBus().post(EdgeEventsConnection.EdgeEventsError.invalidEdgeEventsSetup);
                 }
             }
-        }
-        if (fcReply != null) {
-            mMatchingEngine.setFindCloudletResponse(fcReply);
         }
         return fcReply;
     }

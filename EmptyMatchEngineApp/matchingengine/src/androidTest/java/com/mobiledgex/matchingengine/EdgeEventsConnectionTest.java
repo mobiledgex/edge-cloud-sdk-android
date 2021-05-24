@@ -158,8 +158,8 @@ public class EdgeEventsConnectionTest {
         automationFairviewCloudlet.setLongitude(8.682127);
 
         automationHawkinsCloudlet = getTestLocation();
-        automationHawkinsCloudlet.setLatitude(10);
-        automationHawkinsCloudlet.setLongitude(10);
+        automationHawkinsCloudlet.setLatitude(53.5511);
+        automationHawkinsCloudlet.setLongitude(9.9937);
 
         toggleLocations = new Location[] {edmontonLoc, montrealLoc};
     }

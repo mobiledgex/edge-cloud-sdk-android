@@ -146,8 +146,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         automationFairviewCloudlet.setLatitude(50.110922);
         automationFairviewCloudlet.setLongitude(8.682127);
 
-        automationHawkinsCloudlet.setLatitude(10);
-        automationHawkinsCloudlet.setLongitude(10);
+        automationHawkinsCloudlet.setLatitude(53.5511);
+        automationHawkinsCloudlet.setLongitude(9.9937);
 
         edmontonLoc.setLatitude(53.5461); // Edmonton
         edmontonLoc.setLongitude(-113.4938);
@@ -299,7 +299,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // Latency config. There is also a very similar location update config.
             backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 0; // Default is 0, which means test forever.
             backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; // The default is 30.
-            backgroundEdgeEventsConfig.latencyThresholdTrigger = 50;
+            backgroundEdgeEventsConfig.latencyThresholdTrigger = 186;
 
             //! [edgeevents_subsscriber_setup_example]
             //backgroundEdgeEventsConfig.latencyUpdateConfig = null;
@@ -756,7 +756,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
             // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
             AppClient.FindCloudletRequest findCloudletRequest =
-                    me.createDefaultFindCloudletRequest(ctx, automationFairviewCloudlet) // location)
+                    me.createDefaultFindCloudletRequest(ctx, automationHawkinsCloudlet) // location)
                             .setCarrierName("")
                             .build();
             AppClient.FindCloudletReply closestCloudlet = me.findCloudlet(findCloudletRequest,
