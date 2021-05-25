@@ -37,6 +37,7 @@ public class EdgeEventsConfig {
     // Configure how to respond to events
     public double latencyThresholdTrigger; // latency threshold in ms when new FindCloudlet is triggered
     public MatchingEngine.FindCloudletMode latencyTriggerTestMode = MatchingEngine.FindCloudletMode.PERFORMANCE;
+    public float performanceSwitchMargin = 0.05f; // Average performance must be by better by this latency margin (0 to 1.0f) before notifying of switch.
     public EnumSet<FindCloudletEventTrigger> triggers;// events that application wants a new find cloudlet for
 
     // Defaults:
@@ -60,6 +61,9 @@ public class EdgeEventsConfig {
         latencyInternalPort = edgeEventsConfig.latencyInternalPort; // implicit Ping only.
         latencyTestType = edgeEventsConfig.latencyTestType;
         latencyThresholdTrigger = edgeEventsConfig.latencyThresholdTrigger;
+        latencyTriggerTestMode = edgeEventsConfig.latencyTriggerTestMode;
+        performanceSwitchMargin = Math.abs(edgeEventsConfig.performanceSwitchMargin);
+
         if (edgeEventsConfig.triggers == null) {
             triggers = EnumSet.allOf(FindCloudletEventTrigger.class);
         } else if (edgeEventsConfig.triggers.size() >= 0) {

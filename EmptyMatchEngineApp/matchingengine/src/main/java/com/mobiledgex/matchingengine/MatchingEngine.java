@@ -396,7 +396,7 @@ public class MatchingEngine {
             Log.w(TAG, "Cannot start edgeEvents without a configuration. Doing nothing.");
             return false;
         } else {
-            mEdgeEventsConfig = edgeEventsConfig;
+            mEdgeEventsConfig = new EdgeEventsConfig(edgeEventsConfig);
         }
         Log.i(TAG, "EdgeEvents Configuration has been updated.");
 
