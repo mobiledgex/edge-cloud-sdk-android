@@ -100,16 +100,16 @@ public class EngineCallTest {
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
-    public static final String organizationName = "MobiledgeX-Samples";
+    public static final String organizationName = "MobiledgeX";
     // Other globals:
-    public static final String applicationName = "sdktest";
-    public static final String appVersion = "9.0";
+    public static final String applicationName = "automation-sdk-porttest";
+    public static final String appVersion = "1.0";
 
     FusedLocationProviderClient fusedLocationClient;
 
-    public static String hostOverride = "wifi.dme.mobiledgex.net";
+    public static String hostOverride = "eu-qa.dme.mobiledgex.net";
     public static int portOverride = 50051;
-    public static String findCloudletCarrierOverride = "TELUS"; // Allow "Any" if using "", but this likely breaks test cases.
+    public static String findCloudletCarrierOverride = ""; // Allow "Any" if using "", but this likely breaks test cases.
 
     public boolean useHostOverride = true;
     public boolean useWifiOnly = true; // This also disables network switching, since the android default is WiFi.
@@ -150,8 +150,7 @@ public class EngineCallTest {
                     "android.permission.ACCESS_COARSE_LOCATION");
             uiAutomation.grantRuntimePermission(
                     InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
-                    "android.permission.ACCESS_FINE_LOCATION"
-            );
+                    "android.permission.ACCESS_FINE_LOCATION");
         }
     }
     // Mini test of wifi only:
@@ -419,6 +418,7 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("registerClientTest: DmeDnsException!", true);
         } catch (ExecutionException ee) {
+            Log.e(TAG, "Reason: " + ee.getLocalizedMessage());
             Log.e(TAG, Log.getStackTraceString(ee));
             assertFalse("registerClientTest: ExecutionException!", true);
         } catch (StatusRuntimeException sre) {
@@ -554,7 +554,7 @@ public class EngineCallTest {
             }
 
             // Might also fail, since the network is not under test control:
-            assertEquals("App's expected test cloudlet FQDN doesn't match.", "cv-cluster.paradise-main.mobiledgex.net", findCloudletReply1.getFqdn());
+            assertEquals("App's expected test cloudlet FQDN doesn't match.", "automationhawkinscloudlet.gddt.mobiledgex.net", findCloudletReply1.getFqdn());
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertFalse("FindCloudlet: DmeDnsException", true);
@@ -691,14 +691,15 @@ public class EngineCallTest {
 
         NetTest netTest = me.getNetTest();
         if (!findCloudletReply1.getFqdn().equals(findCloudletReply2.getFqdn())) {
-            Site site1 = netTest.getSite(findCloudletReply1.getPorts(0).getFqdnPrefix() + findCloudletReply1.getFqdn());
-            Site site2 = netTest.getSite(findCloudletReply2.getPorts(0).getFqdnPrefix() + findCloudletReply2.getFqdn());
+            // This is very, very specific to the server setup (TCP is preferred, at index 1)
+            Site site1 = netTest.getSite(findCloudletReply1.getPorts(1).getFqdnPrefix() + findCloudletReply1.getFqdn());
+            Site site2 = netTest.getSite(findCloudletReply2.getPorts(1).getFqdnPrefix() + findCloudletReply2.getFqdn());
             double margin = Math.abs(site1.average-site2.average)/site2.average;
             assertTrue("Winner Not within 15% margin: " + margin, margin < .15d);
         }
 
         // Might also fail, since the network is not under test control:
-        assertEquals("App's expected test cloudlet FQDN doesn't match.", "cv-cluster.hawkins-main.gddt.mobiledgex.net", findCloudletReply1.getFqdn());
+        assertEquals("App's expected test cloudlet FQDN doesn't match.", "automationhawkinscloudlet.gddt.mobiledgex.net", findCloudletReply1.getFqdn());
     }
 
     @Test
@@ -986,7 +987,7 @@ public class EngineCallTest {
 
             assertEquals(0, list.getVer());
             assertEquals(AppClient.AppInstListReply.AIStatus.AI_SUCCESS, list.getStatus());
-            assertEquals(3, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
+            assertEquals(2, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
             for (int i = 0; i < list.getCloudletsCount(); i++) {
                 Log.v(TAG, "Cloudlet: " + list.getCloudlets(i).toString());
             }
@@ -1036,7 +1037,7 @@ public class EngineCallTest {
 
             assertEquals(0, list.getVer());
             assertEquals(AppClient.AppInstListReply.AIStatus.AI_SUCCESS, list.getStatus());
-            assertEquals(1, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
+            assertEquals(2, list.getCloudletsCount()); // NOTE: This is entirely test server dependent.
             for (int i = 0; i < list.getCloudletsCount(); i++) {
                 Log.v(TAG, "Cloudlet: " + list.getCloudlets(i).toString());
             }
@@ -1500,7 +1501,6 @@ public class EngineCallTest {
                 assertFalse("IO Exceptions trying to close socket.", true);
             }
             enableMockLocation(context, false);
-            me.setNetworkSwitchingEnabled(true);
         }
     }
 

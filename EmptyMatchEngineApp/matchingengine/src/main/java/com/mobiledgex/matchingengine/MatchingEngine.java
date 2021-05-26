@@ -31,7 +31,6 @@ import android.os.Looper;
 import android.provider.Settings;
 
 import androidx.annotation.RequiresApi;
-import androidx.annotation.VisibleForTesting;
 import androidx.core.app.ActivityCompat;
 
 import android.telephony.CarrierConfigManager;
@@ -108,7 +107,6 @@ import android.util.Pair;
 
 import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.EventBus;
-import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.mel.MelMessaging;
@@ -396,7 +394,7 @@ public class MatchingEngine {
             Log.w(TAG, "Cannot start edgeEvents without a configuration. Doing nothing.");
             return false;
         } else {
-            mEdgeEventsConfig = edgeEventsConfig;
+            mEdgeEventsConfig = new EdgeEventsConfig(edgeEventsConfig);
         }
         Log.i(TAG, "EdgeEvents Configuration has been updated.");
 
