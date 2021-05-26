@@ -177,16 +177,16 @@ Setup EdgeEvents</h2>
 <div class="line">            backgroundEdgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;</div>
 <div class="line"> </div>
 <div class="line">            <span class="comment">// This is the internal port, that has not been remapped to a public port for a particular appInst.</span></div>
-<div class="line">            backgroundEdgeEventsConfig.latencyInternalPort = 0; <span class="comment">// grabs first UDP port but will favor the first TCP port if found.</span></div>
+<div class="line">            backgroundEdgeEventsConfig.latencyInternalPort = 3765; <span class="comment">// 0 will grab first UDP port but will favor the first TCP port if found.</span></div>
 <div class="line">            <span class="comment">// Latency config. There is also a very similar location update config.</span></div>
 <div class="line">            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 0; <span class="comment">// Default is 0, which means test forever.</span></div>
 <div class="line">            backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; <span class="comment">// The default is 30.</span></div>
-<div class="line">            backgroundEdgeEventsConfig.latencyThresholdTrigger = 50;</div>
+<div class="line">            backgroundEdgeEventsConfig.latencyThresholdTrigger = 186;</div>
 <div class="line"> </div>
 </div><!-- fragment --><p> Once defined, you can start monitoring with the following. Monitoring starts when the first successful FIND_FOUND FindCloudlet Reply is returned in the next few lines of code. </p><div class="fragment"><div class="line">            me.startEdgeEvents(backgroundEdgeEventsConfig);</div>
 </div><!-- fragment --> <h2><a class="anchor" id="register_and_findcloudlet"></a>
 Register and FindCloudlet</h2>
-<p>Many of these commands have asynchronous Futures versions. The blocking versions below should only be run inside something like a CompletableFuture so that the UI thread is not stuck waiting for a network response. The SDK will also print warnings if running on the UI thread. If you don't have a location service running, see the "Location Callback Example" section.</p>
+<p>Many of these methods have asynchronous Futures versions. The blocking versions below should only be run inside something like a CompletableFuture so that the UI thread is not stuck waiting for a network response. The SDK will also print warnings if running on the UI thread. If you don't have a location service running, see the "Location Callback Example" section.</p>
 <p>Create a register client request: </p><div class="fragment"><div class="line">            AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, organizationName).build();</div>
 </div><!-- fragment --><p> Register, with a sane timeout, like 5 seconds. </p><div class="fragment"><div class="line">                registerReply = me.registerClient(registerClientRequest, GRPC_TIMEOUT_MS);</div>
 </div><!-- fragment --><p> Create a default FindCloudlet Request: </p><div class="fragment"><div class="line">            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)</div>
@@ -313,15 +313,18 @@ Location Callback Example and Posting Updates for Cloudlet Updates</h2>
 <div class="line">        };</div>
 </div><!-- fragment --><p>To request android location service to run in the background, you need google play services, please read here: <a href="https://developer.android.com/training/location/request-updates#java">https://developer.android.com/training/location/request-updates#java</a></p>
 <h2><a class="anchor" id="matchingengine_permissions"></a>
-MatchingEngine permission utility</h2>
-<p>The application should prompt for location permissions, as well as read the network state for edge server state management. Here's example to check using <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_request_permissions.html">com.mobiledgex.matchingengine.util.RequestPermissions</a>. It has getNeededPermissions() to check current missing permissions. </p><div class="fragment"><div class="line">        mRpUtil = <span class="keyword">new</span> RequestPermissions();</div>
+MatchingEngine Permission Utility</h2>
+<p>The application should prompt for location permissions, as well as read the network state for edge server state management. Here's example to check using <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_request_permissions.html">com.mobiledgex.matchingengine.util.RequestPermissions</a>. It has getNeededPermissions() to check current missing permissions. Be sure to add needed permissions to the app's AndroidManifest.xml file. Be sure to include INTERNET permissions. </p><div class="fragment"><div class="line">        mRpUtil = <span class="keyword">new</span> RequestPermissions();</div>
 </div><!-- fragment --><div class="fragment"><div class="line">        <span class="comment">// As of Android 23, permissions can be asked for while the app is still running.</span></div>
 <div class="line">        <span class="keywordflow">if</span> (mRpUtil.getNeededPermissions(appCompatActivity).size() &gt; 0) {</div>
 <div class="line">            mRpUtil.requestMultiplePermissions(appCompatActivity);</div>
 <div class="line">        }</div>
-</div><!-- fragment --><p> If the application onPause() is called, consider calling stopEdgeEvents() to free resources.</p>
+</div><!-- fragment --><p>The above asks for READ_PHONE_STATE, ACCESS_COARSE_LOCATION, and ACCESS_FINE_LOCATION.</p>
 <h2><a class="anchor" id="edgeevents_subscriber_template"></a>
-Cleanup</h2>
+Managing Resources</h2>
+<p>If the application onPause() is called, consider calling stopEdgeEvents() to free resources. Re-enable at onResume().</p>
+<h2><a class="anchor" id="edgeevents_subscriber_template"></a>
+Managing Resources</h2>
 <p>When the app needs to quit or free resources, call close(): </p><div class="fragment"><div class="line"> </div>
 <div class="line">    @Override</div>
 <div class="line">    <span class="keyword">public</span> <span class="keywordtype">void</span> onDestroy() {</div>

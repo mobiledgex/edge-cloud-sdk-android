@@ -17,6 +17,8 @@
 
 package com.mobiledgex.matchingengine.edgeeventsconfig;
 
+import android.util.Log;
+
 import com.mobiledgex.matchingengine.FindCloudlet;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
@@ -24,6 +26,7 @@ import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import java.util.EnumSet;
 
 public class EdgeEventsConfig {
+    private static final String TAG = "EdgeEventsConfig";
     // Configure how to send events
 
     /*!
@@ -36,7 +39,8 @@ public class EdgeEventsConfig {
 
     // Configure how to respond to events
     public double latencyThresholdTrigger; // latency threshold in ms when new FindCloudlet is triggered
-    public MatchingEngine.FindCloudletMode latencyTriggerTestMode = MatchingEngine.FindCloudletMode.PERFORMANCE;
+    public MatchingEngine.FindCloudletMode latencyTriggerTestMode;
+    public float performanceSwitchMargin; // Average performance must be by better by this latency margin (0 to 1.0f) before notifying of switch.
     public EnumSet<FindCloudletEventTrigger> triggers;// events that application wants a new find cloudlet for
 
     // Defaults:
@@ -44,6 +48,8 @@ public class EdgeEventsConfig {
         latencyInternalPort = 0; // implicit Ping only.
         latencyTestType = NetTest.TestType.CONNECT;
         latencyThresholdTrigger = 50;
+        latencyTriggerTestMode = MatchingEngine.FindCloudletMode.PERFORMANCE;
+        performanceSwitchMargin = 0.05f;
         triggers = EnumSet.allOf(FindCloudletEventTrigger.class);
 
         // Sane defaults, onTrigger, and once.
@@ -60,6 +66,14 @@ public class EdgeEventsConfig {
         latencyInternalPort = edgeEventsConfig.latencyInternalPort; // implicit Ping only.
         latencyTestType = edgeEventsConfig.latencyTestType;
         latencyThresholdTrigger = edgeEventsConfig.latencyThresholdTrigger;
+        latencyTriggerTestMode = edgeEventsConfig.latencyTriggerTestMode;
+        performanceSwitchMargin = Math.abs(edgeEventsConfig.performanceSwitchMargin);
+
+        if (performanceSwitchMargin > 1f) {
+            Log.w(TAG, "Performance Switch Margins must be less than 1.0f! Setting to 0.05f");
+            performanceSwitchMargin = 0.05f;
+        }
+
         if (edgeEventsConfig.triggers == null) {
             triggers = EnumSet.allOf(FindCloudletEventTrigger.class);
         } else if (edgeEventsConfig.triggers.size() >= 0) {
@@ -123,5 +137,25 @@ public class EdgeEventsConfig {
         return eeConfig;
     }
     //![exampleedgeeventsconfig]
+
+    // Not JSON!
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        sb.append(TAG + ": ");
+        sb.append("{");
+        sb.append("hashCode: " + hashCode());
+        sb.append(", latencyInternalPort: " + latencyInternalPort);
+        sb.append(", latencyTestType: " + latencyTestType);
+        sb.append(", latencyThresholdTrigger: " + latencyThresholdTrigger);
+        sb.append(", latencyTriggerTestMode: " + latencyTriggerTestMode);
+        sb.append(", performanceSwitchMargin: " + performanceSwitchMargin);
+        sb.append(", triggers: " + triggers);
+        sb.append(", latencyUpdateConfig: " + latencyUpdateConfig);
+        sb.append(", locationUpdateConfig: " + locationUpdateConfig);
+        sb.append("}");
+        sb.append("}");
+        return sb.toString();
+    }
 }
 

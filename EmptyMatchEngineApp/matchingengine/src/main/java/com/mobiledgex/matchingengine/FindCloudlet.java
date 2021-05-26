@@ -286,13 +286,23 @@ public class FindCloudlet implements Callable {
                 .build();
             fcreply = bestFindCloudletReply;
 
-            // If average is better, allow migration.
+            // If average is better, and de-bouncing margins, allow migration.
+            double margin = 0;
+            if (mMaximumLatencyMs > 0) {
+                float max = mMaximumLatencyMs;
+                margin = (bestSite.average - max)/max;
+            }
+
             if (bestSite.hasSuccessfulTests() &&
+                    mMaximumLatencyMs >= 0 &&
                     bestSite.average < mMaximumLatencyMs &&
-                    mMaximumLatencyMs >= 0) {
+                    margin < 0 && // Should be faster.
+                    Math.abs(margin) > Math.abs(mMatchingEngine.mEdgeEventsConfig.performanceSwitchMargin)
+            ) {
+                Log.i(TAG, "Performance tests found a better cloudlet. Performance margin: " + margin + ", Target: " + mMaximumLatencyMs + ", Average: " + bestSite.average);
                 mDoLatencyMigration = true;
             } else {
-                Log.i(TAG, "Performance tests did not find a better cloudlet.");
+                Log.i(TAG, "Performance tests did not find a better cloudlet. Performance margin: " + margin + ", Target: " + mMaximumLatencyMs + ", Average: " + bestSite.average);
                 return fcreply;
             }
         } catch (Exception e) {
@@ -414,7 +424,8 @@ public class FindCloudlet implements Callable {
         mMatchingEngine.setFindCloudletResponse(fcReply);
 
         // Create message channel for DME EdgeEvents:
-        if (!mDoLatencyMigration && mMode == MatchingEngine.FindCloudletMode.PERFORMANCE) {
+        if (mMaximumLatencyMs != -1 && // alt performance swap mode
+                !mDoLatencyMigration && mMode == MatchingEngine.FindCloudletMode.PERFORMANCE) {
             Log.d(TAG, "Cloudlet performance wasn't better. Not auto-migrating and returning nothing.");
             fcReply = null;
         } else if (fcReply != null && fcReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {

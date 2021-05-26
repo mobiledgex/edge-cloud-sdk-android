@@ -18,6 +18,8 @@
 package com.mobiledgex.matchingengine.edgeeventsconfig;
 
 public class ClientEventsConfig {
+    private static final String TAG = "ClientEventsConfig";
+
     public UpdatePattern updatePattern;
     public double updateIntervalSeconds; // in seconds
     public long maxNumberOfUpdates;
@@ -38,5 +40,19 @@ public class ClientEventsConfig {
         updatePattern = clientEventsConfig.updatePattern;
         updateIntervalSeconds = clientEventsConfig.updateIntervalSeconds;
         maxNumberOfUpdates = clientEventsConfig.maxNumberOfUpdates;
+    }
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        sb.append(TAG + ": ");
+        sb.append("{");
+        sb.append(" hashCode: " + hashCode());
+        sb.append(", updatePattern: " + updatePattern);
+        sb.append(", updateIntervalSeconds: " + updateIntervalSeconds);
+        sb.append(", maxNumberOfUpdates: " + maxNumberOfUpdates);
+        sb.append("}");
+        sb.append("}");
+        return sb.toString();
     }
 }

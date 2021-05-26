@@ -141,7 +141,7 @@
  * \snippet MainActivity.java startedgeevents_example
  *
  * \subsection register_and_findcloudlet Register and FindCloudlet
- * Many of these commands have asynchronous Futures versions. The blocking versions below should only be run inside something
+ * Many of these methods have asynchronous Futures versions. The blocking versions below should only be run inside something
  * like a CompletableFuture so that the UI thread is not stuck waiting for a network response. The SDK will also print warnings
  * if running on the UI thread. If you don't have a location service running, see the "Location Callback Example" section.
  *
@@ -178,14 +178,16 @@
  * To request android location service to run in the background, you need google play services, please read here:
  * https://developer.android.com/training/location/request-updates#java
  *
- * \subsection matchingengine_permissions MatchingEngine permission utility
+ * \subsection matchingengine_permissions MatchingEngine Permission Utility
  * The application should prompt for location permissions, as well as read the network state for edge server state management. Here's
  * example to check using com.mobiledgex.matchingengine.util.RequestPermissions. It has getNeededPermissions() to check current
- * missing permissions.
+ * missing permissions. Be sure to add needed permissions to the app's AndroidManifest.xml file. Be sure to include INTERNET permissions.
  * \snippet FirstTimeUseActivity.java create_request_permissions_util
  * \snippet FirstTimeUseActivity.java request_permissions_example
+ * The above asks for READ_PHONE_STATE, ACCESS_COARSE_LOCATION, and ACCESS_FINE_LOCATION.
  *
- * If the application onPause() is called, consider calling stopEdgeEvents() to free resources.
+ * \subsection edgeevents_subscriber_template Managing Resources
+ * If the application onPause() is called, consider calling stopEdgeEvents() to free resources. Re-enable at onResume().
  *
  * \subsection edgeevents_subscriber_template Cleanup
  * When the app needs to quit or free resources, call close():

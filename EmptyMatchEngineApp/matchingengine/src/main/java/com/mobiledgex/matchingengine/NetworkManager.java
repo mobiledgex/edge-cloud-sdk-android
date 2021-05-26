@@ -30,6 +30,7 @@ import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.util.Log;
 
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +40,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static android.telephony.CarrierConfigManager.KEY_CARRIER_WFC_IMS_AVAILABLE_BOOL;
 
@@ -132,10 +135,14 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
             return;
         }
 
-        switchToNetworkBlocking(networkRequest, false);
-        Future<Callable> future = mThreadPool.submit(callable);
-        future.get();
-        resetNetworkToDefault();
+        try {
+            switchToNetworkBlocking(networkRequest, false);
+            Future<Callable> future = mThreadPool.submit(callable);
+            future.get(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
+            resetNetworkToDefault();
+        } catch (TimeoutException timeoutException) {
+            throw new ExecutionException(timeoutException);
+        }
     }
 
     public static NetworkManager getInstance(ConnectivityManager connectivityManager, SubscriptionManager subscriptionManager) {
@@ -297,7 +304,11 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
         if (mDefaultRequest == null) {
             mConnectivityManager.bindProcessToNetwork(null);
         } else {
-            switchToNetworkBlocking(mDefaultRequest, true);
+            try {
+                switchToNetworkBlocking(mDefaultRequest, true);
+            } catch (TimeoutException timeoutException) {
+                throw new ExecutionException(timeoutException);
+            }
         }
 
         NetworkCapabilities networkCapabilities = mConnectivityManager.getNetworkCapabilities(mConnectivityManager.getActiveNetwork());
@@ -309,6 +320,9 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     }
 
     synchronized public List<SubscriptionInfo> getActiveSubscriptionInfoList(boolean clone) throws SecurityException {
+        if (!isNetworkSwitchingEnabled()) {
+            return new ArrayList<>();
+        }
 
         if (mActiveSubscriptionInfoList == null) {
              mActiveSubscriptionInfoList = mSubscriptionManager.getActiveSubscriptionInfoList();
@@ -574,25 +588,37 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
             return mNetwork;
         }
 
-        NetworkRequest request = getCellularNetworkRequest();
-
-        mNetwork = switchToNetworkBlocking(request, bindProcess);
+        try {
+            NetworkRequest request = getCellularNetworkRequest();
+            mNetwork = switchToNetworkBlocking(request, bindProcess);
+        } catch (TimeoutException timeoutException) {
+            throw new ExecutionException(timeoutException);
+        }
         return mNetwork;
     }
 
     synchronized public Network getCellularNetworkOrWifiBlocking(boolean bindProcess, String currentMccMnc) throws InterruptedException, ExecutionException {
+
         if (currentMccMnc != null && !currentMccMnc.isEmpty()) {
             try {
                 mNetwork = getCellularNetworkBlocking(bindProcess);
             } catch (ExecutionException ee) {
                 // Cellular failed. Try WiFi:
-                Log.e(TAG, "Cellular Switch failed. Trying Wifi... ");
-                mNetwork = switchToNetworkBlocking(getWifiNetworkRequest(), bindProcess);
+                Log.e(TAG, "Cellular Switch failed. Reason: " + ee.getLocalizedMessage() + ". Trying Wifi... ");
+                try {
+                    mNetwork = switchToNetworkBlocking(getWifiNetworkRequest(), bindProcess);
+                } catch (TimeoutException timeoutException) {
+                    throw new ExecutionException(timeoutException); // rethrow.
+                }
             }
         } else {
             // Cellular is not available. Let's try wifi:
             Log.i(TAG, "Cellular is not present. Trying Wifi... ");
-            mNetwork = switchToNetworkBlocking(getWifiNetworkRequest(), bindProcess);
+            try {
+                mNetwork = switchToNetworkBlocking(getWifiNetworkRequest(), bindProcess);
+            } catch (TimeoutException timeoutException) {
+                throw new ExecutionException(timeoutException); // rethrow.
+            }
         }
 
         return mNetwork;
@@ -610,9 +636,12 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
             return mNetwork;
         }
 
-        NetworkRequest request = getCellularNetworkRequest();
-
-        mNetwork = switchToNetworkBlocking(request, true);
+        try {
+            NetworkRequest request = getCellularNetworkRequest();
+            mNetwork = switchToNetworkBlocking(request, true);
+        } catch (TimeoutException timeoutException) {
+            throw new ExecutionException(timeoutException);
+        }
         return mNetwork;
     }
 
@@ -630,11 +659,16 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     /*!
      * Switch to a particular network type in a blocking fashion for synchronous execution blocks.
      */
-    synchronized public Network switchToNetworkBlocking(NetworkRequest networkRequest, boolean bindProcess) throws InterruptedException, ExecutionException {
+    synchronized public Network switchToNetworkBlocking(NetworkRequest networkRequest, boolean bindProcess) throws InterruptedException, ExecutionException, TimeoutException {
         Future<Network> networkFuture;
 
-        networkFuture = mThreadPool.submit(new NetworkSwitcherCallable(networkRequest, bindProcess));
-        return networkFuture.get();
+        try {
+            networkFuture = mThreadPool.submit(new NetworkSwitcherCallable(networkRequest, bindProcess));
+            return networkFuture.get(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException timeoutException) {
+            Log.e(TAG, "Cannot switch to network. Reason: " + timeoutException.getLocalizedMessage());
+            throw timeoutException;
+        }
     }
 
     /*!
