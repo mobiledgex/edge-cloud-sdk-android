@@ -161,7 +161,7 @@ NetworkRequest&#160;</td><td class="memItemRight" valign="bottom"><b>getWiFiAwar
 <tr class="separator:a9b0ad2bc2e69c5cd04cb786dcb2c3a07"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a29e900338aeffaf544af839418aa71fc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a29e900338aeffaf544af839418aa71fc">setDefaulNetwork</a> (NetworkRequest defaultNetworkRequest)</td></tr>
 <tr class="separator:a29e900338aeffaf544af839418aa71fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a17939379441681d9fae0ce330b6c3d5e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a17939379441681d9fae0ce330b6c3d5e">resetNetworkToDefault</a> ()  throws InterruptedException, ExecutionException </td></tr>
+<tr class="memitem:a17939379441681d9fae0ce330b6c3d5e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a17939379441681d9fae0ce330b6c3d5e">resetNetworkToDefault</a> ()  throws InterruptedException, ExecutionException, TimeoutException </td></tr>
 <tr class="separator:a17939379441681d9fae0ce330b6c3d5e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3f07c8a3ae7986e1dee1c023d345e21b"><td class="memItemLeft" align="right" valign="top"><a id="a3f07c8a3ae7986e1dee1c023d345e21b"></a>
 boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isSSLEnabled</b> ()</td></tr>
@@ -193,7 +193,7 @@ synchronized Network&#160;</td><td class="memItemRight" valign="bottom"><b>getCe
 <tr class="separator:ae15a36664af7cf1dca2207d15fd92a09"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab6e9fd558c8defd7e1b1b1ca9f0dd9cc"><td class="memItemLeft" align="right" valign="top">synchronized Future&lt; Network &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#ab6e9fd558c8defd7e1b1b1ca9f0dd9cc">switchToCellularInternetNetworkFuture</a> ()</td></tr>
 <tr class="separator:ab6e9fd558c8defd7e1b1b1ca9f0dd9cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a60933632fd6bd8e6e376291d7e012b9c"><td class="memItemLeft" align="right" valign="top">synchronized Network&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a60933632fd6bd8e6e376291d7e012b9c">switchToNetworkBlocking</a> (NetworkRequest networkRequest, boolean bindProcess)  throws InterruptedException, ExecutionException </td></tr>
+<tr class="memitem:a60933632fd6bd8e6e376291d7e012b9c"><td class="memItemLeft" align="right" valign="top">synchronized Network&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a60933632fd6bd8e6e376291d7e012b9c">switchToNetworkBlocking</a> (NetworkRequest networkRequest, boolean bindProcess)  throws InterruptedException, ExecutionException, TimeoutException </td></tr>
 <tr class="separator:a60933632fd6bd8e6e376291d7e012b9c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a247445c81463a093e82270227668b696"><td class="memItemLeft" align="right" valign="top">synchronized void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a247445c81463a093e82270227668b696">switchToNetwork</a> (NetworkRequest networkRequest, final ConnectivityManager.NetworkCallback networkCallback)</td></tr>
 <tr class="separator:a247445c81463a093e82270227668b696"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -291,7 +291,7 @@ static <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_
           <td class="memname">void com.mobiledgex.matchingengine.NetworkManager.resetNetworkToDefault </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
-          <td> throws InterruptedException, ExecutionException</td>
+          <td> throws InterruptedException, ExecutionException, TimeoutException</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -410,7 +410,7 @@ static <a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_network_
         <tr>
           <td></td>
           <td>)</td>
-          <td></td><td> throws InterruptedException, ExecutionException</td>
+          <td></td><td> throws InterruptedException, ExecutionException, TimeoutException</td>
         </tr>
       </table>
 </div><div class="memdoc">
