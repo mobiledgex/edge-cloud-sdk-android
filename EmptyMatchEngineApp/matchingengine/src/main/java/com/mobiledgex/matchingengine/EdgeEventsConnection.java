@@ -11,7 +11,7 @@ import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.edgeeventhandlers.EdgeEventsIntervalHandler;
 import com.mobiledgex.matchingengine.edgeeventhandlers.EdgeEventsLatencyIntervalHandler;
 import com.mobiledgex.matchingengine.edgeeventhandlers.EdgeEventsLocationIntervalHandler;
-import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
+import com.mobiledgex.matchingengine.edgeeventsconfig.UpdateConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEventTrigger;
@@ -24,8 +24,6 @@ import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -1078,7 +1076,7 @@ public class EdgeEventsConnection {
         }
 
         if (mEdgeEventsConfig.locationUpdateConfig != null) {
-            ClientEventsConfig locationUpdateConfig = mEdgeEventsConfig.locationUpdateConfig;
+            UpdateConfig locationUpdateConfig = mEdgeEventsConfig.locationUpdateConfig;
 
             switch (locationUpdateConfig.updatePattern) {
                 case onStart:
@@ -1100,7 +1098,7 @@ public class EdgeEventsConnection {
 
     synchronized private void runLatencyMonitorConfig() {
         if (mEdgeEventsConfig.latencyUpdateConfig != null) {
-            ClientEventsConfig latencyUpdateConfig = mEdgeEventsConfig.latencyUpdateConfig;
+            UpdateConfig latencyUpdateConfig = mEdgeEventsConfig.latencyUpdateConfig;
 
             switch (latencyUpdateConfig.updatePattern) {
                 case onStart:

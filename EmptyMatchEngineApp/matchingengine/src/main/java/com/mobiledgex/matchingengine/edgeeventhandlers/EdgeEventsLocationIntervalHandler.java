@@ -21,7 +21,7 @@ import android.util.Log;
 
 import com.mobiledgex.matchingengine.EdgeEventsConnection;
 import com.mobiledgex.matchingengine.MatchingEngine;
-import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
+import com.mobiledgex.matchingengine.edgeeventsconfig.UpdateConfig;
 
 import java.util.TimerTask;
 
@@ -29,7 +29,7 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
     public final static String TAG = "EdgeEventsLocationIntervalHandler";
     private MatchingEngine me;
 
-    public EdgeEventsLocationIntervalHandler(MatchingEngine matchingEngine, ClientEventsConfig config) {
+    public EdgeEventsLocationIntervalHandler(MatchingEngine matchingEngine, UpdateConfig config) {
         super();
         me = matchingEngine;
         if (me == null) {
@@ -38,7 +38,7 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
         if (config == null) {
             throw new IllegalArgumentException("Config cannot be null!");
         }
-        ClientEventsConfig cfg = new ClientEventsConfig(config);
+        UpdateConfig cfg = new UpdateConfig(config);
 
         if (config.updateIntervalSeconds <= 0) {
             Log.w(TAG, "Seconds cannot be negative. Defaulting to 30 seconds.");
@@ -53,11 +53,11 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
 
     private class LocationTask extends TimerTask {
 
-        ClientEventsConfig ceConfig;
+        UpdateConfig ceConfig;
         Location location = null;
 
-        LocationTask(ClientEventsConfig clientEventsConfig) {
-            ceConfig = clientEventsConfig;
+        LocationTask(UpdateConfig updateConfig) {
+            ceConfig = updateConfig;
             getNumberOfTimesExecuted = 0;
         }
 

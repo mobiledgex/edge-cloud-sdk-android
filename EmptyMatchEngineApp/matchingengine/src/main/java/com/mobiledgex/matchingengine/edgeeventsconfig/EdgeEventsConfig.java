@@ -19,7 +19,6 @@ package com.mobiledgex.matchingengine.edgeeventsconfig;
 
 import android.util.Log;
 
-import com.mobiledgex.matchingengine.FindCloudlet;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 
@@ -34,8 +33,8 @@ public class EdgeEventsConfig {
      */
     public int latencyInternalPort;
     public NetTest.TestType latencyTestType = NetTest.TestType.CONNECT; // TCP connect. Use ping for UDP.
-    public ClientEventsConfig latencyUpdateConfig; // config for latency updates
-    public ClientEventsConfig locationUpdateConfig;// config for gps location updates
+    public UpdateConfig latencyUpdateConfig; // config for latency updates
+    public UpdateConfig locationUpdateConfig;// config for gps location updates
 
     // Configure how to respond to events
     public double latencyThresholdTrigger; // latency threshold in ms when new FindCloudlet is triggered
@@ -53,8 +52,8 @@ public class EdgeEventsConfig {
         triggers = EnumSet.allOf(FindCloudletEventTrigger.class);
 
         // Sane defaults, onTrigger, and once.
-        latencyUpdateConfig = new ClientEventsConfig();
-        locationUpdateConfig = new ClientEventsConfig();
+        latencyUpdateConfig = new UpdateConfig();
+        locationUpdateConfig = new UpdateConfig();
     }
 
     /*!
@@ -82,10 +81,10 @@ public class EdgeEventsConfig {
 
         // Sane defaults
         if (edgeEventsConfig.latencyUpdateConfig != null) {
-            latencyUpdateConfig = new ClientEventsConfig(edgeEventsConfig.latencyUpdateConfig);
+            latencyUpdateConfig = new UpdateConfig(edgeEventsConfig.latencyUpdateConfig);
         }
         if (edgeEventsConfig.locationUpdateConfig != null) {
-            locationUpdateConfig = new ClientEventsConfig(edgeEventsConfig.locationUpdateConfig);
+            locationUpdateConfig = new UpdateConfig(edgeEventsConfig.locationUpdateConfig);
         }
     }
 
@@ -97,12 +96,12 @@ public class EdgeEventsConfig {
         eeConfig.latencyThresholdTrigger = 50;
 
         eeConfig.latencyUpdateConfig.updateIntervalSeconds = 30;
-        eeConfig.latencyUpdateConfig.updatePattern = ClientEventsConfig.UpdatePattern.onInterval;
+        eeConfig.latencyUpdateConfig.updatePattern = UpdateConfig.UpdatePattern.onInterval;
 
         // This one will require location to be posted to the EdgeEvents state machine
         // by the Android location handler. Then, it posts to EdgeEvents that result at this interval.
         eeConfig.locationUpdateConfig.updateIntervalSeconds = 30;
-        eeConfig.locationUpdateConfig.updatePattern = ClientEventsConfig.UpdatePattern.onInterval;
+        eeConfig.locationUpdateConfig.updatePattern = UpdateConfig.UpdatePattern.onInterval;
 
         return eeConfig;
     }
@@ -127,12 +126,12 @@ public class EdgeEventsConfig {
         eeConfig.latencyInternalPort = latencyInternalPort;
 
         eeConfig.latencyUpdateConfig.updateIntervalSeconds = latencyUpdateIntervalSeconds;
-        eeConfig.latencyUpdateConfig.updatePattern = ClientEventsConfig.UpdatePattern.onInterval;
+        eeConfig.latencyUpdateConfig.updatePattern = UpdateConfig.UpdatePattern.onInterval;
 
         // This one will require location to be posted to the EdgeEvents state machine
         // by the Android location handler. Then, it posts that result at this interval.
         eeConfig.locationUpdateConfig.updateIntervalSeconds = locationUpdateIntervalSeconds;
-        eeConfig.locationUpdateConfig.updatePattern = ClientEventsConfig.UpdatePattern.onInterval;
+        eeConfig.locationUpdateConfig.updatePattern = UpdateConfig.UpdatePattern.onInterval;
 
         return eeConfig;
     }
