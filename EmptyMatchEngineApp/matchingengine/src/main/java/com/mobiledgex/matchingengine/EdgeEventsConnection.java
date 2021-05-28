@@ -66,6 +66,14 @@ public class EdgeEventsConnection {
     ChannelStatus channelStatus = ChannelStatus.closed;
     Object openAwaiter = new Object();
 
+    class AppInstDetails {
+        Site lastSite;
+        double margin;
+        AppInstDetails(Site site, double margin) {
+            this.lastSite = site;
+            this.margin = margin;
+        }
+    }
     ConnectionDetails lastConnectionDetails;
     class ConnectionDetails {
         String host;
@@ -76,6 +84,7 @@ public class EdgeEventsConnection {
             port = aPort;
             network = aNetwork;
         }
+        AppInstDetails appInstDetials;
     }
 
     private Location mLastLocationPosted = null;
@@ -542,6 +551,17 @@ public class EdgeEventsConnection {
             openAwaiter.notifyAll();
             openAwaiter = null;
         }
+    }
+
+    /* Set the best site for the configured App for this EdgeEventsConnection.
+     * \param Site
+     */
+    void updateBestAppSite(Site site, double margin) {
+        if (isShutdown()) {
+            return;
+        }
+        Log.d(TAG, "Best site is being updated to: " + site.host + ", avg latency: " + site.average + ", Margin: " + margin);
+        lastConnectionDetails.appInstDetials = new AppInstDetails(site, margin);
     }
 
     public boolean isShutdown() {
