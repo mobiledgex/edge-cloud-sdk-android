@@ -1025,4 +1025,92 @@ public class EdgeEventsConnectionTest {
             }
         }
     }
+
+    @Test
+    public void LatencyUtilEdgeEventsTest_BadPort() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        Future<AppClient.FindCloudletReply> response1;
+        AppClient.FindCloudletReply findCloudletReply1;
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+
+        // This EdgeEventsConnection test requires an EdgeEvents enabled server.
+        // me.setSSLEnabled(false);
+        // me.setNetworkSwitchingEnabled(false);
+
+        // attach an EdgeEventBus to receive the server response, if any (inline class):
+        final List<AppClient.ServerEdgeEvent> responses = new ArrayList<>();
+        final List<FindCloudletEvent> latencyNewCloudletResponses = new ArrayList<>();
+        CountDownLatch latch = new CountDownLatch(2);
+        class EventReceiver2 {
+            @Subscribe
+            void HandleEdgeEvent(AppClient.ServerEdgeEvent edgeEvent) {
+                switch (edgeEvent.getEventType()) {
+                    case EVENT_LATENCY_PROCESSED:
+                        Log.i(TAG, "Received a latency processed response: " + edgeEvent);
+                        responses.add(edgeEvent);
+                        latch.countDown();
+                        break;
+                }
+            }
+
+            @Subscribe
+            void HandleFindCloudlet(FindCloudletEvent fce) {
+                latencyNewCloudletResponses.add(fce);
+            }
+        }
+        EventReceiver2 er = new EventReceiver2();
+        me.getEdgeEventsBus().register(er);
+
+        try {
+            Location location = getTestLocation(); // Test needs this configurable in a sensible way.
+            registerClient(me);
+
+            // Cannot use the older API if overriding.
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName(findCloudletCarrierOverride)
+                    .build();
+
+            EdgeEventsConfig edgeEventsConfig = me.createDefaultEdgeEventsConfig(
+                    5,
+                    5,
+                    500,
+                    2085);
+            edgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;
+            edgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates++; //  We want 1. 0 is actually infinity.
+
+            if (useHostOverride) {
+                response1 = me.findCloudletFuture(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS,
+                        MatchingEngine.FindCloudletMode.PROXIMITY);
+            } else {
+                response1 = me.findCloudletFuture(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PROXIMITY);
+            }
+            me.startEdgeEvents(edgeEventsConfig);
+            findCloudletReply1 = response1.get();
+
+
+            assertSame("FindCloudlet1 did not succeed!", findCloudletReply1.getStatus(), FIND_FOUND);
+            assertNotNull("Must have configured edgeEvents in test to USE edge events functions.", me.mEdgeEventsConfig);
+
+            latch.await(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            long expectedNum = 0;
+            assertEquals("Must get [" + expectedNum + "] responses back from server.", expectedNum, responses.size());
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            fail("FindCloudletFuture: DmeDnsException");
+        } catch (ExecutionException ee) {
+            Log.e(TAG, Log.getStackTraceString(ee));
+            fail("FindCloudletFuture: ExecutionExecution!");
+        } catch (InterruptedException ie) {
+            Log.e(TAG, Log.getStackTraceString(ie));
+            fail("FindCloudletFuture: InterruptedException!");
+        } finally {
+            if (me != null) {
+                Log.i(TAG, "Closing matching engine...");
+                me.close();
+                Log.i(TAG, "MatchingEngine closed for test.");
+            }
+        }
+    }
 }

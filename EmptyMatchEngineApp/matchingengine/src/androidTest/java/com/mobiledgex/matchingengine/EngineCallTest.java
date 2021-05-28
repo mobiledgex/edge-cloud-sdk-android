@@ -1848,7 +1848,6 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
         Location location = getTestLocation();
 
-        //! [nettest]
         try {
             registerClient(me);
 
@@ -1861,7 +1860,7 @@ public class EngineCallTest {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PERFORMANCE);
             }
 
-            NetTest netTest = me.getNetTest();
+            NetTest netTest = me.getNetTest(); // Engine test only. Do not use.
             netTest.testRounds = 10;
             Network network = me.getNetworkManager().getActiveNetwork();
 
@@ -1945,7 +1944,6 @@ public class EngineCallTest {
             Log.i(TAG, Log.getStackTraceString(ie));
             assertFalse("NetTestAPItest: InterruptedException!", true);
         }
-        //! [nettest]
     }
 
     @Test

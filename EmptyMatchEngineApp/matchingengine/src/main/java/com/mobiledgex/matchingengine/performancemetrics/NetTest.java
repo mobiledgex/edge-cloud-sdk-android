@@ -49,7 +49,7 @@ import javax.net.SocketFactory;
  * Utility class used for testing network latency
  * \ingroup classes_util
  * \section nettest Example
- * \snippet EngineCallTest.java nettest
+ * \snippet NetMetricsTest.java nettest
  */
 public class NetTest
 {

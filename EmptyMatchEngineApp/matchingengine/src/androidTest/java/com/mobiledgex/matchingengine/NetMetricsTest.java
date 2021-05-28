@@ -53,7 +53,6 @@ public class NetMetricsTest {
 
     @Test
     public void testMetrics1() {
-        NetTest netTest = new NetTest();
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -64,11 +63,12 @@ public class NetMetricsTest {
         location.setLongitude(-122.3321);
         location.setLatitude(47.6062);
 
+        NetTest netTest = new NetTest();
         AppClient.RegisterClientRequest.Builder registerClientRequestBuilder = null;
         try {
             registerClientRequestBuilder = me.createDefaultRegisterClientRequest(context, "MobiledgeX-Samples")
-                    .setAppName("HttpEcho")
-                    .setAppVers("1.0");
+                    .setAppName("ComputerVision-GPU")
+                    .setAppVers("2.2");
             AppClient.RegisterClientRequest req = registerClientRequestBuilder.build();
 
             AppClient.RegisterClientReply regReply = me.registerClient(req, 10000);
@@ -97,12 +97,9 @@ public class NetMetricsTest {
 
 
         List<Site> sites = netTest.sortedSiteList();
-        assertEquals("Site list size wrong!", 1, sites.size());
+        assertEquals("Site list size wrong!", 2, sites.size());
 
         Site bestSite;
-        // Emulator WiFi unit test only! (and still unstable)
-        // The expectation is on a cellular network, net test needs to be paired with a dummy DME call
-        // with some 2K of data to prime the network to send data.
         netTest.testSites(TimeoutMS);
         bestSite = netTest.bestSite();
         Site site2 = netTest.sortedSiteList().get(0);
@@ -124,13 +121,12 @@ public class NetMetricsTest {
             assertEquals("Test expectation is vancouver-main wins: ", site2.host, netTest.bestSite().host);
         }
         // Might fail:
-        assertEquals("httpecho-tcp.vancouver-main.cerust.mobiledgex.net", bestSite.host);
+        assertEquals("cv-gpu-cluster.montreal-pitfield.cerust.mobiledgex.net", bestSite.host);
 
     }
 
     @Test
     public void testMetrics2() {
-        NetTest netTest = new NetTest();
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
@@ -141,6 +137,7 @@ public class NetMetricsTest {
         location.setLongitude(-122.3321);
         location.setLatitude(47.6062);
 
+        NetTest netTest = new NetTest();
         AppClient.RegisterClientRequest.Builder registerClientRequestBuilder = null;
         try {
             registerClientRequestBuilder = me.createDefaultRegisterClientRequest(context, "MobiledgeX-Samples")
@@ -156,7 +153,7 @@ public class NetMetricsTest {
             AppClient.AppInstListReply appInstListReply = me.getAppInstList(appInstListRequest, 10000);
             for (AppClient.CloudletLocation cloudletLoc : appInstListReply.getCloudletsList()) {
                 for (AppClient.Appinstance appInst : cloudletLoc.getAppinstancesList()) {
-                    String host = appInst.getPortsList().get(0).getFqdnPrefix() + appInst.getFqdn(); // +  appInst.getPortsList().get(0).getPathPrefix();
+                    String host = appInst.getPortsList().get(0).getFqdnPrefix() + appInst.getFqdn();
                     int port = 8008;
                     Site site = new Site(context, NetTest.TestType.CONNECT, 5, host, port);
                     netTest.addSite(site);
@@ -177,9 +174,6 @@ public class NetMetricsTest {
         assertEquals("Site list size wrong!", 2, sites.size());
 
         Site bestSite;
-        // Emulator WiFi unit test only! (and still unstable)
-        // The expectation is on a cellular network, net test needs to be paired with a dummy DME call
-        // with some 2K of data to prime the network to send data.
         netTest.testSites(TimeoutMS);
         bestSite = netTest.bestSite();
         Site site2 = netTest.sortedSiteList().get(0);
@@ -201,7 +195,62 @@ public class NetMetricsTest {
             assertEquals("Test expectation is vancouver-main site wins: ", site2.host, netTest.bestSite().host);
         }
         // Might fail:
-        assertEquals("cv-gpu-cluster.vancouver-main.cerust.mobiledgex.net", bestSite.host);
+        assertEquals("cv-gpu-cluster.montreal-pitfield.cerust.mobiledgex.net", bestSite.host);
+
+    }
+
+    // Mainly for documenation usage:
+    @Test
+    public void testMetrics3() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setUseWifiOnly(true);
+
+        Network network = me.getNetworkManager().getActiveNetwork();
+
+        Location location = new Location("EngineCallTestLocation");
+        location.setLongitude(-122.3321);
+        location.setLatitude(47.6062);
+
+        //! [nettest]
+        NetTest netTest = new NetTest();
+        AppClient.RegisterClientRequest.Builder registerClientRequestBuilder = null;
+        try {
+            registerClientRequestBuilder = me.createDefaultRegisterClientRequest(context, "MobiledgeX-Samples")
+                    .setAppName("EdgeMultiplay")
+                    .setAppVers("1.2");
+            AppClient.RegisterClientRequest req = registerClientRequestBuilder.build();
+
+            AppClient.RegisterClientReply regReply = me.registerClient(req,10000);
+            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName("")
+                    .build();
+
+            int internalPort = 7776; // This is the un-remapped port of the App definition. See the app's console definition.
+            AppClient.FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, 10000);
+            String host = me.getAppConnectionManager().getHost(findCloudletReply, internalPort); // internal port to host lookup.
+            int port = me.getAppConnectionManager().getPublicPort(findCloudletReply, internalPort); // internal port to port lookup.
+            Site site = new Site(context, NetTest.TestType.CONNECT, 5, host, port);
+            netTest.addSite(site);
+        } catch (DmeDnsException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            Assert.assertFalse(String.valueOf(e.getStackTrace()), true);
+        } catch (NameNotFoundException pmnf) {
+            Assert.assertTrue("Missing package manager!", false);
+        }
+
+        List<Site> sites = netTest.sortedSiteList();
+        netTest.testSites(TimeoutMS);
+        List<Site> sortedSites = netTest.sortedSiteList();
+        for (Site s : sortedSites) {
+            Log.i(TAG, "Test average: " + s.average);
+        }
+        //! [nettest]
+        assertEquals("Site list size wrong!", 1, sites.size());
 
     }
 }

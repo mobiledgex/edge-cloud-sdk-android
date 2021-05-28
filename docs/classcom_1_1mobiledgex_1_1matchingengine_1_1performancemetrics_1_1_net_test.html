@@ -190,103 +190,41 @@ static final String&#160;</td><td class="memItemRight" valign="bottom"><b>TAG</b
 <div class="textblock"><p>Utility class used for testing network latency</p>
 <h1><a class="anchor" id="nettest"></a>
 Example</h1>
-<div class="fragment"><div class="line">        <span class="keywordflow">try</span> {</div>
-<div class="line">            registerClient(me);</div>
+<div class="fragment"><div class="line">        <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#abfdf7eb72011241024ac28f4d4ae5395">NetTest</a> netTest = <span class="keyword">new</span> <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#abfdf7eb72011241024ac28f4d4ae5395">NetTest</a>();</div>
+<div class="line">        AppClient.RegisterClientRequest.Builder registerClientRequestBuilder = <span class="keyword">null</span>;</div>
+<div class="line">        <span class="keywordflow">try</span> {</div>
+<div class="line">            registerClientRequestBuilder = me.createDefaultRegisterClientRequest(context, <span class="stringliteral">&quot;MobiledgeX-Samples&quot;</span>)</div>
+<div class="line">                    .setAppName(<span class="stringliteral">&quot;EdgeMultiplay&quot;</span>)</div>
+<div class="line">                    .setAppVers(<span class="stringliteral">&quot;1.2&quot;</span>);</div>
+<div class="line">            AppClient.RegisterClientRequest req = registerClientRequestBuilder.build();</div>
 <div class="line"> </div>
+<div class="line">            AppClient.RegisterClientReply regReply = me.registerClient(req,10000);</div>
 <div class="line">            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)</div>
-<div class="line">                    .setCarrierName(findCloudletCarrierOverride)</div>
+<div class="line">                    .setCarrierName(<span class="stringliteral">&quot;&quot;</span>)</div>
 <div class="line">                    .build();</div>
-<div class="line">            <span class="keywordflow">if</span> (useHostOverride) {</div>
-<div class="line">                findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PERFORMANCE);</div>
-<div class="line">            } <span class="keywordflow">else</span> {</div>
-<div class="line">                findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS, MatchingEngine.FindCloudletMode.PERFORMANCE);</div>
-<div class="line">            }</div>
 <div class="line"> </div>
-<div class="line">            <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#abfdf7eb72011241024ac28f4d4ae5395">NetTest</a> netTest = me.getNetTest();</div>
-<div class="line">            netTest.testRounds = 10;</div>
-<div class="line">            Network network = me.getNetworkManager().getActiveNetwork();</div>
-<div class="line"> </div>
-<div class="line">            Log.d(TAG, <span class="stringliteral">&quot;Executor version testing...&quot;</span>);</div>
-<div class="line"> </div>
-<div class="line"> </div>
-<div class="line">            <span class="comment">// Threaded version unit test of executor:</span></div>
-<div class="line">            ExecutorService executorService = <span class="keyword">null</span>;</div>
-<div class="line">            <span class="keywordtype">long</span> threadRun = 0;</div>
-<div class="line">            <span class="keywordflow">try</span> {</div>
-<div class="line">                executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());</div>
-<div class="line">                netTest.setExecutorService(executorService);</div>
-<div class="line">                Stopwatch stopWatch = Stopwatch.createStarted();</div>
-<div class="line">                netTest.testSitesOnExecutor(GRPC_TIMEOUT_MS);</div>
-<div class="line">                threadRun = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);</div>
-<div class="line">                Log.d(TAG, <span class="stringliteral">&quot;Threads, Time to run: &quot;</span> + threadRun);</div>
-<div class="line">            } <span class="keywordflow">finally</span> {</div>
-<div class="line">                netTest.setExecutorService(<span class="keyword">null</span>);</div>
-<div class="line">                <span class="keywordflow">if</span> (executorService != <span class="keyword">null</span> &amp;&amp; !executorService.isShutdown()) {</div>
-<div class="line">                    executorService.shutdown();</div>
-<div class="line">                }</div>
-<div class="line">            }</div>
-<div class="line">            Site bestSite1 = netTest.bestSite();</div>
-<div class="line"> </div>
-<div class="line">            Log.d(TAG, <span class="stringliteral">&quot;Simple for loop...&quot;</span>);</div>
-<div class="line">            <span class="comment">// Test numSample times, all sites in round robin style, at PingInterval time.</span></div>
-<div class="line">            Stopwatch stopWatch = Stopwatch.createStarted();</div>
-<div class="line">            <span class="keywordflow">for</span> (Site s : netTest.sortedSiteList()) {</div>
-<div class="line">                <span class="keywordflow">for</span> (<span class="keywordtype">int</span> n = 0; n &lt; s.samples.length; n++) {</div>
-<div class="line">                    netTest.testSite(s);</div>
-<div class="line">                }</div>
-<div class="line">            }</div>
-<div class="line"> </div>
-<div class="line">            <span class="keywordtype">long</span> size1 = netTest.sortedSiteList().size();</div>
-<div class="line"> </div>
-<div class="line">            <span class="keywordtype">long</span> serialRun = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);</div>
-<div class="line">            Log.d(TAG, <span class="stringliteral">&quot;Loop, Time to run: &quot;</span> + serialRun);</div>
-<div class="line">            <span class="comment">// Using default comparator for selecting the current best.</span></div>
-<div class="line">            Site bestSite2 = netTest.bestSite();</div>
-<div class="line"> </div>
-<div class="line">            <span class="comment">// Some criteria in case a site is pretty close in performance:</span></div>
-<div class="line">            <span class="keywordflow">if</span> (bestSite1.host != bestSite2.host) {</div>
-<div class="line">                <span class="keywordtype">double</span> diff = bestSite1.average - bestSite2.average;</div>
-<div class="line">                <span class="keywordflow">if</span> (diff/bestSite2.average &gt; 0.15d) { <span class="comment">// % arbitrary.</span></div>
-<div class="line">                    assertEquals(<span class="stringliteral">&quot;The best site, should usually agree in a certain time span if nothing changed.&quot;</span>, bestSite1.host, bestSite2.host);</div>
-<div class="line">                }</div>
-<div class="line">            }</div>
-<div class="line">            <span class="keywordtype">long</span> size2 = netTest.sortedSiteList().size();</div>
-<div class="line"> </div>
-<div class="line">            assertEquals(<span class="stringliteral">&quot;Test sizes should have been the same!&quot;</span>, size1, size2);</div>
-<div class="line">            assertTrue(<span class="stringliteral">&quot;Simple serial run was faster than threaded run!&quot;</span>, serialRun &gt; threadRun);</div>
-<div class="line"> </div>
-<div class="line">            Site <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a62078904e7851903c432dd5712e13eb6">bestSite</a> = bestSite2;</div>
-<div class="line">            <span class="comment">// Comparator results: Is it really &quot;best&quot;?</span></div>
-<div class="line">            <span class="keywordtype">int</span> count = 0;</div>
-<div class="line">            <span class="keywordflow">for</span> (Site s : netTest.sortedSiteList()) {</div>
-<div class="line">                <span class="comment">// Fail count.</span></div>
-<div class="line">                <span class="keywordflow">if</span> (s.average == 0) {</div>
-<div class="line">                    <span class="keywordflow">continue</span>; <span class="comment">// Not really a live site (private tested size).</span></div>
-<div class="line">                }</div>
-<div class="line">                <span class="keywordflow">if</span> (<a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a62078904e7851903c432dd5712e13eb6">bestSite</a>.average &gt; s.average) {</div>
-<div class="line">                    count++;</div>
-<div class="line">                } <span class="keywordflow">if</span> (<a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a62078904e7851903c432dd5712e13eb6">bestSite</a>.average == s.average &amp;&amp; <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a62078904e7851903c432dd5712e13eb6">bestSite</a>.stddev &gt; s.stddev) {</div>
-<div class="line">                    count++;</div>
-<div class="line">                }</div>
-<div class="line">            }</div>
-<div class="line"> </div>
-<div class="line">            Log.d(TAG, <span class="stringliteral">&quot;Fastest site: &quot;</span> + <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a62078904e7851903c432dd5712e13eb6">bestSite</a>.host + <span class="stringliteral">&quot;:&quot;</span> + <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a62078904e7851903c432dd5712e13eb6">bestSite</a>.port);</div>
-<div class="line">            assertTrue(<span class="stringliteral">&quot;There were faster sites on this list. Count: &quot;</span> + count, count == 0);</div>
-<div class="line"> </div>
-<div class="line">        } <span class="keywordflow">catch</span> (DmeDnsException dde) {</div>
-<div class="line">            Log.e(TAG, Log.getStackTraceString(dde));</div>
-<div class="line">            assertFalse(<span class="stringliteral">&quot;NetTestAPItest: DmeDnsException&quot;</span>, <span class="keyword">true</span>);</div>
-<div class="line">        }  <span class="keywordflow">catch</span> (ExecutionException ee) {</div>
-<div class="line">            Log.i(TAG, Log.getStackTraceString(ee));</div>
-<div class="line">            assertFalse(<span class="stringliteral">&quot;NetTestAPItest: ExecutionException!&quot;</span>, <span class="keyword">true</span>);</div>
-<div class="line">        } <span class="keywordflow">catch</span> (StatusRuntimeException sre) {</div>
-<div class="line">            Log.i(TAG, Log.getStackTraceString(sre));</div>
-<div class="line">            assertFalse(<span class="stringliteral">&quot;NetTestAPItest: StatusRuntimeException!&quot;</span>, <span class="keyword">true</span>);</div>
-<div class="line">        } <span class="keywordflow">catch</span> (InterruptedException ie) {</div>
-<div class="line">            Log.i(TAG, Log.getStackTraceString(ie));</div>
-<div class="line">            assertFalse(<span class="stringliteral">&quot;NetTestAPItest: InterruptedException!&quot;</span>, <span class="keyword">true</span>);</div>
+<div class="line">            <span class="keywordtype">int</span> internalPort = 7776; <span class="comment">// This is the un-remapped port of the App definition. See the app&#39;s console definition.</span></div>
+<div class="line">            AppClient.FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, 10000);</div>
+<div class="line">            String host = me.getAppConnectionManager().getHost(findCloudletReply, internalPort); <span class="comment">// internal port to host lookup.</span></div>
+<div class="line">            <span class="keywordtype">int</span> port = me.getAppConnectionManager().getPublicPort(findCloudletReply, internalPort); <span class="comment">// internal port to port lookup.</span></div>
+<div class="line">            Site site = <span class="keyword">new</span> Site(context, <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#abfdf7eb72011241024ac28f4d4ae5395">NetTest</a>.TestType.CONNECT, 5, host, port);</div>
+<div class="line">            netTest.addSite(site);</div>
+<div class="line">        } <span class="keywordflow">catch</span> (DmeDnsException e) {</div>
+<div class="line">            e.printStackTrace();</div>
+<div class="line">        } <span class="keywordflow">catch</span> (InterruptedException e) {</div>
+<div class="line">            e.printStackTrace();</div>
+<div class="line">        } <span class="keywordflow">catch</span> (ExecutionException e) {</div>
+<div class="line">            Assert.assertFalse(String.valueOf(e.getStackTrace()), <span class="keyword">true</span>);</div>
+<div class="line">        } <span class="keywordflow">catch</span> (NameNotFoundException pmnf) {</div>
+<div class="line">            Assert.assertTrue(<span class="stringliteral">&quot;Missing package manager!&quot;</span>, <span class="keyword">false</span>);</div>
 <div class="line">        }</div>
-<div class="ttc" id="aclasscom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test_html_a62078904e7851903c432dd5712e13eb6"><div class="ttname"><a href="classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a62078904e7851903c432dd5712e13eb6">com.mobiledgex.matchingengine.performancemetrics.NetTest.bestSite</a></div><div class="ttdeci">Site bestSite()</div><div class="ttdef"><b>Definition:</b> NetTest.java:356</div></div>
+<div class="line"> </div>
+<div class="line">        List&lt;Site&gt; sites = netTest.sortedSiteList();</div>
+<div class="line">        netTest.testSites(TimeoutMS);</div>
+<div class="line">        List&lt;Site&gt; sortedSites = netTest.sortedSiteList();</div>
+<div class="line">        <span class="keywordflow">for</span> (Site s : sortedSites) {</div>
+<div class="line">            Log.i(TAG, <span class="stringliteral">&quot;Test average: &quot;</span> + s.average);</div>
+<div class="line">        }</div>
 <div class="ttc" id="aclasscom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test_html_abfdf7eb72011241024ac28f4d4ae5395"><div class="ttname"><a href="classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#abfdf7eb72011241024ac28f4d4ae5395">com.mobiledgex.matchingengine.performancemetrics.NetTest.NetTest</a></div><div class="ttdeci">NetTest()</div><div class="ttdef"><b>Definition:</b> NetTest.java:115</div></div>
 </div><!-- fragment --></div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="abfdf7eb72011241024ac28f4d4ae5395"></a>
