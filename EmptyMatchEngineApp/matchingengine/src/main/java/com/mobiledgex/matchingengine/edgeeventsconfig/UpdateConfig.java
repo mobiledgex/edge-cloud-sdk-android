@@ -17,8 +17,8 @@
 
 package com.mobiledgex.matchingengine.edgeeventsconfig;
 
-public class ClientEventsConfig {
-    private static final String TAG = "ClientEventsConfig";
+public class UpdateConfig {
+    private static final String TAG = "UpdateConfig";
 
     public UpdatePattern updatePattern;
     public double updateIntervalSeconds; // in seconds
@@ -30,16 +30,16 @@ public class ClientEventsConfig {
         onInterval,
     }
 
-    public ClientEventsConfig() {
+    public UpdateConfig() {
         updatePattern = UpdatePattern.onTrigger;
         updateIntervalSeconds = 30;
         maxNumberOfUpdates = 0; // <= 0 means "infinity".
     }
 
-    public ClientEventsConfig(ClientEventsConfig clientEventsConfig) {
-        updatePattern = clientEventsConfig.updatePattern;
-        updateIntervalSeconds = clientEventsConfig.updateIntervalSeconds;
-        maxNumberOfUpdates = clientEventsConfig.maxNumberOfUpdates;
+    public UpdateConfig(UpdateConfig updateConfig) {
+        updatePattern = updateConfig.updatePattern;
+        updateIntervalSeconds = updateConfig.updateIntervalSeconds;
+        maxNumberOfUpdates = updateConfig.maxNumberOfUpdates;
     }
 
     public String toString() {
