@@ -30,12 +30,10 @@ import android.util.Pair;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.common.eventbus.Subscribe;
-import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEventTrigger;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
-import com.mobiledgex.matchingengine.performancemetrics.Site;
 
 import junit.framework.TestCase;
 

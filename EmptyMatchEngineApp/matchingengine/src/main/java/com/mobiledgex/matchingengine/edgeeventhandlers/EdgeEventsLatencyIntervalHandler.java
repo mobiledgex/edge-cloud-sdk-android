@@ -21,7 +21,7 @@ import android.util.Log;
 
 import com.mobiledgex.matchingengine.EdgeEventsConnection;
 import com.mobiledgex.matchingengine.MatchingEngine;
-import com.mobiledgex.matchingengine.edgeeventsconfig.ClientEventsConfig;
+import com.mobiledgex.matchingengine.edgeeventsconfig.UpdateConfig;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 
 import java.util.TimerTask;
@@ -36,7 +36,7 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler 
     String host;
     int publicPort;
 
-    public EdgeEventsLatencyIntervalHandler(MatchingEngine matchingEngine, NetTest.TestType testType, ClientEventsConfig config) {
+    public EdgeEventsLatencyIntervalHandler(MatchingEngine matchingEngine, NetTest.TestType testType, UpdateConfig config) {
         super();
         me = matchingEngine;
         if (me == null) {
@@ -45,7 +45,7 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler 
         if (config == null) {
             throw new IllegalArgumentException("Config cannot be null!");
         }
-        ClientEventsConfig cfg = new ClientEventsConfig(config);
+        UpdateConfig cfg = new UpdateConfig(config);
 
         if (config.updateIntervalSeconds <= 0) {
             Log.w(TAG, "Seconds cannot be negative. Defaulting to 30 seconds.");
@@ -58,13 +58,13 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler 
     }
 
     private class LatencyTask extends TimerTask {
-        ClientEventsConfig ceConfig;
+        UpdateConfig ceConfig;
         Location location = null;
 
         NetTest.TestType testType;
 
-        LatencyTask(NetTest.TestType testType, ClientEventsConfig clientEventsConfig) {
-            ceConfig = clientEventsConfig;
+        LatencyTask(NetTest.TestType testType, UpdateConfig updateConfig) {
+            ceConfig = updateConfig;
             getNumberOfTimesExecuted = 0;
             this.testType = testType;
         }
