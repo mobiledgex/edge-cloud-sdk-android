@@ -510,6 +510,10 @@ public class AppConnectionManager {
 
     public String getHost(FindCloudletReply findCloudletReply, int internalPort) {
         AppPort appPort = getAppPort(findCloudletReply, internalPort);
+        if (appPort == null) {
+            Log.e(TAG, "AppPort does not contain internal port: " + internalPort);
+            return null;
+        }
         return appPort.getFqdnPrefix() + findCloudletReply.getFqdn();
     }
 
