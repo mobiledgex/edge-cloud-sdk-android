@@ -56,6 +56,7 @@ import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
+import com.mobiledgex.matchingengine.util.MeLocation;
 import com.mobiledgex.matchingengine.util.RequestPermissions;
 import com.mobiledgex.mel.MelMessaging;
 import com.squareup.okhttp.OkHttpClient;
@@ -306,6 +307,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             //backgroundEdgeEventsConfig.locationUpdateConfig = null; // app driven.
 
             //! [startedgeevents_example]
+            Log.i(TAG, "Using this background events configuration for startEdgeEvents: " + backgroundEdgeEventsConfig);
             me.startEdgeEvents(backgroundEdgeEventsConfig);
             //! [startedgeevents_example]
         }
@@ -353,10 +355,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         // the AppInst Health and Latency spec for this application.
         @Subscribe
         public void onMessageEvent(FindCloudletEvent findCloudletEvent) {
-            Log.i(TAG, "Cloudlet update, reason: " + findCloudletEvent.trigger);
+            Log.i(TAG, "EdgeEvents Cloudlet update, reason for update: " + findCloudletEvent.trigger);
 
             // Connect to new Cloudlet in the event here, preferably in a background task.
-            Log.i(TAG, "Cloudlet: " + findCloudletEvent.newCloudlet);
+            Log.i(TAG, "EdgeEvents Cloudlet: " + findCloudletEvent.newCloudlet);
 
             someText = findCloudletEvent.newCloudlet.toString();
             updateText(ctx, someText);
@@ -366,11 +368,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // maintain the edge connection.
         }
 
-        // Subscribe to ServerEdgeEvents!
+        // Optional: Subscribe to ServerEdgeEvents.
         //
-        // Optional. If you set this event handler, the app will take ownership of raw
-        // events off the EdgeEventBus so a custom handler can be written in to fit your application
-        // use case better.
+        // If you set this event handler, the app will take full ownership of raw  events off the
+        // EdgeEventBus so a custom handler can be written in to fit your application use case
+        // better.
         //
         // To optionally post messages to the DME, use MatchingEngine's EdgeEventsConnection.
         //@Subscribe
@@ -379,39 +381,39 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             updateText(ctx, someText);
             switch (event.getEventType()) {
                 case EVENT_INIT_CONNECTION:
-                    System.out.println("Received Init response: " + event);
+                    Log.i(TAG, "Received Init response: " + event);
                     break;
                 case EVENT_APPINST_HEALTH:
-                    System.out.println("Received: AppInst Health: " + event);
+                    Log.i(TAG, "Received: AppInst Health: " + event);
                     handleAppInstHealth(event);
                     break;
                 case EVENT_CLOUDLET_STATE:
-                    System.out.println("Received: Cloutlet State event: " + event);
+                    Log.i(TAG, "Received: Cloutlet State event: " + event);
                     handleCloudletState(event);
                     break;
                 case EVENT_CLOUDLET_MAINTENANCE:
-                    System.out.println("Received: Cloutlet Maintenance event." + event);
+                    Log.i(TAG, "Received: Cloutlet Maintenance event." + event);
                     handleCloudletMaintenance(event);
                     break;
                 case EVENT_LATENCY_PROCESSED:
-                    System.out.println("Received: Latency has been processed on server: " + event);
+                    Log.i(TAG, "Received: Latency has been processed on server: " + event);
                     break;
                 case EVENT_LATENCY_REQUEST:
-                    System.out.println("Received: Latency has been requested to be tested (client perspective): " + event);
+                    Log.i(TAG, "Received: Latency has been requested to be tested (client perspective): " + event);
                     handleLatencyRequest(event);
                     break;
                 case EVENT_CLOUDLET_UPDATE:
-                    System.out.println("Received: Server pushed a new FindCloudletReply to switch to: " + event);
+                    Log.i(TAG, "Received: Server pushed a new FindCloudletReply to switch to: " + event);
                     handleFindCloudletServerPush(event);
                     break;
                 case EVENT_ERROR:
                     Log.d(TAG,"Received: An edgeEvents error: " + event.getErrorMsg());
                     break;
                 case EVENT_UNKNOWN:
-                    System.out.println("Received UnknownEvent.");
+                    Log.i(TAG, "Received UnknownEvent.");
                     break;
                 default:
-                    System.out.println("Event Received: " + event.getEventType());
+                    Log.i(TAG, "Event Received: " + event.getEventType());
             }
         }
         //! [edgeevents_subscriber_template]
@@ -447,6 +449,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
             // And set it for use later.
             mLastFindCloudlet = reply;
+            updateText(ctx, someText);
         }
 
         /*!
@@ -464,12 +467,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     doEnhancedLocationVerification();
                     break;
                 case HEALTH_CHECK_OK:
-                    System.out.println("AppInst Health is OK");
+                    Log.i(TAG, "AppInst Health is OK");
                     break;
                 case UNRECOGNIZED:
                     // fall through
                 default:
-                    System.out.println("AppInst Health event: " + event.getHealthCheck());
+                    Log.i(TAG, "AppInst Health event: " + event.getHealthCheck());
             }
         }
 
@@ -484,10 +487,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
             switch (event.getMaintenanceState()) {
                 case NORMAL_OPERATION:
-                    System.out.println("Maintenance state is all good!");
+                    Log.i(TAG, "Maintenance state is all good!");
                     break;
                 default:
-                    System.out.println("Server maintenance: " + event.getMaintenanceState());
+                    Log.i(TAG, "Server maintenance: " + event.getMaintenanceState());
             }
         }
 
@@ -502,23 +505,23 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
             switch (event.getCloudletState()) {
                 case CLOUDLET_STATE_INIT:
-                    System.out.println("Cloudlet is not ready yet. Wait or FindCloudlet again.");
+                    Log.i(TAG, "Cloudlet is not ready yet. Wait or FindCloudlet again.");
                     break;
                 case CLOUDLET_STATE_NOT_PRESENT:
                 case CLOUDLET_STATE_UPGRADE:
                 case CLOUDLET_STATE_OFFLINE:
                 case CLOUDLET_STATE_ERRORS:
-                    System.out.println("Cloudlet State is: " + event.getCloudletState());
+                    Log.i(TAG, "Cloudlet State is: " + event.getCloudletState());
                     break;
                 case CLOUDLET_STATE_READY:
                     // Timer Retry or just retry.
                     doEnhancedLocationVerification();
                     break;
                 case CLOUDLET_STATE_NEED_SYNC:
-                    System.out.println("Cloudlet data needs to sync.");
+                    Log.i(TAG, "Cloudlet data needs to sync.");
                     break;
                 default:
-                    System.out.println("Not handled");
+                    Log.i(TAG, "Not handled");
             }
         }
 
@@ -549,16 +552,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                         // Assuming some knowledge of your own internal un-remapped server port
                         // discover, and test with the PerformanceMetrics API:
-                        int publicPort;
-                        HashMap<Integer, Appcommon.AppPort> ports = me.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
-                        Appcommon.AppPort anAppPort = ports.get(internalPort);
-                        if (anAppPort == null) {
-                            System.out.println("Your expected server (or port) doesn't seem to be here!");
-                        }
+                        Log.i(TAG, "Assumed app internal port is: " + internalPort);
 
-                        // Test with default network in use:
-                        publicPort = anAppPort.getPublicPort();
-                        String host = me.getAppConnectionManager().getHost(mLastFindCloudlet, anAppPort);
+                        String host = me.getAppConnectionManager().getHost(mLastFindCloudlet, internalPort);
+                        int publicPort = me.getAppConnectionManager().getPublicPort(mLastFindCloudlet, internalPort);
+                        if (host == null || publicPort == 0) {
+                            Log.i(TAG, "Cannot found app based on internal port: " + internalPort);
+                        }
 
                         Site site = new Site(getApplicationContext(), NetTest.TestType.CONNECT, 5, host, publicPort);
                         netTest.addSite(site);
@@ -665,12 +665,21 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private void runFlow(Task<Location> locationTask, AppCompatActivity ctx) {
         Location location = locationTask.getResult();
         if (location == null) {
-            Log.e(TAG, "Mising location. Cannot update.");
+            Log.e(TAG, "Missing location. Cannot update.");
             return;
         }
         // Location found. Create a request:
         try {
             someText = "";
+
+            // Application Details to location one of your application's matching edge cloudlet appInstance (server).
+            String orgName = "MobiledgeX"; // Always supplied by application, and in the MobiledgeX web admin console.
+            // For illustration, the matching engine can be used to programmatically get the name of your application details
+            // so it can go to the correct appInst version. That AppInst on the server side must match the application
+            // version or else it won't be found and cannot be used.
+            String appName = "automation-sdk-porttest"; // AppName must be added to the MobiledgeX web admin console.
+            String appVers = "1.0"; // override the version of that known registered app.
+
             // Switch entire process over to cellular for application use.
             //mMatchingEngine.getNetworkManager().switchToCellularInternetNetworkBlocking();
             //String adId = mMatchingEngine.GetHashedAdvertisingID(ctx);
@@ -695,8 +704,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ctx);
             boolean locationVerificationAllowed = prefs.getBoolean(getResources().getString(R.string.preference_matching_engine_location_verification), false);
 
-            //String carrierName = mMatchingEngine.getCarrierName(ctx); // Regular use case
-            String carrierName = "TELUS";                                         // Override carrierName
+            String carrierName = me.getCarrierName(ctx); // Regular use case
+            // String carrierName = "";                               // Override carrierName
             if (carrierName == null) {
                 someText += "No carrier Info!\n";
             }
@@ -714,26 +723,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
             }
             dmeHostAddress = "eu-qa." + MatchingEngine.baseDmeHost;
-            me.setUseWifiOnly(true);
-            me.setSSLEnabled(true);
-            //mMatchingEngine.setNetworkSwitchingEnabled(true);
-            //dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
-            //dmeHostAddress = "192.168.1.172";
+            int port = me.getPort(); // DME default port.
+            me.setUseWifiOnly(true); // May be needed if there is no DME nearby.
+            me.setSSLEnabled(true); // Default. All production DMEs require encryption.
 
-            int port = me.getPort(); // Keep same port.
-
-            String orgName = "MobiledgeX"; // Always supplied by application, and in the MobiledgeX web admin console.
-            // For illustration, the matching engine can be used to programmatically get the name of your application details
-            // so it can go to the correct appInst version. That AppInst on the server side must match the application
-            // version or else it won't be found and cannot be used.
-            String appName = "automation-sdk-porttest"; // AppName must be added to the MobiledgeX web admin console.
-            String appVers = "1.0"; // override the version of that known registered app.
 
             // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
             // like AuthToken or Tag key value pairs.
             AppClient.RegisterClientRequest registerClientRequest =
                     me.createDefaultRegisterClientRequest(ctx, orgName)
-                            //.setCarrierName("cerust")
                             .setAppName(appName)
                             .setAppVers(appVers)
                             .build();
@@ -756,7 +754,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // Find the closest cloudlet for your application to use. (Blocking call, or use findCloudletFuture)
             // There is also createDefaultFindClouldletRequest() to get a Builder class to fill in optional parameters.
             AppClient.FindCloudletRequest findCloudletRequest =
-                    me.createDefaultFindCloudletRequest(ctx, automationHawkinsCloudlet) // location)
+                    me.createDefaultFindCloudletRequest(ctx, location)
                             .setCarrierName("")
                             .build();
             AppClient.FindCloudletReply closestCloudlet = me.findCloudlet(findCloudletRequest,
@@ -770,7 +768,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             }
 
             // This is a legal point to keep posting edgeEvents updates, as the EdgeEventBus
-            // should now be initalized, unless disabled.
+            // should now be initialized, unless disabled.
 
             registerClientReplyFuture =
                     me.registerClientFuture(registerClientRequest,
@@ -891,7 +889,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
             // Set network back to last default one, if desired:
             me.getNetworkManager().resetNetworkToDefault();
-        } catch (/*DmeDnsException |*/ ExecutionException | StatusRuntimeException e) {
+        } catch (ExecutionException | StatusRuntimeException e) {
             Log.e(TAG, e.getMessage());
             Log.e(TAG, Log.getStackTraceString(e));
             if (e.getCause() instanceof NetworkRequestTimeoutException) {
@@ -925,6 +923,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         });
     }
 
+
+    // runFlow() is nearly all network calls. Post completed async results the the UI thread to allow smooth application UI performance.
     private void doEnhancedLocationUpdateInBackground(final Task<Location> locationTask, final AppCompatActivity ctx) {
         ExecutorService service = Executors.newCachedThreadPool();
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> runFlow(locationTask, ctx), service);
