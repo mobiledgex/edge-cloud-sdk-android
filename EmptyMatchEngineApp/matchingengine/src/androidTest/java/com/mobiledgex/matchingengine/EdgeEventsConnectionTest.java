@@ -340,8 +340,8 @@ public class EdgeEventsConnectionTest {
                 assertTrue("Should have deviceModel, depends on device: ", !deviceInfoStatic.getDeviceModel().isEmpty());
             }
             assertTrue("Signal must be more than -1: ", deviceInfoDynamic.getSignalStrength() > -1);
-            assertTrue("Carrier must be non-empty for real device (with a SIM card): ", deviceInfoDynamic.getCarrierName() != null && !deviceInfoDynamic.getCarrierName().isEmpty());
-            assertTrue("DataNetworkTyppe must be non-empty for real device: ", deviceInfoDynamic.getDataNetworkType() != null && !deviceInfoDynamic.getDataNetworkType().isEmpty());
+            assertTrue("Carrier must be non-empty for a real device (with a SIM card): ", deviceInfoDynamic.getCarrierName() != null && !deviceInfoDynamic.getCarrierName().isEmpty());
+            assertTrue("DataNetworkType must be non-empty for real device: ", deviceInfoDynamic.getDataNetworkType() != null && !deviceInfoDynamic.getDataNetworkType().isEmpty());
 
 
         } catch (Exception e) {
@@ -832,7 +832,7 @@ public class EdgeEventsConnectionTest {
             assertEquals("Expected that the configured latency is too high!", 0, er.latch.getCount());
             if (er.errors.peek() != EdgeEventsConnection.EdgeEventsError.eventTriggeredButCurrentCloudletIsBest) {
                 // Performance might have found a better cloudlet, even if they both are far exceeding the unavailable min spec:
-                assertTrue("Response must be too high, and if here, test must have randomly we found a new cloudlet in the response, per performance measurement, and configured margins: ", er.responses.peek().newCloudlet.getFqdn() != null);
+                assertTrue("Response must be too high, and if here, test must have randomly found a new cloudlet in the response, per performance measurement, and configured margins: ", er.responses.peek().newCloudlet.getFqdn() != null);
             } else {
                 assertEquals("Response must be too high, which could be the same server if measured, and thus still best.", EdgeEventsConnection.EdgeEventsError.eventTriggeredButCurrentCloudletIsBest, er.errors.peek());
             }
