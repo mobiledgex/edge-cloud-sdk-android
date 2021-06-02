@@ -148,7 +148,7 @@ public class Site
         stddev = Math.sqrt(vsum);
     }
 
-    /*
+    /*!
      * Calculate and then return minimum sample value.
      * \return Minimum sample value. NaN if there are no samples.
      */
@@ -166,7 +166,7 @@ public class Site
         return min;
     }
 
-    /*
+    /*!
      * Calculate and then return maximum sample value.
      * \return Maximum sample value. NaN if there are no samples.
      */
