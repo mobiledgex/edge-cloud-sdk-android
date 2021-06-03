@@ -84,7 +84,7 @@ public class EdgeEventsConnection {
             port = aPort;
             network = aNetwork;
         }
-        AppInstDetails appInstDetials;
+        AppInstDetails appInstPerformanceDetails;
     }
 
     private Location mLastLocationPosted = null;
@@ -152,7 +152,7 @@ public class EdgeEventsConnection {
                         Log.d(TAG, "EventBus: To get all raw edgeEvent updates pushed to your app, subscribe to the Guava EventBus object type ServerEdgeEvents. Event Received: " + serverEdgeEvent.getEventType());
                     }
                     noEventInitHandlerObserved = true;
-                } else if (serverEdgeEvent.getEventType() == ServerEventType.EVENT_CLOUDLET_UPDATE) {
+                } else if (serverEdgeEvent.hasNewCloudlet()) {
                     Log.w(TAG, "EventBus: To get all NewCloudlet updates pushed to your app, subscribe to the Guava EventBus object type FindCloudletEvent.");
                 }
             } else {
@@ -459,6 +459,10 @@ public class EdgeEventsConnection {
                     notifyOpenAwaiter();
                     runEdgeEvents();
                 }
+                if (value.hasNewCloudlet()) {
+                    // Performance re-test from scratch.
+                    lastConnectionDetails.appInstPerformanceDetails = null;
+                }
 
                 // Default handler will handle incoming messages if no subscribers are currently observed
                 // watching for the EVENT_INIT_CONNECTION message.
@@ -561,7 +565,7 @@ public class EdgeEventsConnection {
             return;
         }
         Log.d(TAG, "Best site is being updated to: " + site.host + ", avg latency: " + site.average + ", Margin: " + margin);
-        lastConnectionDetails.appInstDetials = new AppInstDetails(site, margin);
+        lastConnectionDetails.appInstPerformanceDetails = new AppInstDetails(site, margin);
     }
 
     public boolean isShutdown() {

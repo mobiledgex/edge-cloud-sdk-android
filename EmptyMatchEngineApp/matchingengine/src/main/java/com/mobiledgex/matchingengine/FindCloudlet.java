@@ -227,7 +227,7 @@ public class FindCloudlet implements Callable {
 
         EdgeEventsConnection edgeEventsConnection = mMatchingEngine.getEdgeEventsConnection();
         if (edgeEventsConnection != null) {
-            EdgeEventsConnection.AppInstDetails appInstDetails = edgeEventsConnection.lastConnectionDetails.appInstDetials;
+            EdgeEventsConnection.AppInstDetails appInstDetails = edgeEventsConnection.lastConnectionDetails.appInstPerformanceDetails;
             if (appInstDetails != null) {
                 lastBestCloudletLatencyMs = appInstDetails.lastSite.average;
             }
@@ -361,8 +361,6 @@ public class FindCloudlet implements Callable {
         mMatchingEngine.setFindCloudletResponse(fcreply);
         return fcreply;
     }
-
-
 
     // Mel Mode, token or not, get the official FQDN:
     private AppClient.FindCloudletReply FindCloudletMelMode(final long remainderMs)
