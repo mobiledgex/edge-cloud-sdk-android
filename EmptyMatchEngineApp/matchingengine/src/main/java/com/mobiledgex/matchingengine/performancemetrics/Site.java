@@ -20,6 +20,7 @@ package com.mobiledgex.matchingengine.performancemetrics;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Network;
+import android.util.Log;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.LocOuterClass;
@@ -30,6 +31,7 @@ import distributed_match_engine.LocOuterClass;
  */
 public class Site
 {
+    private final static String TAG = "Site";
     public Network network;
 
     public String host;
@@ -144,6 +146,42 @@ public class Site
             vsum /= (size - 1);
         }
         stddev = Math.sqrt(vsum);
+    }
+
+    /*!
+     * Calculate and then return minimum sample value.
+     * \return Minimum sample value. NaN if there are no samples.
+     */
+    public double min() {
+        double min = Double.POSITIVE_INFINITY;
+        if (size <= 0) {
+            Log.e(TAG, "There are no samples to get minimum sample!");
+            return Double.NaN;
+        }
+        for (int i = 0; i < size; i++) {
+            if (samples[i] < min) {
+                min = samples[i];
+            }
+        }
+        return min;
+    }
+
+    /*!
+     * Calculate and then return maximum sample value.
+     * \return Maximum sample value. NaN if there are no samples.
+     */
+    public double max() {
+        double max = Double.NEGATIVE_INFINITY;
+        if (size <= 0) {
+            Log.e(TAG, "There are no samples to get maximum sample!");
+            return Double.NaN;
+        }
+        for (int i = 0; i < size; i++) {
+            if (samples[i] > max) {
+                max = samples[i];
+            }
+        }
+        return max;
     }
 
     public boolean sameSite(Site o) {
