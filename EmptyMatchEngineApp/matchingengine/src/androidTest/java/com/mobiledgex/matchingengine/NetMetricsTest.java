@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutionException;
 import distributed_match_engine.AppClient;
 
 import static android.content.pm.PackageManager.*;
+import static com.mobiledgex.matchingengine.performancemetrics.NetTest.TestType.PING;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -252,5 +253,61 @@ public class NetMetricsTest {
         //! [nettest]
         assertEquals("Site list size wrong!", 1, sites.size());
 
+    }
+
+    @Test
+    public void testMinSample1() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        double samples[] = {Double.POSITIVE_INFINITY, -47d, 500, -3, -1};
+        int numSamples = samples.length;
+        Site site = new Site(context, PING, numSamples, "aHost", 9999);
+
+        for (double d : samples) {
+            site.addSample(d);
+        }
+        assertEquals("Not correct minimum!", -47d, site.min(), .0001d);
+    }
+
+    @Test
+    public void testMinSample2() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        double samples[] = {Double.MAX_VALUE, -47d, 500, -3, -50};
+        int numSamples = samples.length;
+        Site site = new Site(context, PING, numSamples, "aHost", 9999);
+
+        for (double d : samples) {
+            site.addSample(d);
+        }
+        assertEquals("Not correct minimum!", -50d, site.min(), .0001d);
+    }
+
+    @Test
+    public void testMaxSample1() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        double samples[] = {Double.NEGATIVE_INFINITY, -47d, 500, -3, -1, 800d};
+        int numSamples = samples.length;
+        Site site = new Site(context, PING, numSamples, "aHost", 9999);
+
+        for (double d : samples) {
+            site.addSample(d);
+        }
+        assertEquals("Not correct maximum!", 800d, site.max(), .0001d);
+    }
+
+    @Test
+    public void testMaxSample2() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        double samples[] = {Double.MIN_VALUE, -47d, 500, -3, 0, 800d};
+        int numSamples = samples.length;
+        Site site = new Site(context, PING, numSamples, "aHost", 9999);
+
+        for (double d : samples) {
+            site.addSample(d);
+        }
+        assertEquals("Not correct maximum!", 800d, site.max(), .0001d);
     }
 }
