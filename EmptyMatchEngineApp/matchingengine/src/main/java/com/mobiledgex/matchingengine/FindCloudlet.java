@@ -261,6 +261,10 @@ public class FindCloudlet implements Callable {
         } else if (useConfig && Math.abs(margin) > Math.abs(mMatchingEngine.mEdgeEventsConfig.performanceSwitchMargin)) {
             mDoLatencyMigration = true;
             marginReturn = margin;
+        } else if (!useConfig && !useMeasured) {
+            Log.d(TAG, "Both configured and last measured values not satisfied.");
+            // Return the configured margin.
+            marginReturn = margin;
         }
         return marginReturn;
     }
