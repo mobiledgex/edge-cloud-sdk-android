@@ -66,6 +66,14 @@ public class EdgeEventsConnection {
     ChannelStatus channelStatus = ChannelStatus.closed;
     Object openAwaiter = new Object();
 
+    class AppInstDetails {
+        Site lastSite;
+        double margin;
+        AppInstDetails(Site site, double margin) {
+            this.lastSite = site;
+            this.margin = margin;
+        }
+    }
     ConnectionDetails lastConnectionDetails;
     class ConnectionDetails {
         String host;
@@ -76,6 +84,7 @@ public class EdgeEventsConnection {
             port = aPort;
             network = aNetwork;
         }
+        AppInstDetails appInstPerformanceDetails;
     }
 
     private Location mLastLocationPosted = null;
@@ -143,7 +152,7 @@ public class EdgeEventsConnection {
                         Log.d(TAG, "EventBus: To get all raw edgeEvent updates pushed to your app, subscribe to the Guava EventBus object type ServerEdgeEvents. Event Received: " + serverEdgeEvent.getEventType());
                     }
                     noEventInitHandlerObserved = true;
-                } else if (serverEdgeEvent.getEventType() == ServerEventType.EVENT_CLOUDLET_UPDATE) {
+                } else if (serverEdgeEvent.hasNewCloudlet()) {
                     Log.w(TAG, "EventBus: To get all NewCloudlet updates pushed to your app, subscribe to the Guava EventBus object type FindCloudletEvent.");
                 }
             } else {
@@ -450,6 +459,10 @@ public class EdgeEventsConnection {
                     notifyOpenAwaiter();
                     runEdgeEvents();
                 }
+                if (value.hasNewCloudlet()) {
+                    // Performance re-test from scratch.
+                    lastConnectionDetails.appInstPerformanceDetails = null;
+                }
 
                 // Default handler will handle incoming messages if no subscribers are currently observed
                 // watching for the EVENT_INIT_CONNECTION message.
@@ -542,6 +555,17 @@ public class EdgeEventsConnection {
             openAwaiter.notifyAll();
             openAwaiter = null;
         }
+    }
+
+    /* Set the best site for the configured App for this EdgeEventsConnection.
+     * \param Site
+     */
+    void updateBestAppSite(Site site, double margin) {
+        if (isShutdown()) {
+            return;
+        }
+        Log.d(TAG, "Best site is being updated to: " + site.host + ", avg latency: " + site.average + ", Margin: " + margin);
+        lastConnectionDetails.appInstPerformanceDetails = new AppInstDetails(site, margin);
     }
 
     public boolean isShutdown() {
@@ -1263,7 +1287,7 @@ public class EdgeEventsConnection {
                 Log.i(TAG, "No previous cloudlet.");
             }
             else if (event.getNewCloudlet().getFqdn().equals(me.getLastFindCloudletReply().getFqdn())) {
-                Log.w(TAG, "newCloudlet from server is the same a the last one. Nothing to do. Posting error message.");
+                Log.w(TAG, "newCloudlet from server is the same as: the last one, with Reason: " + reason + ". Nothing to do. Posting error message.");
                 postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
                 return true;
             }
