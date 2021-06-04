@@ -218,6 +218,57 @@ public class FindCloudlet implements Callable {
         }
     }
 
+    private double getMarginAndDoLatencyMigrationCheck(Site bestSite) {
+        // If average is better, and de-bouncing margins, allow migration.
+        double margin = 0;
+        double marginLast = 0;
+        double lastBestCloudletLatencyMs = 0;
+        double marginReturn = 0;
+
+        EdgeEventsConnection edgeEventsConnection = mMatchingEngine.getEdgeEventsConnection();
+        if (edgeEventsConnection != null) {
+            EdgeEventsConnection.AppInstDetails appInstDetails = edgeEventsConnection.lastConnectionDetails.appInstPerformanceDetails;
+            if (appInstDetails != null) {
+                lastBestCloudletLatencyMs = appInstDetails.lastSite.average;
+            }
+        }
+
+        // Configured margin:
+        boolean useConfig = false;
+        if (mMaximumLatencyMs > 0) {
+            double max = mMaximumLatencyMs;
+            margin = (bestSite.average - max) / max;
+            if (margin < 0) { // Improvement?
+                useConfig = true;
+            }
+        }
+
+        // Last Tested margin
+        boolean useMeasured = false;
+        if (lastBestCloudletLatencyMs > 0) {
+            double max = lastBestCloudletLatencyMs;
+            marginLast = (bestSite.average - max) / max;
+            if (marginLast < 0) { // Improvement?
+                useMeasured = true;
+            }
+        }
+
+        // Should be better for one
+        if (useMeasured && Math.abs(marginLast) > Math.abs(mMatchingEngine.mEdgeEventsConfig.performanceSwitchMargin)) {
+            Log.d(TAG, "Using stored last site as the reference for the margin.");
+            mDoLatencyMigration = true;
+            marginReturn = marginLast;
+        } else if (useConfig && Math.abs(margin) > Math.abs(mMatchingEngine.mEdgeEventsConfig.performanceSwitchMargin)) {
+            mDoLatencyMigration = true;
+            marginReturn = margin;
+        } else if (!useConfig && !useMeasured) {
+            Log.d(TAG, "Both configured and last measured values not satisfied.");
+            // Return the configured margin.
+            marginReturn = margin;
+        }
+        return marginReturn;
+    }
+
     private AppClient.FindCloudletReply FindCloudletWithMode()
         throws InterruptedException, ExecutionException{
 
@@ -240,7 +291,7 @@ public class FindCloudlet implements Callable {
 
             if (mMode == MatchingEngine.FindCloudletMode.PROXIMITY) {
                 fcreply = stub.withDeadlineAfter(timeout, TimeUnit.MILLISECONDS)
-                    .findCloudlet(mRequest);
+                        .findCloudlet(mRequest);
                 if (fcreply != null) {
                     mMatchingEngine.setFindCloudletResponse(fcreply);
                 }
@@ -251,15 +302,15 @@ public class FindCloudlet implements Callable {
 
             // GetAppInstList, using the same FindCloudlet Request values.
             AppClient.AppInstListRequest appInstListRequest = GetAppInstList.createFromFindCloudletRequest(mRequest)
-                // Do non-trivial transfer, stuffing Tag to do so.
-                .setCarrierName(mRequest.getCarrierName() == null ?
-                  mMatchingEngine.getLastRegisterClientRequest().getCarrierName() :
-                  mRequest.getCarrierName())
-                .putTags("Buffer", new String(new byte[2048]))
-                .build();
+                    // Do non-trivial transfer, stuffing Tag to do so.
+                    .setCarrierName(mRequest.getCarrierName() == null ?
+                            mMatchingEngine.getLastRegisterClientRequest().getCarrierName() :
+                            mRequest.getCarrierName())
+                    .putTags("Buffer", new String(new byte[2048]))
+                    .build();
 
             AppClient.AppInstListReply appInstListReply = stub.withDeadlineAfter(remainder, TimeUnit.MILLISECONDS)
-              .getAppInstList(appInstListRequest);
+                    .getAppInstList(appInstListRequest);
 
             // Transient state handling, just return what we had before, if it fails, a new FindCloudlet is needed anyway:
             if (appInstListReply == null || appInstListReply.getStatus() != AppClient.AppInstListReply.AIStatus.AI_SUCCESS) {
@@ -283,24 +334,20 @@ public class FindCloudlet implements Callable {
             Site bestSite = netTest.bestSite();
 
             AppClient.FindCloudletReply bestFindCloudletReply = createFindCloudletReplyFromBestSite(appInstListReply, bestSite)
-                .build();
+                    .build();
             fcreply = bestFindCloudletReply;
 
-            // If average is better, and de-bouncing margins, allow migration.
-            double margin = 0;
-            if (mMaximumLatencyMs > 0) {
-                float max = mMaximumLatencyMs;
-                margin = (bestSite.average - max)/max;
-            }
+            double margin = getMarginAndDoLatencyMigrationCheck(bestSite);
 
+            // Better by enough to allow migrate or not?
             if (bestSite.hasSuccessfulTests() &&
-                    mMaximumLatencyMs >= 0 &&
-                    bestSite.average < mMaximumLatencyMs &&
-                    margin < 0 && // Should be faster.
-                    Math.abs(margin) > Math.abs(mMatchingEngine.mEdgeEventsConfig.performanceSwitchMargin)
-            ) {
+                    mMaximumLatencyMs >= 0 && // Want performance check
+                    mDoLatencyMigration) {
                 Log.i(TAG, "Performance tests found a better cloudlet. Performance margin: " + margin + ", Target: " + mMaximumLatencyMs + ", Average: " + bestSite.average);
-                mDoLatencyMigration = true;
+                EdgeEventsConnection edgeEventsConnection = mMatchingEngine.getEdgeEventsConnection();
+                if (edgeEventsConnection != null) {
+                    edgeEventsConnection.updateBestAppSite(bestSite, margin);
+                }
             } else {
                 Log.i(TAG, "Performance tests did not find a better cloudlet. Performance margin: " + margin + ", Target: " + mMaximumLatencyMs + ", Average: " + bestSite.average);
                 return fcreply;
@@ -424,7 +471,7 @@ public class FindCloudlet implements Callable {
         mMatchingEngine.setFindCloudletResponse(fcReply);
 
         // Create message channel for DME EdgeEvents:
-        if (mMaximumLatencyMs != -1 && // alt performance swap mode
+        if (mMaximumLatencyMs != -1 && // alt mode for performance swap
                 !mDoLatencyMigration && mMode == MatchingEngine.FindCloudletMode.PERFORMANCE) {
             Log.d(TAG, "Cloudlet performance wasn't better. Not auto-migrating and returning nothing.");
             fcReply = null;
