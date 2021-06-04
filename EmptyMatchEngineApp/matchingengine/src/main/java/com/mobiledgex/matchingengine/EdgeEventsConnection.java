@@ -1263,7 +1263,7 @@ public class EdgeEventsConnection {
                 Log.i(TAG, "No previous cloudlet.");
             }
             else if (event.getNewCloudlet().getFqdn().equals(me.getLastFindCloudletReply().getFqdn())) {
-                Log.w(TAG, "newCloudlet from server is the same a the last one. Nothing to do. Posting error message.");
+                Log.w(TAG, "newCloudlet to be posted is the same a the last one, with Reason: " + reason + ". Nothing to do. Posting error message.");
                 postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
                 return true;
             }
