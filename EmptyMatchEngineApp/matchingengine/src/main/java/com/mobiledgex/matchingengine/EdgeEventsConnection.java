@@ -88,7 +88,6 @@ public class EdgeEventsConnection {
     }
 
     private Location mLastLocationPosted = null;
-    private AppClient.FindCloudletReply mLastPostedFindCloudletReply;
 
     // TODO: Use Site.DEFAULT_NUM_SAMPLES ?
     final int DEFAULT_NUM_SAMPLES = 5;
@@ -1246,13 +1245,11 @@ public class EdgeEventsConnection {
                 }
 
                 boolean doPost = false;
-                if (mLastPostedFindCloudletReply == null) {
-                    // First post.
-                    mLastPostedFindCloudletReply = lastMeReply;
-                }
 
                 // Weak check: FQDN changed.
-                if (!reply.getFqdn().equals(mLastPostedFindCloudletReply.getFqdn())) {
+                if (lastMeReply == null) {
+                    doPost = true;
+                } else if (!reply.getFqdn().equals(lastMeReply.getFqdn())) {
                     doPost = true;
                 }
 
@@ -1264,7 +1261,6 @@ public class EdgeEventsConnection {
                 // Note: Auto start or AutoMigrate of edgeEvents already happened as necessary in FindCloudlet.
                 // Just post here. NewCloudlet push is, however, subject to AutoMigrate flag.
                 Log.i(TAG, "Different cloudlet than last posted.");
-                mLastPostedFindCloudletReply = reply;
                 FindCloudletEvent event = new FindCloudletEvent(reply, reason);
                 postToFindCloudletEventHandler(event);
                 return true;
@@ -1287,7 +1283,7 @@ public class EdgeEventsConnection {
                 Log.i(TAG, "No previous cloudlet.");
             }
             else if (event.getNewCloudlet().getFqdn().equals(me.getLastFindCloudletReply().getFqdn())) {
-                Log.w(TAG, "newCloudlet from server is the same as: the last one, with Reason: " + reason + ". Nothing to do. Posting error message.");
+                Log.w(TAG, "newCloudlet from server is the same as the last one: " + event.getNewCloudlet().getFqdn() + ", with Reason: " + reason + ". Nothing to do. Posting error message.");
                 postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
                 return true;
             }
