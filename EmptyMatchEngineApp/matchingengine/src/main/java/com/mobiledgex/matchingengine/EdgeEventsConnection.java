@@ -84,6 +84,9 @@ public class EdgeEventsConnection {
             port = aPort;
             network = aNetwork;
         }
+        String edgeEventsCookie;
+        AppClient.FindCloudletReply findCloudletReply; // The last FindCloudlet API call result.
+        AppClient.FindCloudletReply currentCloudlet; // Server pushed newCloudlets, or a client found FindCloudlet that met an EdgeEventsConfig spec.
         AppInstDetails appInstPerformanceDetails;
     }
 
@@ -282,6 +285,19 @@ public class EdgeEventsConnection {
         return isRegisteredForEvents;
     }
 
+    synchronized void setFindCloudletReply(AppClient.FindCloudletReply reply) {
+        lastConnectionDetails.findCloudletReply = reply;
+        lastConnectionDetails.edgeEventsCookie = reply.getEdgeEventsCookie();
+    }
+
+    synchronized void setCurrentCloudlet(AppClient.FindCloudletReply cloudlet) {
+        if (cloudlet == null) {
+            return;
+        }
+        lastConnectionDetails.currentCloudlet = AppClient.FindCloudletReply.newBuilder(cloudlet).build();
+        lastConnectionDetails.edgeEventsCookie = cloudlet.getEdgeEventsCookie();
+    }
+
     public Location getLastLocationPosted() {
         return mLastLocationPosted;
     }
@@ -294,6 +310,11 @@ public class EdgeEventsConnection {
 
     private boolean validateFindCloudlet(AppClient.FindCloudletReply findCloudletReply) {
         if (findCloudletReply.getEdgeEventsCookie() == null || findCloudletReply.getEdgeEventsCookie().isEmpty()) {
+            Log.e(TAG, "This DME edge server doesn't seem to be compatible.");
+            return false;
+        }
+        if (findCloudletReply.getStatus() != AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
+            Log.e(TAG, "This app is not in known FIND_FOUND state");
             return false;
         }
         return true;
@@ -350,7 +371,7 @@ public class EdgeEventsConnection {
 
         // We need to re-init the DME connection:
         // Client identifies itself with an Init message to DME EdgeEvents Connection.
-        if (me.mFindCloudletReply == null || me.getSessionCookie() == null) {
+        if (lastConnectionDetails.edgeEventsCookie == null || me.getSessionCookie() == null) {
             Log.e(TAG, "State Error: Missing sessions to reconnect.");
             postErrorToEventHandler(EdgeEventsError.missingSessionCookie);
             return;
@@ -431,6 +452,11 @@ public class EdgeEventsConnection {
             lastConnectionDetails.network = network;
         }
 
+        if (lastConnectionDetails.edgeEventsCookie == null) {
+            Log.i(TAG, "Cannot start connection yet. Missing session for EdgeEventsConnection!");
+            return;
+        }
+
         try {
             InetAddress.getAllByName(host);
         } catch (UnknownHostException uhe) {
@@ -504,13 +530,14 @@ public class EdgeEventsConnection {
         sender = asyncStub.streamEdgeEvent(receiver);
 
         String sessionCookie = me.mSessionCookie;
-        String edgeEventsCookie = me.mFindCloudletReply != null ?me.mFindCloudletReply.getEdgeEventsCookie() : null;
+        // This is the latest edgeEventsCookie by either FindCloudlet activity, or server push activities.
+        String edgeEventsCookie = lastConnectionDetails.edgeEventsCookie;
 
         if (sessionCookie != null && edgeEventsCookie != null) {
             AppClient.ClientEdgeEvent.Builder initDmeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
                     .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
                     .setSessionCookie(me.mSessionCookie)
-                    .setEdgeEventsCookie(me.mFindCloudletReply.getEdgeEventsCookie())
+                    .setEdgeEventsCookie(edgeEventsCookie)
                     .mergeDeviceInfoStatic(me.getDeviceInfoStaticProto())
                     .mergeDeviceInfoDynamic(me.getDeviceInfoDynamicProto());
                 send(initDmeEventBuilder.build());
@@ -834,7 +861,7 @@ public class EdgeEventsConnection {
             return false;
         }
 
-        AppClient.FindCloudletReply lastFc = me.getLastFindCloudletReply();
+        AppClient.FindCloudletReply lastFc = lastConnectionDetails.currentCloudlet;
         if (lastFc == null || lastFc.getStatus() != AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
             Log.w(TAG, "Unable to test. A previous successful FindCloudletReply is required to test edge AppInst");
             return false;
@@ -931,7 +958,7 @@ public class EdgeEventsConnection {
 
         LocOuterClass.Loc loc = null;
 
-        AppClient.FindCloudletReply lastFc = me.getLastFindCloudletReply();
+        AppClient.FindCloudletReply lastFc = lastConnectionDetails.currentCloudlet;
         if (lastFc == null || lastFc.getStatus() != AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
             Log.w(TAG, "Unable to test. A previous successful FindCloudletReply is required to test edge AppInst");
             return false;
@@ -1049,25 +1076,28 @@ public class EdgeEventsConnection {
                 return false;
             }
 
+            if (lastConnectionDetails.currentCloudlet == null) {
+                setCurrentCloudlet(lastConnectionDetails.findCloudletReply);
+            }
+
             // Abort if no find cloudlet yet.
-            if (me.mFindCloudletReply == null) {
+            if (lastConnectionDetails.currentCloudlet == null) {
                 Log.e(TAG, "The App needs to have a FindCloudlet reply of FIND_FOUND before startEdgeEvents can be used");
                 return false;
             }
 
-            if (me.mFindCloudletReply.getPortsCount() < 1) {
-                Log.e(TAG, "The last findCloudlet does NOT have any ports! Ports Count: " + me.mFindCloudletReply.getPortsCount());
+            if (lastConnectionDetails.currentCloudlet.getPortsCount() < 1) {
+                Log.e(TAG, "The last findCloudlet does NOT have any ports! Ports Count: " + lastConnectionDetails.currentCloudlet.getPortsCount());
                 return false;
             }
             int internalPort = mEdgeEventsConfig.latencyInternalPort;
-            Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(me.mFindCloudletReply, mEdgeEventsConfig.latencyInternalPort);
+            Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(lastConnectionDetails.currentCloudlet, mEdgeEventsConfig.latencyInternalPort);
             if (appPort == null) {
                 Log.e(TAG, "The latencyInternalPort [" + mEdgeEventsConfig.latencyInternalPort + "] was not found. EdgeEvents cannot start.");
                 return false;
             }
-            String host = me.getAppConnectionManager().getHost(me.mFindCloudletReply, appPort);
-
-            int publicPort = me.getAppConnectionManager().getPublicPort(me.mFindCloudletReply, internalPort);
+            String host = me.getAppConnectionManager().getHost(lastConnectionDetails.currentCloudlet, appPort);
+            int publicPort = me.getAppConnectionManager().getPublicPort(lastConnectionDetails.currentCloudlet, internalPort);
 
             if (publicPort == 0) {
                 Log.e(TAG, "Public port doesn't seem to exist for the Latency Test InternalPort: " + internalPort);
@@ -1205,6 +1235,16 @@ public class EdgeEventsConnection {
         return ret;
     }
 
+    boolean sameCloudletFqdn(AppClient.FindCloudletReply cloudlet1, AppClient.FindCloudletReply cloudlet2) {
+        if (cloudlet1 == null || cloudlet2 == null) {
+            return false;
+        }
+        if (cloudlet1.getFqdn().equals(cloudlet2.getFqdn())) {
+            Log.i(TAG, "Same Cloudlet.");
+            return true;
+        }
+        return false;
+    }
 
     // Non raw ServerEdgeEvent, this will create a FindCloudlet.
     CompletableFuture<Boolean> doClientFindCloudlet(FindCloudletEventTrigger reason) {
@@ -1230,7 +1270,7 @@ public class EdgeEventsConnection {
 
             try {
                 // If the latency trigger spec is not met, no auto-migrate happens.
-                AppClient.FindCloudletReply lastMeReply = me.getLastFindCloudletReply();
+                AppClient.FindCloudletReply currCloudlet = lastConnectionDetails.currentCloudlet;
                 AppClient.FindCloudletReply reply = me.findCloudlet(
                         request,
                         lastConnectionDetails.host,
@@ -1247,16 +1287,19 @@ public class EdgeEventsConnection {
                 boolean doPost = false;
 
                 // Weak check: FQDN changed.
-                if (lastMeReply == null) {
+                if (currCloudlet == null) {
                     doPost = true;
-                } else if (!reply.getFqdn().equals(lastMeReply.getFqdn())) {
+                } else if (!sameCloudletFqdn(currCloudlet, reply)) {
                     doPost = true;
                 }
 
+                // Assertion: If doClientFindCloudlet did not update using the background EdgeEvents
+                // FindCloudlet, the server pushed currentCloudlet edgeEventsCookie is still valid.
                 if (!doPost) {
                     postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
                     return false;
                 }
+                setCurrentCloudlet(reply);
 
                 // Note: Auto start or AutoMigrate of edgeEvents already happened as necessary in FindCloudlet.
                 // Just post here. NewCloudlet push is, however, subject to AutoMigrate flag.
@@ -1277,19 +1320,17 @@ public class EdgeEventsConnection {
     synchronized boolean handleFindCloudletServerPush(AppClient.ServerEdgeEvent event, FindCloudletEventTrigger reason) {
         Log.i(TAG, "Received a new Edge FindCloudlet. Pushing to new FindCloudlet subscribers.");
         if (event.hasNewCloudlet()) {
-
-
-            if (me.getLastFindCloudletReply() == null) {
-                Log.i(TAG, "No previous cloudlet.");
-            }
-            else if (event.getNewCloudlet().getFqdn().equals(me.getLastFindCloudletReply().getFqdn())) {
+            if (event.getNewCloudlet().getFqdn().equals(lastConnectionDetails.currentCloudlet.getFqdn())) {
                 Log.w(TAG, "newCloudlet from server is the same as the last one: " + event.getNewCloudlet().getFqdn() + ", with Reason: " + reason + ". Nothing to do. Posting error message.");
+                // Update edgeEventsCookie:
+                setCurrentCloudlet(event.getNewCloudlet());
                 postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
                 return true;
             }
-
-            // Update MatchingEngine.
-            me.setFindCloudletResponse(event.getNewCloudlet());
+            else {
+                Log.d(TAG, "newCloudlet from server: " + event.getNewCloudlet().getFqdn() + ", with Reason: " + reason);
+                setCurrentCloudlet(event.getNewCloudlet());
+            }
 
             FindCloudletEvent fce = new FindCloudletEvent(
                     event.getNewCloudlet(),
@@ -1416,11 +1457,11 @@ public class EdgeEventsConnection {
                     // Local copy:
                     NetTest netTest = new NetTest();
 
-                    // If there's a current FindCloudlet, we'd just use that.
-                    if (me.mFindCloudletReply == null) {
+                    if (lastConnectionDetails.currentCloudlet == null) {
+                        Log.e(TAG, "No current cloudlet for latencyRequest!");
                         return false;
                     }
-                    if (me.mFindCloudletReply.getPortsCount() == 0) {
+                    if (lastConnectionDetails.currentCloudlet.getPortsCount() == 0) {
                         Log.i(TAG, "There are no ports to test!");
                         return false;
                     }
@@ -1436,18 +1477,18 @@ public class EdgeEventsConnection {
                     }
 
                     // have (internal) port defined, use it.
-                    int publicPort = me.getAppConnectionManager().getPublicPort(me.mFindCloudletReply, mEdgeEventsConfig.latencyInternalPort);
+                    int publicPort = me.getAppConnectionManager().getPublicPort(lastConnectionDetails.currentCloudlet, mEdgeEventsConfig.latencyInternalPort);
                     if (publicPort == 0) {
                         Log.i(TAG, "Your expected server (or port) doesn't seem to be here!");
                         return false;
                     }
                     // Test with default network in use:
-                    Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(me.mFindCloudletReply, mEdgeEventsConfig.latencyInternalPort);
+                    Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(lastConnectionDetails.currentCloudlet, mEdgeEventsConfig.latencyInternalPort);
                     if (appPort == null) {
                         postErrorToEventHandler(EdgeEventsError.portDoesNotExist);
                         return false;
                     }
-                    String host = appPort.getFqdnPrefix() + me.mFindCloudletReply.getFqdn();
+                    String host = appPort.getFqdnPrefix() + lastConnectionDetails.currentCloudlet.getFqdn();
 
                     Site site = new Site(me.mContext, NetTest.TestType.CONNECT, DEFAULT_NUM_SAMPLES, host, publicPort);
                     netTest.addSite(site);
