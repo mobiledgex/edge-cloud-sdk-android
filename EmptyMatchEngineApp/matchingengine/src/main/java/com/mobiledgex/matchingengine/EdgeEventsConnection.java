@@ -1287,9 +1287,7 @@ public class EdgeEventsConnection {
                 boolean doPost = false;
 
                 // Weak check: FQDN changed.
-                if (currCloudlet == null) {
-                    doPost = true;
-                } else if (!sameCloudletFqdn(currCloudlet, reply)) {
+                if (!sameCloudletFqdn(currCloudlet, reply)) {
                     doPost = true;
                 }
 
@@ -1320,7 +1318,7 @@ public class EdgeEventsConnection {
     synchronized boolean handleFindCloudletServerPush(AppClient.ServerEdgeEvent event, FindCloudletEventTrigger reason) {
         Log.i(TAG, "Received a new Edge FindCloudlet. Pushing to new FindCloudlet subscribers.");
         if (event.hasNewCloudlet()) {
-            if (event.getNewCloudlet().getFqdn().equals(lastConnectionDetails.currentCloudlet.getFqdn())) {
+            if (sameCloudletFqdn(event.getNewCloudlet(), lastConnectionDetails.currentCloudlet)) {
                 Log.w(TAG, "newCloudlet from server is the same as the last one: " + event.getNewCloudlet().getFqdn() + ", with Reason: " + reason + ". Nothing to do. Posting error message.");
                 // Update edgeEventsCookie:
                 setCurrentCloudlet(event.getNewCloudlet());
