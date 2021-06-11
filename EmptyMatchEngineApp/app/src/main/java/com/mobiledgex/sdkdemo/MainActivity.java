@@ -324,6 +324,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     public void onDestroy() {
         super.onDestroy();
         if (me != null) {
+            me.getEdgeEventsBus().unregister(mEdgeEventsSubscriber);
             me.close();
             me = null;
         }
