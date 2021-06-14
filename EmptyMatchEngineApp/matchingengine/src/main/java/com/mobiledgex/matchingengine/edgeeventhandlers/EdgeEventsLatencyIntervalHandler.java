@@ -70,11 +70,6 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler 
         }
 
         public void run() {
-            AppClient.FindCloudletReply lastFc = me.getLastFindCloudletReply();
-            if (lastFc == null) {
-                return;
-            }
-
             if (getNumberOfTimesExecuted < ceConfig.maxNumberOfUpdates || ceConfig.maxNumberOfUpdates <= 0) {
                 getNumberOfTimesExecuted++;
                 EdgeEventsConnection edgeEventsConnection = me.getEdgeEventsConnection();

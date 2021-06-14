@@ -35,7 +35,6 @@ var classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine =
     [ "getEdgeEventsBus", "group__functions__edge__events__api.html#ga033d44051c4e7807237f3112fa6563b9", null ],
     [ "getEdgeEventsConnection", "classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#ae538de0186cb81e4941d2b952d31ef60", null ],
     [ "getEdgeEventsConnectionFuture", "group__functions__dmeapis.html#ga6a27f7bfe897b776c92d9744fb0007c8", null ],
-    [ "getLastFindCloudletReply", "classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a7772670e8c825f65fc89c5a1b570769f", null ],
     [ "getNetworkManager", "group__functions__dmeutils.html#gafae6cfc847290c8bd8305f45e576bb55", null ],
     [ "getPackageName", "group__functions__dmeutils.html#ga761dc97567b97ca697b4cb9f2f2fcca1", null ],
     [ "getPort", "classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a9f745e4cd15983d14c8058be3aa30caf", null ],
