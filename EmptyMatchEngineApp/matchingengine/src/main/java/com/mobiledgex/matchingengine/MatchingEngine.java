@@ -140,7 +140,6 @@ public class MatchingEngine {
 
     RegisterClientRequest mRegisterClientRequest;
     private RegisterClientReply mRegisterClientReply;
-    FindCloudletReply mFindCloudletReply;
     private VerifyLocationReply mVerifyLocationReply;
     private GetLocationReply mGetLocationReply;
     private DynamicLocGroupReply mDynamicLocGroupReply;
@@ -352,8 +351,18 @@ public class MatchingEngine {
         if (isShutdown()) {
             return false;
         }
+
+        if ((mEdgeEventsConnection.channelStatus == EdgeEventsConnection.ChannelStatus.open ||
+                mEdgeEventsConnection.channelStatus == EdgeEventsConnection.ChannelStatus.opening) &&
+                mEdgeEventsConnection.sameCloudletFqdn(
+                        mEdgeEventsConnection.lastConnectionDetails.findCloudletReply,
+                        mEdgeEventsConnection.lastConnectionDetails.currentCloudlet)) {
+            Log.d(TAG, "Same cloudlet FQDN. There is no need to reconnect.");
+            return true;
+        }
+
         if (mEdgeEventsConnection.channelStatus != EdgeEventsConnection.ChannelStatus.closed) {
-            stopEdgeEvents(); // If any.
+            stopEdgeEvents();
             mEdgeEventsConnection.closeInternal(); // Restartable close.
         }
         try {
@@ -515,21 +524,6 @@ public class MatchingEngine {
             Log.w(TAG, "No configuration to run edgeEvents");
             return false;
         }
-
-        if (mFindCloudletReply == null) {
-            Log.i(TAG, "No initial find cloudlet found yet.");
-            return false;
-        }
-        if (mFindCloudletReply.getEdgeEventsCookie() == null) {
-            Log.e(TAG, "This DME edge server doesn't seem to be compatible.");
-            return false;
-        }
-
-        if (mFindCloudletReply.getStatus() != FindCloudletReply.FindStatus.FIND_FOUND) {
-            Log.e(TAG, "This app is not in known FIND_FOUND state");
-            return false;
-        }
-
         return true;
     }
 
@@ -760,15 +754,11 @@ public class MatchingEngine {
         mVerifyLocationReply = locationVerify;
     }
 
-    synchronized public FindCloudletReply getLastFindCloudletReply() {
-        if (mFindCloudletReply == null) {
-            return null;
-        }
-        return FindCloudletReply.newBuilder(mFindCloudletReply).build();
-    }
-
     synchronized void setFindCloudletResponse(AppClient.FindCloudletReply reply) {
-        mFindCloudletReply = reply;
+        EdgeEventsConnection edgeEventsConnection = getEdgeEventsConnection();
+        if (edgeEventsConnection != null && reply != null) {
+            edgeEventsConnection.setFindCloudletReply(FindCloudletReply.newBuilder(reply).build());
+        }
     }
 
     synchronized void setDynamicLocGroupReply(DynamicLocGroupReply reply) {

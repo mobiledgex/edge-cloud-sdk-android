@@ -274,7 +274,7 @@ public class FindCloudlet implements Callable {
 
         AppClient.FindCloudletReply fcreply;
         ManagedChannel channel = null;
-        NetworkManager nm = null;
+        NetworkManager nm;
 
         Stopwatch stopwatch = Stopwatch.createUnstarted();
         long timeout = mTimeoutInMilliseconds;
@@ -292,9 +292,6 @@ public class FindCloudlet implements Callable {
             if (mMode == MatchingEngine.FindCloudletMode.PROXIMITY) {
                 fcreply = stub.withDeadlineAfter(timeout, TimeUnit.MILLISECONDS)
                         .findCloudlet(mRequest);
-                if (fcreply != null) {
-                    mMatchingEngine.setFindCloudletResponse(fcreply);
-                }
                 return fcreply;
             }
 
@@ -362,7 +359,6 @@ public class FindCloudlet implements Callable {
             }
         }
 
-        mMatchingEngine.setFindCloudletResponse(fcreply);
         return fcreply;
     }
 
@@ -467,17 +463,16 @@ public class FindCloudlet implements Callable {
             fcReply = FindCloudletWithMode(); // Regular FindCloudlet.
         }
 
-        // Always update, the session edgeEventsCookie is needed for future edge connections.
+        // Always update, since the edgeEventsCookie is most recent.
         mMatchingEngine.setFindCloudletResponse(fcReply);
 
         // Create message channel for DME EdgeEvents:
         if (mMaximumLatencyMs != -1 && // alt mode for performance swap
                 !mDoLatencyMigration && mMode == MatchingEngine.FindCloudletMode.PERFORMANCE) {
-            Log.d(TAG, "Cloudlet performance wasn't better. Not auto-migrating and returning nothing.");
+            Log.d(TAG, "Cloudlet performance wasn't better. Not auto-migrating.");
             fcReply = null;
         } else if (fcReply != null && fcReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
             try {
-                // The engine is allowed to use a default config, should the config be null.
                 mMatchingEngine.startEdgeEventsInternal(mHost, mPort, network, mMatchingEngine.mEdgeEventsConfig);
             } catch (Exception e) {
                 // Non fatal, but print an error. No background events available.
