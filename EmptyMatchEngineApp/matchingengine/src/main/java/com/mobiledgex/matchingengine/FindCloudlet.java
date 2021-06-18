@@ -248,6 +248,7 @@ public class FindCloudlet implements Callable {
         if (lastBestCloudletLatencyMs > 0) {
             double max = lastBestCloudletLatencyMs;
             marginLast = (bestSite.average - max) / max;
+            Log.d(TAG, "Last Measured margin: " + marginLast);
             if (marginLast < 0) { // Improvement?
                 useMeasured = true;
             }
@@ -337,16 +338,19 @@ public class FindCloudlet implements Callable {
             double margin = getMarginAndDoLatencyMigrationCheck(bestSite);
 
             // Better by enough to allow migrate or not?
+            EdgeEventsConnection edgeEventsConnection = mMatchingEngine.getEdgeEventsConnection();
             if (bestSite.hasSuccessfulTests() &&
                     mMaximumLatencyMs >= 0 && // Want performance check
                     mDoLatencyMigration) {
                 Log.i(TAG, "Performance tests found a better cloudlet. Performance margin: " + margin + ", Target: " + mMaximumLatencyMs + ", Average: " + bestSite.average);
-                EdgeEventsConnection edgeEventsConnection = mMatchingEngine.getEdgeEventsConnection();
                 if (edgeEventsConnection != null) {
                     edgeEventsConnection.updateBestAppSite(bestSite, margin);
                 }
             } else {
                 Log.i(TAG, "Performance tests did not find a better cloudlet. Performance margin: " + margin + ", Target: " + mMaximumLatencyMs + ", Average: " + bestSite.average);
+                if (edgeEventsConnection != null) {
+                    edgeEventsConnection.updateBestAppSiteIfNull(bestSite, margin);
+                }
                 return fcreply;
             }
         } catch (Exception e) {
@@ -463,15 +467,15 @@ public class FindCloudlet implements Callable {
             fcReply = FindCloudletWithMode(); // Regular FindCloudlet.
         }
 
-        // Always update, since the edgeEventsCookie is most recent.
-        mMatchingEngine.setFindCloudletResponse(fcReply);
-
         // Create message channel for DME EdgeEvents:
         if (mMaximumLatencyMs != -1 && // alt mode for performance swap
                 !mDoLatencyMigration && mMode == MatchingEngine.FindCloudletMode.PERFORMANCE) {
-            Log.d(TAG, "Cloudlet performance wasn't better. Not auto-migrating.");
+            // Do not update Cloudlet, rejected FindCloudletReply.
+            Log.d(TAG, "Cloudlet performance wasn't better. Not migrating.");
             fcReply = null;
         } else if (fcReply != null && fcReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
+            // accepted findCloudletReply. If you need to compare before and after, you must get a copy first.
+            mMatchingEngine.setFindCloudletResponse(fcReply);
             try {
                 mMatchingEngine.startEdgeEventsInternal(mHost, mPort, network, mMatchingEngine.mEdgeEventsConfig);
             } catch (Exception e) {
