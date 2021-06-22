@@ -12,7 +12,7 @@ properties.load(project.rootProject.file('local.properties').newDataInputStream(
 def edgeProtoGitRepo = "$projectDir/../../../edge-proto"
 // Sanity check:
 if (!new File(edgeProtoGitRepo).exists() ) {
-    throw new GradleException("Invalid repo. Please git clone the shared edge-proto.git repository ($edgeProtoGitRepo) at the same directory level as this git repo.")
+    throw new Exception("Invalid repo. Please git clone the shared edge-proto.git repository ($edgeProtoGitRepo) at the same directory level as this git repo.")
 }
 
 android {
@@ -20,9 +20,9 @@ android {
 
     defaultConfig {
         minSdkVersion 24
-        targetSdkVersion 28
-        versionCode 16
-        versionName "2.6.16"
+        targetSdkVersion 29
+        versionCode 17
+        versionName "2.6.17"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
