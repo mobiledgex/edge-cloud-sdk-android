@@ -804,7 +804,7 @@ public class EdgeEventsConnectionTest {
             // Mocks needed to prevent real locaiton messing with results;
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
             config.locationUpdateConfig = null; // Don't want anything.
-            config.latencyUpdateConfig.maxNumberOfUpdates = 1; // num <= 0 means "infinity".
+            config.latencyUpdateConfig.maxNumberOfUpdates = 4; // num <= 0 means "infinity".
             config.latencyUpdateConfig.updateIntervalSeconds = 5; // also sets initial delay.
             config.latencyThresholdTrigger = 10; // Likely very low for our test servers.
 
@@ -825,8 +825,8 @@ public class EdgeEventsConnectionTest {
             assertSame("FindCloudlet1 did not succeed!",  AppClient.FindCloudletReply.FindStatus.FIND_FOUND, findCloudletReply1.getStatus());
 
             // Waiting for 1 (or more).
-            er.setLatch(1);
-            er.latch.await(GRPC_TIMEOUT_MS * 2, TimeUnit.MILLISECONDS);
+            er.setLatch((int)config.latencyUpdateConfig.maxNumberOfUpdates);
+            er.latch.await(GRPC_TIMEOUT_MS * 6, TimeUnit.MILLISECONDS);
 
             // Performance avg = 10ms will trigger a Performance FindCloudlet, even if no such server exists. This *could* find a faster server still from that test.
             assertEquals("Expected that the configured latency is too high!", 0, er.latch.getCount());

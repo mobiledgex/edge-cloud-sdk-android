@@ -352,15 +352,6 @@ public class MatchingEngine {
             return false;
         }
 
-        if ((mEdgeEventsConnection.channelStatus == EdgeEventsConnection.ChannelStatus.open ||
-                mEdgeEventsConnection.channelStatus == EdgeEventsConnection.ChannelStatus.opening) &&
-                mEdgeEventsConnection.sameCloudletFqdn(
-                        mEdgeEventsConnection.lastConnectionDetails.findCloudletReply,
-                        mEdgeEventsConnection.lastConnectionDetails.currentCloudlet)) {
-            Log.d(TAG, "Same cloudlet FQDN. There is no need to reconnect.");
-            return true;
-        }
-
         if (mEdgeEventsConnection.channelStatus != EdgeEventsConnection.ChannelStatus.closed) {
             stopEdgeEvents();
             mEdgeEventsConnection.closeInternal(); // Restartable close.
@@ -757,7 +748,7 @@ public class MatchingEngine {
     synchronized void setFindCloudletResponse(AppClient.FindCloudletReply reply) {
         EdgeEventsConnection edgeEventsConnection = getEdgeEventsConnection();
         if (edgeEventsConnection != null && reply != null) {
-            edgeEventsConnection.setFindCloudletReply(FindCloudletReply.newBuilder(reply).build());
+            edgeEventsConnection.setCurrentCloudlet(FindCloudletReply.newBuilder(reply).build());
         }
     }
 

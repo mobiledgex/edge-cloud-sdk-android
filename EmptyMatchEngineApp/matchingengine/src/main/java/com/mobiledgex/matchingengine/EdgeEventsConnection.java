@@ -84,8 +84,6 @@ public class EdgeEventsConnection {
             port = aPort;
             network = aNetwork;
         }
-        String edgeEventsCookie;
-        AppClient.FindCloudletReply findCloudletReply; // The last FindCloudlet API call result.
         AppClient.FindCloudletReply currentCloudlet; // Server pushed newCloudlets, or a client found FindCloudlet that met an EdgeEventsConfig spec.
         AppInstDetails appInstPerformanceDetails;
     }
@@ -285,17 +283,11 @@ public class EdgeEventsConnection {
         return isRegisteredForEvents;
     }
 
-    synchronized void setFindCloudletReply(AppClient.FindCloudletReply reply) {
-        lastConnectionDetails.findCloudletReply = reply;
-        lastConnectionDetails.edgeEventsCookie = reply.getEdgeEventsCookie();
-    }
-
     synchronized void setCurrentCloudlet(AppClient.FindCloudletReply cloudlet) {
         if (cloudlet == null) {
             return;
         }
         lastConnectionDetails.currentCloudlet = AppClient.FindCloudletReply.newBuilder(cloudlet).build();
-        lastConnectionDetails.edgeEventsCookie = cloudlet.getEdgeEventsCookie();
     }
 
     public Location getLastLocationPosted() {
@@ -371,7 +363,9 @@ public class EdgeEventsConnection {
 
         // We need to re-init the DME connection:
         // Client identifies itself with an Init message to DME EdgeEvents Connection.
-        if (lastConnectionDetails.edgeEventsCookie == null || me.getSessionCookie() == null) {
+        if (lastConnectionDetails.currentCloudlet == null ||
+                lastConnectionDetails.currentCloudlet.getEdgeEventsCookie() == null ||
+                me.getSessionCookie() == null) {
             Log.e(TAG, "State Error: Missing sessions to reconnect.");
             postErrorToEventHandler(EdgeEventsError.missingSessionCookie);
             return;
@@ -452,7 +446,7 @@ public class EdgeEventsConnection {
             lastConnectionDetails.network = network;
         }
 
-        if (lastConnectionDetails.edgeEventsCookie == null) {
+        if (lastConnectionDetails.currentCloudlet == null) {
             Log.i(TAG, "Cannot start connection yet. Missing session for EdgeEventsConnection!");
             return;
         }
@@ -531,7 +525,8 @@ public class EdgeEventsConnection {
 
         String sessionCookie = me.mSessionCookie;
         // This is the latest edgeEventsCookie by either FindCloudlet activity, or server push activities.
-        String edgeEventsCookie = lastConnectionDetails.edgeEventsCookie;
+        String edgeEventsCookie = lastConnectionDetails.currentCloudlet == null ?
+                null : lastConnectionDetails.currentCloudlet.getEdgeEventsCookie();
 
         if (sessionCookie != null && edgeEventsCookie != null) {
             AppClient.ClientEdgeEvent.Builder initDmeEventBuilder = AppClient.ClientEdgeEvent.newBuilder()
@@ -592,6 +587,16 @@ public class EdgeEventsConnection {
         }
         Log.d(TAG, "Best site is being updated to: " + site.host + ", avg latency: " + site.average + ", Margin: " + margin);
         lastConnectionDetails.appInstPerformanceDetails = new AppInstDetails(site, margin);
+    }
+
+    void updateBestAppSiteIfNull(Site site, double margin) {
+        if (isShutdown()) {
+            return;
+        }
+        if (lastConnectionDetails.appInstPerformanceDetails != null) {
+            return;
+        }
+        updateBestAppSite(site, margin);
     }
 
     public boolean isShutdown() {
@@ -1076,10 +1081,6 @@ public class EdgeEventsConnection {
                 return false;
             }
 
-            if (lastConnectionDetails.currentCloudlet == null) {
-                setCurrentCloudlet(lastConnectionDetails.findCloudletReply);
-            }
-
             // Abort if no find cloudlet yet.
             if (lastConnectionDetails.currentCloudlet == null) {
                 Log.e(TAG, "The App needs to have a FindCloudlet reply of FIND_FOUND before startEdgeEvents can be used");
@@ -1270,8 +1271,8 @@ public class EdgeEventsConnection {
 
             try {
                 // If the latency trigger spec is not met, no auto-migrate happens.
-                AppClient.FindCloudletReply currCloudlet = lastConnectionDetails.currentCloudlet;
-                AppClient.FindCloudletReply reply = me.findCloudlet(
+                AppClient.FindCloudletReply previousFcReply = lastConnectionDetails.currentCloudlet;
+                AppClient.FindCloudletReply newFcReply = me.findCloudlet(
                         request,
                         lastConnectionDetails.host,
                         lastConnectionDetails.port,
@@ -1279,7 +1280,7 @@ public class EdgeEventsConnection {
                         me.mEdgeEventsConfig.latencyTriggerTestMode,
                         (long)me.mEdgeEventsConfig.latencyThresholdTrigger);
 
-                if (reply == null || reply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_NOTFOUND) {
+                if (newFcReply == null || newFcReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_NOTFOUND) {
                     postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
                     return false;
                 }
@@ -1287,7 +1288,7 @@ public class EdgeEventsConnection {
                 boolean doPost = false;
 
                 // Weak check: FQDN changed.
-                if (!sameCloudletFqdn(currCloudlet, reply)) {
+                if (!sameCloudletFqdn(previousFcReply, newFcReply)) {
                     doPost = true;
                 }
 
@@ -1297,12 +1298,11 @@ public class EdgeEventsConnection {
                     postErrorToEventHandler(EdgeEventsError.eventTriggeredButCurrentCloudletIsBest);
                     return false;
                 }
-                setCurrentCloudlet(reply);
 
                 // Note: Auto start or AutoMigrate of edgeEvents already happened as necessary in FindCloudlet.
                 // Just post here. NewCloudlet push is, however, subject to AutoMigrate flag.
                 Log.i(TAG, "Different cloudlet than last posted.");
-                FindCloudletEvent event = new FindCloudletEvent(reply, reason);
+                FindCloudletEvent event = new FindCloudletEvent(newFcReply, reason);
                 postToFindCloudletEventHandler(event);
                 return true;
             } catch (InterruptedException e) {
