@@ -723,7 +723,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
             int port = me.getPort(); // Keep same port.
 
-            String orgName = "MobiledgeX"; // Always supplied by application, and in the MobiledgeX web admin console.
+            String orgName = "automation_dev_org"; // Always supplied by application, and in the MobiledgeX web admin console.
             // For illustration, the matching engine can be used to programmatically get the name of your application details
             // so it can go to the correct appInst version. That AppInst on the server side must match the application
             // version or else it won't be found and cannot be used.
