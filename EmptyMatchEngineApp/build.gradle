@@ -18,7 +18,7 @@ buildscript {
         mavenLocal()
         mavenCentral()
         google()
-        jcenter()
+        jcenter() // Last search: needed for Artifactory BuildInfo 4.18, and doxygen.
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:4.2.1'

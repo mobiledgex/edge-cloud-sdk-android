@@ -832,7 +832,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         }
                     }
 
-                    // Test from a particular network path. Here, the active one is Celluar since we switched the whole process over earlier.
+                    // Test from a particular network path. Here, the active one is Cellular since we switched the whole process over earlier.
                     Site site = new Site(me.getNetworkManager().getActiveNetwork(), NetTest.TestType.CONNECT, 5, host, serverPort);
                     netTest.addSite(site);
                 }
