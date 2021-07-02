@@ -1204,11 +1204,11 @@ public class EdgeEventsConnection {
                 ret = handleAppInstHealth(event);
                 break;
             case EVENT_CLOUDLET_STATE:
-                Log.d(TAG, "Received: Cloutlet State event: " + event);
+                Log.d(TAG, "Received: Cloudlet State event: " + event);
                 ret = handleCloudletState(event);
                 break;
             case EVENT_CLOUDLET_MAINTENANCE:
-                Log.d(TAG,"Received: Cloutlet Maintenance event." + event);
+                Log.d(TAG,"Received: Cloudlet Maintenance event." + event);
                 ret = handleCloudletMaintenance(event);
                 break;
             case EVENT_LATENCY_PROCESSED:
