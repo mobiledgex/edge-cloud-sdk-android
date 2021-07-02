@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018-2021 MobiledgeX, Inc. All rights and licenses reserved.
  * MobiledgeX, Inc. 156 2nd Street #408, San Francisco, CA 94105
  *
@@ -28,7 +28,6 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.util.Pair;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
@@ -70,20 +69,17 @@ public class EdgeEventsConnectionTest {
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
-    public static final String organizationName = "MobiledgeX";
+    public static final String organizationName = "automation_dev_org";
     // Other globals:
     public static final String applicationName = "automation-sdk-porttest"; // "automation-sdk-porttest";
     public static final String appVersion = "1.0";
 
-    FusedLocationProviderClient fusedLocationClient;
 
     public static String hostOverride = "eu-qa.dme.mobiledgex.net";
     public static int portOverride = 50051;
     public static String findCloudletCarrierOverride = ""; // Allow "Any" if using "", but this likely breaks test cases.
 
     public boolean useHostOverride = true;
-    public boolean useWifiOnly = true; // This also disables network switching, since the android default is WiFi.
-
 
     class EventReceiver {
         ConcurrentLinkedQueue<FindCloudletEvent> responses;
@@ -139,7 +135,6 @@ public class EdgeEventsConnectionTest {
 
     Location edmontonLoc, montrealLoc, automationFairviewCloudlet, automationHawkinsCloudlet;
     Location [] toggleLocations;
-    int locationIndex = 0;
 
     @Before
     public void locationGetTogglerSetup() {
