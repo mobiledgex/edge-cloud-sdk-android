@@ -179,10 +179,8 @@ public class EdgeEventsConnection {
         missingNewFindCloudletHandler,
         missingServerEventsHandler,
 
-        missingLatencyThreshold,
         invalidLatencyThreshold,
-
-        missingUpdateInterval,
+        invalidPerformanceSwitchMargin,
         invalidUpdateInterval,
 
         hasNotDoneFindCloudlet,
@@ -194,7 +192,10 @@ public class EdgeEventsConnection {
         unableToCleanup,
         gpsLocationDidNotChange,
 
+        stateChanged,
+
         eventTriggeredButCurrentCloudletIsBest,
+        eventTriggeredButFindCloudletError,
 
         missingDmeDnsEntry
     }
