@@ -348,9 +348,6 @@ public class FindCloudlet implements Callable {
                 }
             } else {
                 Log.i(TAG, "Performance tests did not find a better cloudlet. Performance margin: " + margin + ", Target: " + mMaximumLatencyMs + ", Average: " + bestSite.average);
-                if (edgeEventsConnection != null) {
-                    edgeEventsConnection.updateBestAppSiteIfNull(bestSite, margin);
-                }
                 return fcreply;
             }
         } catch (Exception e) {
