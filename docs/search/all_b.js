@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['ping_82',['Ping',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ac8753a5c221bd25dba02368505240463',1,'com::mobiledgex::matchingengine::performancemetrics::NetTest']]],
-  ['postlatencyupdate_83',['postLatencyUpdate',['../group__functions__edge__events__api.html#ga3ca4aed2892998633663476b538af3f0',1,'com::mobiledgex::matchingengine::EdgeEventsConnection']]],
-  ['postlocationupdate_84',['postLocationUpdate',['../group__functions__edge__events__api.html#gafba5e6b5c12c52332b7b54031c3d0688',1,'com::mobiledgex::matchingengine::EdgeEventsConnection']]]
+  ['onrequestpermissionsresult_88',['onRequestPermissionsResult',['../classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_request_permissions.html#a25f9256ad3f17967568fdabbecf67663',1,'com::mobiledgex::matchingengine::util::RequestPermissions']]],
+  ['onsubscriptionschanged_89',['onSubscriptionsChanged',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a260b9693543ac61609fa0549bbcc964a',1,'com::mobiledgex::matchingengine::NetworkManager']]]
 ];

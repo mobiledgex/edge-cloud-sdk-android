@@ -30,13 +30,10 @@ import java.util.EnumSet;
  */
 public class EdgeEventsConfig {
     private static final String TAG = "EdgeEventsConfig";
-    // Configure how to send events
 
-    /*!
-     * port information for latency testing. This is the AppPort's internal port, not public mapped port for current AppInst.
-     */
-    public int latencyInternalPort;
-    public NetTest.TestType latencyTestType = NetTest.TestType.CONNECT; //!< TCP connect. Use ping for UDP.
+    // Configure how to send events
+    public int latencyInternalPort; //!< port information for latency testing. This is the AppPort's internal port, not public mapped port for current AppInst. Use 0 for selecting the first available port, favoring TCP.
+    public NetTest.TestType latencyTestType = NetTest.TestType.CONNECT; //!< TCP connect default. Use ping for UDP.
     public UpdateConfig latencyUpdateConfig; //!< config for latency updates
     public UpdateConfig locationUpdateConfig; //!< config for gps location updates
 
@@ -46,9 +43,8 @@ public class EdgeEventsConfig {
     public float performanceSwitchMargin; //!< Average performance must be by better by this latency margin (0 to 1.0f) before notifying of switch.
     public EnumSet<FindCloudletEventTrigger> triggers; //!< events that application wants a new find cloudlet for
 
-    //!< Default parameters
     public EdgeEventsConfig() {
-        latencyInternalPort = 0; //!< implicit Ping only.
+        latencyInternalPort = 0;
         latencyTestType = NetTest.TestType.CONNECT;
         latencyThresholdTrigger = 50;
         latencyTriggerTestMode = MatchingEngine.FindCloudletMode.PERFORMANCE;
