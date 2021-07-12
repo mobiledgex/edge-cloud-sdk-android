@@ -24,27 +24,27 @@ import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 
 import java.util.EnumSet;
 
+/*!
+ * EdgeEventsConfig is used to configure EdgeEvent parameters.
+ * \ingroup functions_edge_events_api
+ */
 public class EdgeEventsConfig {
     private static final String TAG = "EdgeEventsConfig";
-    // Configure how to send events
 
-    /*!
-     * port information for latency testing. This is the AppPort's internal port, not public mapped port for current AppInst.
-     */
-    public int latencyInternalPort;
-    public NetTest.TestType latencyTestType = NetTest.TestType.CONNECT; // TCP connect. Use ping for UDP.
-    public UpdateConfig latencyUpdateConfig; // config for latency updates
-    public UpdateConfig locationUpdateConfig;// config for gps location updates
+    // Configure how to send events
+    public int latencyInternalPort; //!< port information for latency testing. This is the AppPort's internal port, not public mapped port for current AppInst. Use 0 for selecting the first available port, favoring TCP.
+    public NetTest.TestType latencyTestType = NetTest.TestType.CONNECT; //!< TCP connect default. Use ping for UDP.
+    public UpdateConfig latencyUpdateConfig; //!< config for latency updates
+    public UpdateConfig locationUpdateConfig; //!< config for gps location updates
 
     // Configure how to respond to events
-    public double latencyThresholdTrigger; // latency threshold in ms when new FindCloudlet is triggered
+    public double latencyThresholdTrigger; //!< latency threshold in ms when new FindCloudlet is triggered
     public MatchingEngine.FindCloudletMode latencyTriggerTestMode;
-    public float performanceSwitchMargin; // Average performance must be by better by this latency margin (0 to 1.0f) before notifying of switch.
-    public EnumSet<FindCloudletEventTrigger> triggers;// events that application wants a new find cloudlet for
+    public float performanceSwitchMargin; //!< Average performance must be by better by this latency margin (0 to 1.0f) before notifying of switch.
+    public EnumSet<FindCloudletEventTrigger> triggers; //!< events that application wants a new find cloudlet for
 
-    // Defaults:
     public EdgeEventsConfig() {
-        latencyInternalPort = 0; // implicit Ping only.
+        latencyInternalPort = 0;
         latencyTestType = NetTest.TestType.CONNECT;
         latencyThresholdTrigger = 50;
         latencyTriggerTestMode = MatchingEngine.FindCloudletMode.PERFORMANCE;
@@ -62,7 +62,7 @@ public class EdgeEventsConfig {
      * \param edgeEventsConfig an existing EdgeEvents config.
      */
     public EdgeEventsConfig(EdgeEventsConfig edgeEventsConfig) {
-        latencyInternalPort = edgeEventsConfig.latencyInternalPort; // implicit Ping only.
+        latencyInternalPort = edgeEventsConfig.latencyInternalPort;
         latencyTestType = edgeEventsConfig.latencyTestType;
         latencyThresholdTrigger = edgeEventsConfig.latencyThresholdTrigger;
         latencyTriggerTestMode = edgeEventsConfig.latencyTriggerTestMode;

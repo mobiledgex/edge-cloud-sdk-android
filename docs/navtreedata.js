@@ -26,6 +26,9 @@ var NAVTREE =
 [
   [ "Android SDK", "index.html", [
     [ "Classes", "annotated.html", [
+      [ "FindCloudletEventTrigger", "enumcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_find_cloudlet_event_trigger.html", "enumcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_find_cloudlet_event_trigger" ],
+      [ "UpdateConfig", "classcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_update_config.html", "classcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_update_config" ],
+      [ "EdgeEventsConfig", "classcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_edge_events_config.html", "classcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_edge_events_config" ],
       [ "NetTest", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test" ],
       [ "Site", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site" ],
       [ "RequestPermissions", "classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_request_permissions.html", "classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_request_permissions" ],
@@ -50,7 +53,7 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "classcom_1_1mobiledgex_1_1matchingengine_1_1_app_connection_manager.html",
-"group__functions__dmeapis.html#gad4f300de8d5e11a1902e01344109a550"
+"group__functions__dmeapis.html#ga877d45362c239856a69f7e77f50a425c"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

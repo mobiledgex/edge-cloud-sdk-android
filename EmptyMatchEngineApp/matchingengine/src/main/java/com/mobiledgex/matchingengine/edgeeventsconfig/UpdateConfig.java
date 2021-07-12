@@ -17,12 +17,16 @@
 
 package com.mobiledgex.matchingengine.edgeeventsconfig;
 
+/*!
+ * UpdateConfig configures how scheduled timers for EdgeEvens will be triggered.
+ * \ingroup functions_edge_events_api
+ */
 public class UpdateConfig {
     private static final String TAG = "UpdateConfig";
 
-    public UpdatePattern updatePattern;
-    public double updateIntervalSeconds; // in seconds
-    public long maxNumberOfUpdates;
+    public UpdatePattern updatePattern; //!< The update pattern to use for scheduled interval timer task
+    public double updateIntervalSeconds; //!< in seconds
+    public long maxNumberOfUpdates; //!< limits number of updates per scheduled interval timer task
 
     public enum UpdatePattern {
         onStart,

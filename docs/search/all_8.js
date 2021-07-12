@@ -1,12 +1,8 @@
 var searchData=
 [
-  ['matchingengine_67',['MatchingEngine',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html',1,'com.mobiledgex.matchingengine.MatchingEngine'],['../classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5',1,'com.mobiledgex.matchingengine.MatchingEngine.MatchingEngine(Context context)'],['../classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a07ac6b57ce1573e837f311354bd1ef64',1,'com.mobiledgex.matchingengine.MatchingEngine.MatchingEngine(Context context, ExecutorService executorService)']]],
-  ['matchingengine_20api_20exceptions_68',['MatchingEngine API Exceptions',['../group__exceptions__dme.html',1,'']]],
-  ['matchingengine_20apis_69',['MatchingEngine APIs',['../group__functions__dmeapis.html',1,'']]],
-  ['matchingengine_20utility_20functions_70',['MatchingEngine Utility Functions',['../group__functions__dmeutils.html',1,'']]],
-  ['max_71',['max',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#aafb89936e6f99ab6f812a4185afd10e2',1,'com::mobiledgex::matchingengine::performancemetrics::Site']]],
-  ['melocation_72',['MeLocation',['../classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_me_location.html',1,'com::mobiledgex::matchingengine::util']]],
-  ['min_73',['min',['../classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a9d1d424468a55404b7cd2977e2b3f4d2',1,'com::mobiledgex::matchingengine::performancemetrics::Site']]],
-  ['missingrequestexception_74',['MissingRequestException',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_missing_request_exception.html',1,'com::mobiledgex::matchingengine']]],
-  ['mobiledgexsslsocketfactory_75',['MobiledgeXSSLSocketFactory',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_mobiledge_x_s_s_l_socket_factory.html',1,'com::mobiledgex::matchingengine']]]
+  ['latencyinternalport_69',['latencyInternalPort',['../classcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_edge_events_config.html#a1c2c1d3fea53a3cee32417bc81511063',1,'com::mobiledgex::matchingengine::edgeeventsconfig::EdgeEventsConfig']]],
+  ['latencytesttype_70',['latencyTestType',['../classcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_edge_events_config.html#af76a02d9a6c7f85b3d01e9dd7397e004',1,'com::mobiledgex::matchingengine::edgeeventsconfig::EdgeEventsConfig']]],
+  ['latencythresholdtrigger_71',['latencyThresholdTrigger',['../classcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_edge_events_config.html#a7c604dcbbf0eee05fece2e5d4a064cea',1,'com::mobiledgex::matchingengine::edgeeventsconfig::EdgeEventsConfig']]],
+  ['latencyupdateconfig_72',['latencyUpdateConfig',['../classcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_edge_events_config.html#aa7a71e9ea4cdc1c1b1f032e047dd8b7f',1,'com::mobiledgex::matchingengine::edgeeventsconfig::EdgeEventsConfig']]],
+  ['locationupdateconfig_73',['locationUpdateConfig',['../classcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_edge_events_config.html#a37e80b47fe13e298ccd2ae2dfa48565d',1,'com::mobiledgex::matchingengine::edgeeventsconfig::EdgeEventsConfig']]]
 ];
