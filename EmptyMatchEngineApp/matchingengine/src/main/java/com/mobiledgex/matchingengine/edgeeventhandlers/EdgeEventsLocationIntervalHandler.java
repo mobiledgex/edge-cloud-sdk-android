@@ -41,9 +41,9 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
         UpdateConfig cfg = new UpdateConfig(config);
 
         if (config.updateIntervalSeconds <= 0) {
-            Log.w(TAG, "Seconds cannot be negative. Defaulting to 30 seconds.");
-
-            cfg.updateIntervalSeconds = 30;
+            Log.w(TAG, "Seconds cannot be zero or negative. Defaulting to " +
+                    UpdateConfig.UPDATE_INTERVAL_SECONDS_DEFAULT+ " seconds.");
+            cfg.updateIntervalSeconds = UpdateConfig.UPDATE_INTERVAL_SECONDS_DEFAULT;
         }
 
         timer.schedule(new LocationTask(cfg),

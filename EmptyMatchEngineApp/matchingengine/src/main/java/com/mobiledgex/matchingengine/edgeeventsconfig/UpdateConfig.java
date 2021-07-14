@@ -27,6 +27,7 @@ public class UpdateConfig {
     public UpdatePattern updatePattern; //!< The update pattern to use for scheduled interval timer task
     public double updateIntervalSeconds; //!< in seconds
     public long maxNumberOfUpdates; //!< limits number of updates per scheduled interval timer task
+    public static final int UPDATE_INTERVAL_SECONDS_DEFAULT = 30;
 
     public enum UpdatePattern {
         onStart,
@@ -36,7 +37,7 @@ public class UpdateConfig {
 
     public UpdateConfig() {
         updatePattern = UpdatePattern.onTrigger;
-        updateIntervalSeconds = 30;
+        updateIntervalSeconds = UPDATE_INTERVAL_SECONDS_DEFAULT;
         maxNumberOfUpdates = 0; // <= 0 means "infinity".
     }
 
