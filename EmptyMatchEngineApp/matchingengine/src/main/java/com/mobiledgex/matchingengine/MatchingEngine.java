@@ -396,7 +396,7 @@ public class MatchingEngine {
         } else {
             mEdgeEventsConfig = new EdgeEventsConfig(edgeEventsConfig);
         }
-        Log.i(TAG, "EdgeEvents Configuration has been updated.");
+        Log.i(TAG, "EdgeEvents Configuration has been started with this edgeEventsConfig: " + edgeEventsConfig);
 
         // This is an exposed path to start/restart EdgeEvents, state check everything.
         if (!validateEdgeEventsConfig()) {
