@@ -396,12 +396,13 @@ public class MatchingEngine {
         } else {
             mEdgeEventsConfig = new EdgeEventsConfig(edgeEventsConfig);
         }
-        Log.i(TAG, "EdgeEvents Configuration has been updated.");
 
         // This is an exposed path to start/restart EdgeEvents, state check everything.
         if (!validateEdgeEventsConfig()) {
+            Log.e(TAG, "startEdgeEvents EdgeEvents Configuration for starting does not look correct: " + edgeEventsConfig);
             return false; // NOT started.
         }
+        Log.i(TAG, "startEdgeEvents has been started with this edgeEventsConfig parameter: " + edgeEventsConfig);
 
         // Start, if not already, the edgeEvents connection. It also starts any deferred events.
         // Reconnecting via FindCloudlet, will also call startEdgeEvents.
