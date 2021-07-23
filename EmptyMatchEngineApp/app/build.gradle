@@ -32,6 +32,9 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 
+    // ECN-bits library:
+    implementation "de.telecom.llcto:ecn-lib:2.2"
+
     // Use local project Matching Engine SDK:
     implementation project(":matchingengine")
 

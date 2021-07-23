@@ -60,6 +60,11 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -69,6 +74,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import de.telecom.llcto.ecn_bits.android.lib.Bits;
+import de.telecom.llcto.ecn_bits.android.lib.ECNBitsDatagramSocket;
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
 import io.grpc.StatusRuntimeException;
@@ -907,5 +914,89 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private void doEnhancedLocationUpdateInBackground(final Task<Location> locationTask, final AppCompatActivity ctx) {
         ExecutorService service = Executors.newCachedThreadPool();
         CompletableFuture.runAsync(() -> runFlow(locationTask, ctx), service);
+    }
+
+
+    // An ECN-Bits capable server endpoint "somewhere"
+    private void connectToEcnServer() {
+        String hostname = "10.59.41.10";
+        InetAddress dest;
+        try {
+            dest = InetAddress.getByName(hostname);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            Log.e(TAG, "Whoops. Check IP address");
+            return;
+        }
+        int port = 9001; // known internal docker port
+
+        // ECN UDP push message(s)
+        byte messageBuf[] = "XYZYellowBrickRoad".getBytes();
+        // bit pattern:
+        /*AppClient.ECNStatus status[] = new AppClient.ECNStatus[3*100];
+        int offset = 0;
+        for (int i = 0; i < 100; i++) {
+            status[offset + i] = AppClient.ECNStatus.ECT_1;
+        }
+        offset = 100;
+        for (int i = 0; i < 100; i++) {
+            status[offset + i] = AppClient.ECNStatus.CE;
+        }
+        offset = 200;
+        for (int i = 0; i < 100; i++) {
+            status[offset + i] = AppClient.ECNStatus.ECT_0; // Something else (same)
+        }*/
+        Bits bits[] = new Bits[3*100];
+        int offset = 0;
+        for (int i = 0; i < 100; i++) {
+            bits[offset + i] = Bits.ECT1;
+        }
+        offset = 100;
+        for (int i = 0; i < 100; i++) {
+            bits[offset + i] = Bits.CE;
+        }
+        offset = 200;
+        for (int i = 0; i < 100; i++) {
+            bits[offset + i] = Bits.ECT0; // Something else (same)
+        }
+
+        // Send and recieve stuff (1 to 1...)
+        try {
+            int cursor = 0;
+            for (cursor = 0; cursor < bits.length; cursor++) {
+                ECNBitsDatagramSocket sock = new ECNBitsDatagramSocket();
+                sock.startMeasurement(); // Need to set the bit before sending...
+                final DatagramPacket psend = new DatagramPacket(messageBuf, messageBuf.length, dest, port);
+                try {
+                    sock.setTrafficClass(bits[cursor].ordinal());
+                    sock.send(psend);
+                    Log.e(TAG, "Sent: bits: " + bits[cursor] + ", message: " + messageBuf);
+                } catch (IOException e) {
+                    Log.e(TAG, "Cannot send: " + e.getMessage() + "Stack: " + e.getStackTrace());
+                }
+
+                // Receive (), and print traffic class:
+                byte [] buf = new byte[64]; // yeah, fixed server message.
+                final DatagramPacket precv = new DatagramPacket(buf, buf.length);
+                while (true) {
+                    precv.setData(precv.getData());
+                    try {
+                        sock.receive((precv));
+                        // Great! Print bits and message:
+                        final Byte trafficClass = sock.retrieveLastTrafficClass();
+                        final String userData = new String(buf, precv.getOffset(), precv.getLength(), StandardCharsets.UTF_8);
+                        Log.i(TAG, "Message recieved. TC: " + trafficClass + ", message: " + userData);
+                    } catch (IOException ioe) {
+                        Log.e(TAG, "Hit IO Exception while reading packet: Message: " + ioe.getMessage() + ", stack: " + ioe.getStackTrace());
+                        break;
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
+
+
     }
 }

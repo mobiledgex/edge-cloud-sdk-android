@@ -48,6 +48,14 @@ allprojects {
             }
             url "${mobiledgeXContextUrl}/${repoKey}"
         }
+        maven {
+            credentials {
+                // Create these variables if you don't have them.
+                username "${artifactory_user}"
+                password "${artifactory_password}"
+            }
+            url "https://artifactory.mobiledgex.net:443/artifactory/maven-extlib-development"
+        }
         mavenLocal()
         mavenCentral()
         google()
