@@ -17,7 +17,6 @@
 
 package com.mobiledgex.matchingengine;
 
-import android.net.ConnectivityManager;
 import android.net.Network;
 import android.util.Log;
 
@@ -461,6 +460,11 @@ public class AppConnectionManager {
         };
 
         return mExecutor.submit(socketCallable);
+    }
+
+    // TODO:
+    public EcnUdpClient getEcnUdpClient() {
+        return null;
     }
 
     /*!

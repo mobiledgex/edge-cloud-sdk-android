@@ -946,6 +946,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         for (int i = 0; i < 100; i++) {
             status[offset + i] = AppClient.ECNStatus.ECT_0; // Something else (same)
         }*/
+        // Create test pattern EC "profile"
         Bits bits[] = new Bits[3*100];
         int offset = 0;
         for (int i = 0; i < 100; i++) {
