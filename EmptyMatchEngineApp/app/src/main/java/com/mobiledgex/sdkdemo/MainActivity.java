@@ -228,6 +228,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
 
         netTest = new NetTest();
+
+        connectToEcnServer();
     }
 
     @Override
@@ -919,7 +921,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     // An ECN-Bits capable server endpoint "somewhere"
     private void connectToEcnServer() {
-        String hostname = "10.59.41.10";
+        String hostname = "10.59.41.1";
         InetAddress dest;
         try {
             dest = InetAddress.getByName(hostname);
