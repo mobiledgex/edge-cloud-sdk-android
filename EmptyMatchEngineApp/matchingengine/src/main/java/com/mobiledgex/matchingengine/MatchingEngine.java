@@ -332,6 +332,11 @@ public class MatchingEngine {
         if (isShutdown()) {
             return false;
         }
+        if (MelMessaging.isMelEnabled()) {
+            Log.w(TAG, "MEL Mode is not compatible with EdgeEvents. Not starting EdgeEvents.");
+            return false;
+        }
+
         mAppInitiatedRunEdgeEvents = true;
         try {
             return startEdgeEvents(null, 0, null, edgeEventsConfig);
@@ -349,6 +354,10 @@ public class MatchingEngine {
             edgeEventsConfig.locationUpdateConfig = null;
         }
         if (isShutdown()) {
+            return false;
+        }
+        if (MelMessaging.isMelEnabled()) {
+            Log.w(TAG, "MEL Mode is not compatible with EdgeEvents. Not starting EdgeEvents.");
             return false;
         }
 
