@@ -875,9 +875,9 @@ public class MatchingEngine {
             deviceInfoBuilder.setDataNetworkType(dataNetworkType.name());
         }
 
-        String mccmnc = getMccMnc(mContext);
-        if (mccmnc != null) {
-            deviceInfoBuilder.setCarrierName(mccmnc);
+        String carrierName = getCarrierName(mContext);
+        if (carrierName != null) {
+            deviceInfoBuilder.setCarrierName(carrierName);
         }
         deviceInfoBuilder.setSignalStrength(DeviceInfoUtil.getSignalStrengthLevel(mContext));
         return deviceInfoBuilder.build();
