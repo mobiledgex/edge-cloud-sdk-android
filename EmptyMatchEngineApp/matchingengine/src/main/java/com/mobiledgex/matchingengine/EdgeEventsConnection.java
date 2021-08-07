@@ -426,11 +426,22 @@ public class EdgeEventsConnection {
             mEdgeEventsConfig = new EdgeEventsConfig(eeConfig);
         }
 
-        lastConnectionDetails.host = host;
-        lastConnectionDetails.port = port;
+        if (host != null && port > 0) {
+            lastConnectionDetails.host = host;
+            lastConnectionDetails.port = port;
+        }
+
+        if (lastConnectionDetails.host == null || lastConnectionDetails.port <= 0) {
+            channelStatus = ChannelStatus.closed;
+            Log.i(TAG, "open() is called with no DME hostname. EdgeEventsConfig is saved for later use.");
+            return;
+        }
+
+        Log.d(TAG, "open() DME with: " + lastConnectionDetails.host + " on port " + lastConnectionDetails.port);
+
         if (network == null) {
             try {
-                if (!me.isUseWifiOnly()) {
+                if (!me.isUseWifiOnly() && me.isNetworkSwitchingEnabled()) {
                     network = me.getNetworkManager().getCellularNetworkBlocking(false);
                 } else {
                     network = me.getNetworkManager().getActiveNetwork();
@@ -442,10 +453,9 @@ public class EdgeEventsConnection {
                 Log.e(TAG, "Unable to establish EdgeEvents DMEConnection!");
                 return; // Unable to establish connect to backend!
             }
-            lastConnectionDetails.network = null;
-        } else {
-            lastConnectionDetails.network = network;
         }
+        lastConnectionDetails.network = network;
+
 
         if (lastConnectionDetails.currentCloudlet == null) {
             Log.i(TAG, "Cannot start connection yet. Missing session for EdgeEventsConnection!");
