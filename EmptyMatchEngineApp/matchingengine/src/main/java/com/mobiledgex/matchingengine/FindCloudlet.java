@@ -124,9 +124,8 @@ public class FindCloudlet implements Callable {
                 if (appPort == null) {
                     appPort = aPort;
                 }
-                continue;
             }
-            if (aPort.getProto() == Appcommon.LProto.L_PROTO_TCP) {
+            else if (aPort.getProto() == Appcommon.LProto.L_PROTO_TCP) {
                 // Stop on first TCP.
                 appPort = aPort;
                 break;
@@ -271,7 +270,7 @@ public class FindCloudlet implements Callable {
     }
 
     private AppClient.FindCloudletReply FindCloudletWithMode()
-        throws InterruptedException, ExecutionException{
+        throws InterruptedException, ExecutionException {
 
         AppClient.FindCloudletReply fcreply;
         ManagedChannel channel = null;
@@ -325,6 +324,13 @@ public class FindCloudlet implements Callable {
             // Performance test the new list:
             NetTest netTest = mMatchingEngine.clearNetTest();
 
+            if (appInstListReply.getCloudletsCount() == 0) {
+                Log.e(TAG, "Check FindCloudlet Request parameters. Empty cloudlet list returned.");
+                // Convert empty GetAppInstList success response to NotFound failure.
+                return AppClient.FindCloudletReply.newBuilder()
+                        .setStatus(AppClient.FindCloudletReply.FindStatus.FIND_NOTFOUND)
+                        .build();
+            }
             insertAppInstances(netTest, network, appInstListReply);
             rankSites(netTest, mMatchingEngine.isThreadedPerformanceTest(), remainder, stopwatch);
 
