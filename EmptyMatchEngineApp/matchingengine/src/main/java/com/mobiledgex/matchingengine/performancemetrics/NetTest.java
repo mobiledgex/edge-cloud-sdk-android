@@ -401,6 +401,7 @@ public class NetTest
         Stopwatch testStopwatch = Stopwatch.createStarted();
 
         synchronized (sites) {
+            Log.d(TAG, "Number of sites to test: " + sites.size());
             for (Site s : sites) {
                 if (TimeoutMS - testStopwatch.elapsed(TimeUnit.MILLISECONDS) < 0) {
                     Log.d(TAG, "Timeout hit.");
