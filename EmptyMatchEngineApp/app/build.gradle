@@ -49,6 +49,6 @@ dependencies {
     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
 
     // For Google Location Services.
-    implementation 'com.google.android.gms:play-services-location:16.0.0'
+    implementation 'com.google.android.gms:play-services-location:18.0.0'
 
 }
