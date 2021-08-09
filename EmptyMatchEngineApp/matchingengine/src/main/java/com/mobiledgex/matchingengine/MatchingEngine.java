@@ -2281,6 +2281,14 @@ public class MatchingEngine {
      * \return ManagedChannel
      */
     ManagedChannel channelPicker(String host, int port, Network network) {
+        if (network == null) {
+            Log.e(TAG, "Network parameter is missing!");
+            throw new IllegalArgumentException("Missing required network parameter: " + network);
+        }
+        if (host == null) {
+            Log.e(TAG, "host parameter is missing!");
+            throw new IllegalArgumentException("Missing required host parameter: " + host);
+        }
 
         MobiledgeXSSLSocketFactory mobiledgexSSLSocketFactory = (MobiledgeXSSLSocketFactory)MobiledgeXSSLSocketFactory.getDefault(network);
         if (mobiledgexSSLSocketFactory == null) {

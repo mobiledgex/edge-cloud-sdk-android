@@ -22,7 +22,7 @@ android {
         minSdkVersion 24
         targetSdkVersion 29
         versionCode 23
-        versionName "3.0-rc1-a"
+        versionName "3.0-rc1-i"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -104,7 +104,7 @@ dependencies {
     implementation 'org.apache.tomcat:annotations-api:6.0.53'
 
     // For Google Services
-    implementation 'com.google.android.gms:play-services-location:17.0.0'
+    implementation 'com.google.android.gms:play-services-location:18.0.0'
 
     // For JWT validation
     implementation 'com.auth0.android:jwtdecode:2.0.0'
