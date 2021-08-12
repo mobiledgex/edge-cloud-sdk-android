@@ -47,7 +47,9 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.Task;
 import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.DmeDnsException;
+import com.mobiledgex.matchingengine.EcnUdpClient;
 import com.mobiledgex.matchingengine.EdgeEventsConnection;
+import com.mobiledgex.matchingengine.InvalidPortException;
 import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.matchingengine.NetworkRequestTimeoutException;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
@@ -228,8 +230,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
 
         netTest = new NetTest();
-
-        connectToEcnServer();
     }
 
     @Override
@@ -760,6 +760,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 return;
             }
 
+            connectToEcnServer(closestCloudlet);
+
             // This is a legal point to keep posting edgeEvents updates, as the EdgeEventBus
             // should now be initalized, unless disabled.
 
@@ -920,7 +922,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
 
     // An ECN-Bits capable server endpoint "somewhere"
-    private void connectToEcnServer() {
+    private void connectToEcnServer(AppClient.FindCloudletReply findCloudletReply) {
         String hostname = "10.59.41.1";
         InetAddress dest;
         try {
@@ -967,7 +969,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         try {
             int cursor = 0;
             for (cursor = 0; cursor < bits.length; cursor++) {
-                ECNBitsDatagramSocket sock = new ECNBitsDatagramSocket();
+                // Supposedly we know which nomianl internal port as the app developer.
+                int internalPort = 2015;
+
+                EcnUdpClient client = me.getAppConnectionManager().getEcnUdpClient(findCloudletReply, internalPort);
+                // The client helper object just creates sockets from the AppInst info.
+                // Can also just directly use EcnBitsDatagramSocket as well.
+                ECNBitsDatagramSocket sock = client.getEcnSocket();
+
                 sock.startMeasurement(); // Need to set the bit before sending...
                 final DatagramPacket psend = new DatagramPacket(messageBuf, messageBuf.length, dest, port);
                 try {
@@ -997,8 +1006,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             }
         } catch (SocketException e) {
             e.printStackTrace();
+        } catch (InvalidPortException e) {
+            e.printStackTrace();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        } catch (EcnUdpClient.InvalidHostException e) {
+            e.printStackTrace();
         }
-
 
 
     }

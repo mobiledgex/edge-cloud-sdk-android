@@ -25,6 +25,8 @@ import com.squareup.okhttp.OkHttpClient;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -462,9 +464,20 @@ public class AppConnectionManager {
         return mExecutor.submit(socketCallable);
     }
 
-    // TODO:
-    public EcnUdpClient getEcnUdpClient() {
-        return null;
+    /*!
+     * Convenience method to create, from FindCloudletReply and internalPort, a UDP
+     * client that is aware of ECN Bits. This client will gather statistics on the connection.
+     * TBD: Latency and bandwidth aware data management and queuing.
+     * \param findCloudletReply a
+     */
+    public EcnUdpClient getEcnUdpClient(FindCloudletReply findCloudletReply, int internalPort) throws
+            EcnUdpClient.InvalidHostException,
+            UnknownHostException,
+            InvalidPortException,
+            SocketException {
+            String host = getHost(findCloudletReply, internalPort);
+            int externalPort = getPublicPort(findCloudletReply, internalPort);
+        return new EcnUdpClient(host, externalPort);
     }
 
     /*!
