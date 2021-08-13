@@ -26,10 +26,6 @@ import android.os.Looper;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.common.base.Stopwatch;
-import com.google.common.eventbus.DeadEvent;
-import com.google.common.eventbus.Subscribe;
-import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
-import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEventTrigger;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.MeLocation;
@@ -60,16 +56,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
