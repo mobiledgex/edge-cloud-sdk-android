@@ -589,6 +589,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     public void onPause() {
         super.onPause();
         stopLocationUpdates();
+        me.close();
+        me = null;
     }
 
     @Override
