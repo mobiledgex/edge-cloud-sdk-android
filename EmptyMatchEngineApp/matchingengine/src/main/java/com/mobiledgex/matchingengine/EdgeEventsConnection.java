@@ -623,36 +623,42 @@ public class EdgeEventsConnection {
     }
 
     synchronized public boolean send(AppClient.ClientEdgeEvent clientEdgeEvent) {
-        try {
-            if (me.isShutdown()) {
-                Log.w(TAG, "MatchingEngine is shutdown. Message is not Posted!");
-                return false;
-            }
-            Log.d(TAG, "Received this event to post to server: " + clientEdgeEvent);
-            if (!me.isEnableEdgeEvents()) {
-                Log.e(TAG, "EdgeEvents is disabled. Message is not sent.");
-                return false;
-            }
-            if (isShutdown() && channelStatus != ChannelStatus.closing && channelStatus != ChannelStatus.closed) {
-                Log.d(TAG, "Reconnecting to post: Channel status: " + channelStatus);
-                reconnect();
-            }
-            if (sender != null) {
-                // Submit from one thread to GRPC.
-                CompletableFuture.runAsync(
-                        () -> {
-                            sender.onNext(clientEdgeEvent);
-                        }, me.threadpool);
-                Log.d(TAG, "Posted!");
-            }
-            else {
-                Log.d(TAG, "NOT Posted!");
-            }
-        } catch (Exception e) {
-            Log.e(TAG, e.getMessage() + ", cause: " + e.getCause());
-            e.printStackTrace();
+
+        if (!me.isEnableEdgeEvents()) {
+            Log.e(TAG, "EdgeEvents is disabled. Message is not sent.");
             return false;
         }
+        // Submit from one thread to GRPC.
+        CompletableFuture.runAsync(
+                () -> {
+                    try {
+                        // Check again at execution time:
+                        if (!me.isEnableEdgeEvents()) {
+                            Log.e(TAG, "EdgeEvents is disabled. Message is not sent.");
+                            return;
+                        }
+                        if (me.isShutdown()) {
+                            Log.w(TAG, "MatchingEngine is shutdown. Message is not Posted!");
+                            return;
+                        }
+                        Log.d(TAG, "Received this event to post to server: " + clientEdgeEvent);
+                        if (isShutdown() && channelStatus != ChannelStatus.closing && channelStatus != ChannelStatus.closed) {
+                            Log.d(TAG, "Reconnecting to post: Channel status: " + channelStatus);
+                            reconnect();
+                        }
+                        if (sender != null) {
+                            sender.onNext(clientEdgeEvent);
+                            Log.d(TAG, "Posted!");
+                        } else {
+                            Log.d(TAG, "Sender does not exist. NOT Posted!");
+                        }
+                    } catch (DmeDnsException dde) {
+                        Log.e(TAG, "DME Not found!" + dde.getMessage() + ", cause: " + dde.getCause() + ", stack: " + dde.getStackTrace());
+                    } catch (Exception e) {
+                        Log.e(TAG, e.getMessage() + ", cause: " + e.getCause() + ", stack: " + e.getStackTrace());
+                    }
+                }, me.threadpool);
+        Log.d(TAG, "Submitted for posting!");
         return true;
     }
 
