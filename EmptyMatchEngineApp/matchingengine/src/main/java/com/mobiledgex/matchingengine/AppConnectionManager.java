@@ -223,7 +223,7 @@ public class AppConnectionManager {
                     return publicPort;
                 }
             } catch (InvalidPortException e) {
-                Log.d(TAG, "Internal Port [" + internalPort + "] Not found in AppPort, continuing to next port...");
+                Log.d(TAG, "Internal Port [" + internalPort + "] Not found in this AppPort, continuing to next port to find public port...");
                 continue;
             }
         }
@@ -232,20 +232,27 @@ public class AppConnectionManager {
 
     public AppPort getAppPort(AppClient.FindCloudletReply findCloudletReply, int internalPort) {
         int publicPort = 0;
-        AppPort aPort = null;
-        // Get's the appPort with the internal port:
+        // Gets the appPort with the internal port:
         for (Appcommon.AppPort p : findCloudletReply.getPortsList()) {
             try {
+                // Ranged port.
                 publicPort = getPort(p, internalPort);
                 if (publicPort != 0) {
-                    aPort = p;
+                    if (internalPort == 0 && p.getProto() == LProto.L_PROTO_TCP) { // Any TCP port is fine.
+                        Log.d(TAG, "Returning any TCP public port: " + publicPort);
+                        return p;
+                    }
+                    else {
+                        return p;
+                    }
                 }
             } catch (InvalidPortException e) {
                 Log.d(TAG, "Internal Port [" + internalPort + "] not found in this AppPort, continuing to next AppPort...");
                 continue;
             }
         }
-        return aPort;
+        // found nothing;
+        return null;
     }
 
     /*!
