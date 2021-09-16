@@ -1486,19 +1486,19 @@ public class EdgeEventsConnection {
                         return false;
                     }
 
-                    if (mEdgeEventsConfig.latencyInternalPort <= 0 || mEdgeEventsConfig.latencyTestType == NetTest.TestType.PING) {
+                    int internalPort = mEdgeEventsConfig.latencyInternalPort <= 0 ? 0 : mEdgeEventsConfig.latencyInternalPort;
+                    if (mEdgeEventsConfig.latencyTestType == NetTest.TestType.PING) {
                         me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(getLocation());
                         return false;
                     }
 
-                    // have (internal) port defined, use it.
-                    int publicPort = me.getAppConnectionManager().getPublicPort(lastConnectionDetails.currentCloudlet, mEdgeEventsConfig.latencyInternalPort);
+                    int publicPort = me.getAppConnectionManager().getPublicPort(lastConnectionDetails.currentCloudlet, internalPort);
                     if (publicPort == 0) {
-                        Log.i(TAG, "Your expected server (or port) doesn't seem to be here!");
-                        return false;
+                        Log.i(TAG, "Your expected server (or port) doesn't seem to be here! Internal Port: " + internalPort);
                     }
+
                     // Test with default network in use:
-                    Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(lastConnectionDetails.currentCloudlet, mEdgeEventsConfig.latencyInternalPort);
+                    Appcommon.AppPort appPort = me.getAppConnectionManager().getAppPort(lastConnectionDetails.currentCloudlet, internalPort);
                     if (appPort == null) {
                         postErrorToEventHandler(EdgeEventsError.portDoesNotExist);
                         return false;
