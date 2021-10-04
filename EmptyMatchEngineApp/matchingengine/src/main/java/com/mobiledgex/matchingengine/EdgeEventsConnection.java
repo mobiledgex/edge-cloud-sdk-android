@@ -316,7 +316,7 @@ public class EdgeEventsConnection {
     synchronized private void postToFindCloudletEventHandler(FindCloudletEvent findCloudletEvent) {
         Log.d(TAG, "postToFindCloudletEventHandler");
         if (!validateFindCloudlet(findCloudletEvent.newCloudlet)) {
-            postErrorToEventHandler(EdgeEventsError.missingEdgeEventsConfig);
+            postErrorToEventHandler(EdgeEventsError.eventTriggeredButFindCloudletError);
             return;
         }
 
