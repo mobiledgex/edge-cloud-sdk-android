@@ -47,6 +47,7 @@ android {
             proto {
                 srcDirs "${edgeProtoGitRepo}/dme"
                 srcDirs "${edgeProtoGitRepo}/third_party/googleapis"
+                srcDirs "${edgeProtoGitRepo}/edgeprotogen"
             }
             java {
             }
