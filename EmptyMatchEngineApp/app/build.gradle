@@ -37,6 +37,10 @@ dependencies {
 
     // Use local project Matching Engine SDK:
     implementation project(":matchingengine")
+    implementation project(":mel")
+    implementation "de.telecom.llcto:ecn-lib:2.2"
+    // ECN Chromium WebRTC
+    implementation "org.appspot:libwebrtc:1.0.1-ecn"
 
     implementation 'com.google.guava:guava:29.0-android'
 
