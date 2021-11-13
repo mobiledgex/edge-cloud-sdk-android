@@ -783,6 +783,17 @@ public class EdgeEventsConnection {
     }
 
     /*!
+     * Outbound ClientEdgeEvent to DME. Post ECN markings, and SDK predicted bandwidth calculations
+     * to DME.
+     */
+    synchronized public boolean postECNMarkings(AppClient.ECNStatus status) {
+        AppClient.ClientEdgeEvent clientEdgeEvent = AppClient.ClientEdgeEvent.newBuilder()
+                .setEcnStatus(status)
+                .build();
+        return send(clientEdgeEvent);
+    }
+
+    /*!
      * Outbound ClientEdgeEvent to DME. Post already collected site statistics.
      * A DME administrator of your Application may request an client application to collect performance
      * NetTest stats to their current AppInst with the ServerEdgeEvent EVENT_LATENCY_REQUEST.
