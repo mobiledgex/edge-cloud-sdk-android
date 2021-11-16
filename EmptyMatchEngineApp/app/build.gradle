@@ -54,5 +54,9 @@ dependencies {
     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
 
     // For Google Location Services.
-    implementation 'com.google.android.gms:play-services-location:19.0.0'
+    implementation 'com.google.android.gms:play-services-location:18.0.0'
+
+
+    // AppRTC has a few local depedencies:
+    compile files('third_party/autobanh/lib/autobanh.jar')
 }
