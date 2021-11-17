@@ -18,6 +18,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
@@ -33,13 +34,18 @@ import android.view.WindowManager.LayoutParams;
 import android.widget.Toast;
 import androidx.annotation.Nullable;
 
+import com.mobiledgex.matchingengine.MatchingEngine;
 import com.mobiledgex.sdkdemo.R;
+import com.mobiledgex.sdkdemo.WebRTCPeerConnectionObserver;
 
 import java.io.IOException;
 import java.lang.RuntimeException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
 import org.appspot.apprtc.AppRTCAudioManager.AudioDevice;
 import org.appspot.apprtc.AppRTCAudioManager.AudioManagerEvents;
 import org.appspot.apprtc.AppRTCClient.RoomConnectionParameters;
@@ -63,6 +69,8 @@ import org.webrtc.VideoCapturer;
 import org.webrtc.VideoFileRenderer;
 import org.webrtc.VideoFrame;
 import org.webrtc.VideoSink;
+
+import distributed_match_engine.AppClient;
 
 /**
  * Activity for peer connection call setup, call waiting
@@ -187,6 +195,10 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
   private CallFragment callFragment;
   private HudFragment hudFragment;
   private CpuMonitor cpuMonitor;
+
+  static WebRTCPeerConnectionObserver webRTCPeerConnectionObserver;
+  static MatchingEngine me;
+  int TIMEOUT_MS = 10000;
 
   @Override
   // TODO(bugs.webrtc.org/8580): LayoutParams.FLAG_TURN_SCREEN_ON and
@@ -380,12 +392,68 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     }
     peerConnectionClient.createPeerConnectionFactory(options);
 
+    if (me == null || me.isShutdown()) {
+        me = new MatchingEngine(this);
+        // Just start MatchingEngine in the background until needed.
+        CompletableFuture.runAsync( () -> {
+            Log.d(TAG, "OnResume, creating matchingEngine connections.");
+            try {
+                // EdgeBox: Create!
+                String dmeHostOverride = "192.168.1.176";
+                String carrierNameOverride = "";
+                AppClient.RegisterClientRequest registerClientRequest =
+                        me.createDefaultRegisterClientRequest(this, "MobiledgeX-Samples")
+                                .setAppName("webrtcapp")
+                                .setAppVers("1.0.2")
+                                .setCarrierName(carrierNameOverride)
+                                .build();
+                AppClient.RegisterClientReply reply = me.registerClient(registerClientRequest, dmeHostOverride, me.getPort(), TIMEOUT_MS);
+
+                if (reply != null) {
+                    Log.d(TAG, "Registered!");
+                }
+                else {
+                    Log.d(TAG, "NOT registered!");
+                }
+
+                Location location = new Location("MobiledgeX WebRTC location provider src");
+                location.setLongitude(-121.8863286);
+                location.setLatitude(37.3382082);
+                AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(this, location)
+                        .setCarrierName(carrierNameOverride)
+                        .build();
+                AppClient.FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, dmeHostOverride, me.getPort(), TIMEOUT_MS);
+
+                // EdgeConnection should be up.
+
+                // Launch WebRTC client, with our DME enabled peer observer callback, with roomID:
+
+
+            } catch (PackageManager.NameNotFoundException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+
+        });
+
+    }
+
     if (screencaptureEnabled) {
       startScreenCapture();
     } else {
       startCall();
     }
   }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+
+    }
 
   @TargetApi(17)
   private DisplayMetrics getDisplayMetrics() {
@@ -514,6 +582,11 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
       logToast.cancel();
     }
     activityRunning = false;
+
+    // Close MatchingEngine static.
+    if (me != null && !me.isShutdown()) {
+      me.close();
+    }
     super.onDestroy();
   }
 

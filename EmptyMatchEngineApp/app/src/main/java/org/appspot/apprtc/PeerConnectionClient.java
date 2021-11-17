@@ -15,6 +15,11 @@ import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import androidx.annotation.Nullable;
+
+import com.google.common.base.Stopwatch;
+import com.mobiledgex.matchingengine.EdgeEventsConnection;
+import com.mobiledgex.sdkdemo.R;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -24,6 +29,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -32,6 +38,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.appspot.apprtc.AppRTCClient.SignalingParameters;
@@ -39,6 +46,7 @@ import org.appspot.apprtc.RecordedAudioToFileController;
 import org.webrtc.AddIceObserver;
 import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
+import org.webrtc.CameraEnumerationAndroid;
 import org.webrtc.CameraVideoCapturer;
 import org.webrtc.CandidatePairChangeEvent;
 import org.webrtc.DataChannel;
@@ -77,6 +85,8 @@ import org.webrtc.audio.JavaAudioDeviceModule.AudioRecordErrorCallback;
 import org.webrtc.audio.JavaAudioDeviceModule.AudioRecordStateCallback;
 import org.webrtc.audio.JavaAudioDeviceModule.AudioTrackErrorCallback;
 import org.webrtc.audio.JavaAudioDeviceModule.AudioTrackStateCallback;
+
+import distributed_match_engine.AppClient;
 
 /**
  * Peer connection client implementation.
@@ -127,6 +137,8 @@ public class PeerConnectionClient {
   private final Context appContext;
   private final PeerConnectionParameters peerConnectionParameters;
   private final PeerConnectionEvents events;
+
+  private final EcnCalculator ecnCalculator;
 
   @Nullable
   private PeerConnectionFactory factory;
@@ -330,6 +342,8 @@ public class PeerConnectionClient {
     this.events = events;
     this.peerConnectionParameters = peerConnectionParameters;
     this.dataChannelEnabled = peerConnectionParameters.dataChannelParameters != null;
+
+    this.ecnCalculator = new EcnCalculator();
 
     Log.d(TAG, "Preferred video codec: " + getSdpVideoCodecName(peerConnectionParameters));
 
@@ -1315,10 +1329,35 @@ public class PeerConnectionClient {
     @Override
     public void onRemoveTrack(final RtpReceiver receiver) {}
 
+    // Dummy for BestFormat calculation:
+    CaptureQualityController dummyController = new CaptureQualityController(null, null);
     @Override
     public void onReceiveECN(int ecn) {
-	// On ReceiveECN
-	Log.d(TAG, "JAVA side Observer onReceiveECN: " + ecn);
+	  // On ReceiveECN
+	  Log.d(TAG, "JAVA side Observer onReceiveECN: " + ecn);
+	  if (CallActivity.me == null) {
+	      Log.d(TAG, "no matching engine yet.");
+	      return;
+      }
+      EdgeEventsConnection eec = CallActivity.me.getEdgeEventsConnection();
+      if (eec == null) {
+        Log.d(TAG, "Dropping ECN marking notification. No EdgeEventsConnection.");
+      }
+
+      // Update:
+      AppClient.ECNStatus ecnStatus = ecnCalculator.Update(ecn);
+      if (ecnStatus == null) {
+        return;
+      }
+      // Apply bandwidth, using the dummy to access enumerated camera formats.
+      CameraEnumerationAndroid.CaptureFormat bestFormat = dummyController.getBestFormat(ecnStatus.getBandwidth());
+      Log.d(TAG, "ECN: Applying ECN bandwidth calculation, overriding current value in WebRTC. Minimum frame-rate not used (zero)");
+      changeCaptureFormat(bestFormat.width, bestFormat.height, bestFormat.framerate.max);
+
+      if (ecnCalculator.isShouldSend()) {
+        ecnCalculator.resetSendTimer();
+        eec.postECNMarkings(ecnStatus);
+      }
     }
   }
 
@@ -1395,4 +1434,124 @@ public class PeerConnectionClient {
       reportError("setSDP error: " + error);
     }
   }
+
+  /*
+   * Inplace bandwidth calculator (UDP).
+   *
+   * Bandwidth determination needs a bit of history.
+   * (bits per second needs 1) to start assumptions and 2) status updates to start adjusting).
+   * With no limits to bandwidth, there needs to be a ramp up amount (and strategy to do
+   * so, as well as a ramp down in case of ECNStatus signaled CE congestion encountered.
+   *
+   * As the router/network path only signals "congestion encountered", it is offering
+   * no additional details as to what that bandwidth should be. Ideally, one would like to go
+   * as fast as possible given moment to moment ECN signaling, but before packets are dropped
+   * too often.
+   *
+   * And of course, all this ideally will beat TCP slow start.
+   */
+  public class EcnCalculator {
+    Stopwatch staleDataTimer = Stopwatch.createUnstarted();
+    Stopwatch sendTimer = Stopwatch.createUnstarted();
+    public double bandwidth = 0d;
+    public static final int clearThreshold = 100; // If the data hasn't been refreshed in some time, start over from scratch.
+    public static final float RAMPUPSPEED = 200000f;
+    public float minimumBandwidth = 50000f; // Floor bandwidth, if below this, the connection might not be usable anymore.
+    public static final float rampUpScale = 0.2f;
+    public static final float ecnCeScaleDown = 0.9f;
+
+    private int idx = 0;
+    int capacity = 3;
+    ArrayList<Double> aggregateBandwidth = new ArrayList<Double>(capacity);
+    double averageBandwidth = 0;
+    long sendIntervalMs = 5000; // ms;
+
+    public EcnCalculator() {
+            Log.d(TAG, "New ECNCalucator.");
+        }
+
+      public void resetSendTimer() {
+        sendTimer.reset();
+        sendTimer.start();
+      }
+
+      boolean isShouldSend() {
+        if (sendTimer.elapsed(TimeUnit.MILLISECONDS) >= sendIntervalMs) {
+          return true;
+        }
+        return false;
+      }
+
+      boolean isStaleTimer() {
+        if (staleDataTimer.elapsed(TimeUnit.MILLISECONDS) > clearThreshold) {
+          return true;
+        }
+        return false;
+      }
+
+      // This sort of assumes a stream of data, not bursty data.
+      AppClient.ECNStatus Update(int ecn) {
+        if (isStaleTimer()) {
+          aggregateBandwidth.clear();
+          averageBandwidth = 0d;
+          bandwidth = RAMPUPSPEED;
+          idx = 0;
+        }
+        staleDataTimer.reset();
+        staleDataTimer.start();
+
+        try {
+            AppClient.ECNBit ecnBit = AppClient.ECNBit.internalGetValueMap().findValueByNumber(ecn);
+
+            // Update stats:
+            if (ecnBit == AppClient.ECNBit.CE) {
+                bandwidth *= ecnCeScaleDown;
+                if (bandwidth <= minimumBandwidth) {
+                    bandwidth = minimumBandwidth;
+                }
+            } else if (ecnBit == AppClient.ECNBit.ECT_0 || ecnBit == AppClient.ECNBit.ECT_1) {
+                bandwidth += (1 + rampUpScale) * RAMPUPSPEED;   // That is, not exponentially faster, but there are no maximums either.
+            } else {
+                // Not supported (anymore?)
+                Log.d(TAG, "connection claims ECN marking is unsupported.");
+                return null;
+            }
+            //Log.d(TAG, "ZZZ ECN Bit to use: " + ecnBit);
+
+            // Minimum guard:
+            if (bandwidth <= minimumBandwidth) {
+                bandwidth = minimumBandwidth;
+                Log.d(TAG, "Notice: Hit minimum bandwidth.");
+            }
+            Log.d(TAG, "ZZZ ECN Bandwidth: " + bandwidth);
+
+            // sample(s) update (and historical samples)
+            if (aggregateBandwidth.size() < capacity) {
+                aggregateBandwidth.add(idx, bandwidth);
+            } else {
+                aggregateBandwidth.set(idx, bandwidth);
+            }
+            idx = (idx + 1) % capacity;
+            double num = bandwidth + (averageBandwidth * (aggregateBandwidth.size() - 1));
+            averageBandwidth = num / aggregateBandwidth.size();
+
+            AppClient.ECNStatus ecnStatus;
+            AppClient.ECNStatus.Builder builder = AppClient.ECNStatus.newBuilder();
+            if (builder == null) {
+                Log.d(TAG, "Bad ECNStatus buildler!!!");
+                return null;
+            }
+            ecnStatus = builder
+                    .setBandwidth((float) averageBandwidth) // FIXME: Remove casting
+                    .setEcnBit(ecnBit)
+                    .setStrategy(AppClient.ECNStrategy.STRATEGY_1)
+                    .build();
+
+            return ecnStatus;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+      }
+    }
 }
