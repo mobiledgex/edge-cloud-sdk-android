@@ -40,7 +40,7 @@ dependencies {
     implementation project(":mel")
     implementation "de.telecom.llcto:ecn-lib:2.2"
     // ECN Chromium WebRTC
-    implementation "org.appspot:libwebrtc:1.0.2-ecn"
+    implementation "org.appspot:libwebrtc:1.0.3-ecn"
 
     implementation 'com.google.guava:guava:29.0-android'
 
@@ -56,7 +56,6 @@ dependencies {
     // For Google Location Services.
     implementation 'com.google.android.gms:play-services-location:18.0.0'
 
-
     // AppRTC has a few local depedencies:
-    compile files('third_party/autobanh/lib/autobanh.jar')
+    implementation files('third_party/autobanh/lib/autobanh.jar')
 }
