@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -632,6 +633,11 @@ public class PeerConnectionClient {
       init.id = peerConnectionParameters.dataChannelParameters.id;
       init.protocol = peerConnectionParameters.dataChannelParameters.protocol;
       dataChannel = peerConnection.createDataChannel("ApprtcDemo data", init);
+
+      String msg = "PING at Start: " + System.currentTimeMillis();
+      ByteBuffer nioBuffer = ByteBuffer.allocate(msg.length()+1);
+      DataChannel.Buffer sendBuf = new DataChannel.Buffer(nioBuffer, false);
+      dataChannel.send(sendBuf);
     }
     isInitiator = false;
 
@@ -1223,6 +1229,8 @@ public class PeerConnectionClient {
 
   // Implementation detail: observe ICE & stream changes and react accordingly.
   private class PCObserver implements PeerConnection.Observer {
+      Stopwatch stopwatch = Stopwatch.createStarted();
+
     @Override
     public void onIceCandidate(final IceCandidate candidate) {
       executor.execute(() -> events.onIceCandidate(candidate));
@@ -1307,6 +1315,10 @@ public class PeerConnectionClient {
 
         @Override
         public void onMessage(final DataChannel.Buffer buffer) {
+          Log.d(TAG, "onMessage RTT: Elapsed: " + stopwatch.elapsed(TimeUnit.MILLISECONDS));
+          stopwatch.reset();
+          stopwatch.start();
+
           if (buffer.binary) {
             Log.d(TAG, "Received binary msg over " + dc);
             return;
@@ -1315,7 +1327,12 @@ public class PeerConnectionClient {
           final byte[] bytes = new byte[data.capacity()];
           data.get(bytes);
           String strData = new String(bytes, Charset.forName("UTF-8"));
-          Log.d(TAG, "Got msg: " + strData + " over " + dc);
+          Log.d(TAG, "Got msg: " + strData);
+
+          String msg = "PING: " + System.currentTimeMillis();
+          ByteBuffer nioBuffer = ByteBuffer.allocate(msg.length()+1);
+          DataChannel.Buffer sendBuf = new DataChannel.Buffer(nioBuffer, false);
+          dc.send(sendBuf);
         }
       });
     }
@@ -1352,6 +1369,12 @@ public class PeerConnectionClient {
       if (ecnStatus == null) {
         return;
       }
+
+        String msg = "PING from onReceiveECN: " + System.currentTimeMillis();
+        ByteBuffer nioBuffer = ByteBuffer.allocate(msg.length()+1);
+        DataChannel.Buffer sendBuf = new DataChannel.Buffer(nioBuffer, false);
+        dataChannel.send(sendBuf);
+
       // Apply bandwidth, using the dummy to access enumerated camera formats.
       CameraEnumerationAndroid.CaptureFormat bestFormat = dummyController.getBestFormat(ecnStatus.getBandwidth());
       Log.d(TAG, "ECN: Applying ECN bandwidth calculation, overriding current value in WebRTC. Minimum frame-rate not used (zero)");

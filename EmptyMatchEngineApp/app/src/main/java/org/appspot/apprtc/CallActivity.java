@@ -402,9 +402,9 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
                 String dmeHostOverride = "192.168.1.176";
                 String carrierNameOverride = "";
                 AppClient.RegisterClientRequest registerClientRequest =
-                        me.createDefaultRegisterClientRequest(this, "MobiledgeX-Samples")
-                                .setAppName("webrtcapp")
-                                .setAppVers("1.0.2")
+                        me.createDefaultRegisterClientRequest(this, "DevOrg")
+                                .setAppName("DevOrg SDK Demo")
+                                .setAppVers("1.0")
                                 .setCarrierName(carrierNameOverride)
                                 .build();
                 AppClient.RegisterClientReply reply = me.registerClient(registerClientRequest, dmeHostOverride, me.getPort(), TIMEOUT_MS);
@@ -681,6 +681,7 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     }
     // Enable statistics callback.
     peerConnectionClient.enableStatsEvents(true, STAT_CALLBACK_PERIOD);
+
     setSwappedFeeds(false /* isSwappedFeeds */);
   }
 
