@@ -115,20 +115,15 @@ public class CaptureQualityController implements SeekBar.OnSeekBarChangeListener
    * Utility.
    */
   public CaptureFormat getBestFormat(double bitrateTarget){
-      // Extract max bandwidth (in millipixels / second), from formats *might* change:
-      long maxCaptureBandwidth = java.lang.Long.MIN_VALUE;
-      for (CaptureFormat format : formats) {
-          maxCaptureBandwidth =
-                  Math.max(maxCaptureBandwidth, (long) format.width * format.height * format.framerate.max);
-      }
-
+      // Ick: Comparison uses private var.
+      targetBandwidth = bitrateTarget; // 4:4:4 camera? Comparator seemingly looks only at number of pixels (W*H, but not pixel format).
 
       // Choose the best format given a target bandwidth.
       final CaptureFormat bestFormat = Collections.max(formats, compareFormats);
       width = bestFormat.width;
       height = bestFormat.height;
-      int maxFrameRate = calculateFramerate(bitrateTarget, bestFormat);
-      bestFormat.framerate.max = maxFrameRate;
+      framerate = calculateFramerate(targetBandwidth, bestFormat);
+      bestFormat.framerate.max = Math.max(5, framerate); // Slider is disabled, and framerate for some odd reason, is 0 for max and min. This hack...yeilds a much higher framerate than even 5.
       bestFormat.framerate.min = 0;
 
       // TODO: data --> slider update.

@@ -1008,6 +1008,7 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
         logAndToast("DTLS connected, delay=" + delta + "ms");
         connected = true;
         callConnected();
+        peerConnectionClient.sendPing();
       }
     });
   }

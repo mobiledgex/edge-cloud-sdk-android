@@ -44,6 +44,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.appspot.apprtc.AppRTCClient.SignalingParameters;
 import org.appspot.apprtc.RecordedAudioToFileController;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.webrtc.AddIceObserver;
 import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
@@ -634,10 +636,7 @@ public class PeerConnectionClient {
       init.protocol = peerConnectionParameters.dataChannelParameters.protocol;
       dataChannel = peerConnection.createDataChannel("ApprtcDemo data", init);
 
-      String msg = "PING at Start: " + System.currentTimeMillis();
-      ByteBuffer nioBuffer = ByteBuffer.allocate(msg.length()+1);
-      DataChannel.Buffer sendBuf = new DataChannel.Buffer(nioBuffer, false);
-      dataChannel.send(sendBuf);
+      sendPing();
     }
     isInitiator = false;
 
@@ -1227,9 +1226,30 @@ public class PeerConnectionClient {
     videoSource.adaptOutputFormat(width, height, framerate);
   }
 
+  public void send(String msg) {
+    ByteBuffer nioBuffer = ByteBuffer.allocate(msg.length()+1);
+    DataChannel.Buffer sendBuf = new DataChannel.Buffer(nioBuffer, false);
+    dataChannel.send(sendBuf);
+  }
+
+  // Put a `key`->`value` mapping in `json`.
+  private static void jsonPut(JSONObject json, String key, Object value) {
+    try {
+      json.put(key, value);
+    } catch (JSONException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void sendPing() {
+    JSONObject json = new JSONObject();
+    jsonPut(json, "action", "ping");
+    send(json.toString());
+  }
+
   // Implementation detail: observe ICE & stream changes and react accordingly.
   private class PCObserver implements PeerConnection.Observer {
-      Stopwatch stopwatch = Stopwatch.createStarted();
+    Stopwatch stopwatch = Stopwatch.createStarted();
 
     @Override
     public void onIceCandidate(final IceCandidate candidate) {
@@ -1315,7 +1335,7 @@ public class PeerConnectionClient {
 
         @Override
         public void onMessage(final DataChannel.Buffer buffer) {
-          Log.d(TAG, "onMessage RTT: Elapsed: " + stopwatch.elapsed(TimeUnit.MILLISECONDS));
+          Log.d(TAG, "onMessage RTT: Elapsed between messages: " + stopwatch.elapsed(TimeUnit.MILLISECONDS));
           stopwatch.reset();
           stopwatch.start();
 
@@ -1323,16 +1343,18 @@ public class PeerConnectionClient {
             Log.d(TAG, "Received binary msg over " + dc);
             return;
           }
-          ByteBuffer data = buffer.data;
-          final byte[] bytes = new byte[data.capacity()];
-          data.get(bytes);
-          String strData = new String(bytes, Charset.forName("UTF-8"));
-          Log.d(TAG, "Got msg: " + strData);
-
-          String msg = "PING: " + System.currentTimeMillis();
-          ByteBuffer nioBuffer = ByteBuffer.allocate(msg.length()+1);
-          DataChannel.Buffer sendBuf = new DataChannel.Buffer(nioBuffer, false);
-          dc.send(sendBuf);
+          String s = StandardCharsets.UTF_8.decode(buffer.data).toString();
+          Log.d(TAG, "Got msg: " + s);
+          /*
+          if (strData != null) {
+              try {
+                  //JSONObject msg = new JSONObject(strData);
+                  //Log.d(TAG, "ZZZ: " + msg.toString());
+              } catch (JSONException e) {
+                  e.printStackTrace(); // This does not appear to be what we sent.
+              }
+          }
+          */
         }
       });
     }
@@ -1370,20 +1392,18 @@ public class PeerConnectionClient {
         return;
       }
 
-        String msg = "PING from onReceiveECN: " + System.currentTimeMillis();
-        ByteBuffer nioBuffer = ByteBuffer.allocate(msg.length()+1);
-        DataChannel.Buffer sendBuf = new DataChannel.Buffer(nioBuffer, false);
-        dataChannel.send(sendBuf);
-
       // Apply bandwidth, using the dummy to access enumerated camera formats.
       CameraEnumerationAndroid.CaptureFormat bestFormat = dummyController.getBestFormat(ecnStatus.getBandwidth());
-      Log.d(TAG, "ECN: Applying ECN bandwidth calculation, overriding current value in WebRTC. Minimum frame-rate not used (zero)");
+      Log.d(TAG, "ECN: Applying ECN bandwidth calculation. BestFormat width: " + bestFormat.width + ", height: " + bestFormat.height + ", framerate: " + bestFormat.framerate.max);
       changeCaptureFormat(bestFormat.width, bestFormat.height, bestFormat.framerate.max);
 
       if (ecnCalculator.isShouldSend()) {
         ecnCalculator.resetSendTimer();
         eec.postECNMarkings(ecnStatus);
       }
+
+      // HEAVY:
+      //sendPing();
     }
   }
 
@@ -1482,7 +1502,8 @@ public class PeerConnectionClient {
     public double bandwidth = 0d;
     public static final int clearThreshold = 100; // If the data hasn't been refreshed in some time, start over from scratch.
     public static final float RAMPUPSPEED = 200000f;
-    public float minimumBandwidth = 50000f; // Floor bandwidth, if below this, the connection might not be usable anymore.
+    public float minimumBandwidth = 150000f; // Floor bandwidth, if below this, the connection might not be usable anymore.
+    public double maximumBandwidth = 5 * Math.pow(1000,3);
     public static final float rampUpScale = 0.2f;
     public static final float ecnCeScaleDown = 0.9f;
 
@@ -1517,10 +1538,10 @@ public class PeerConnectionClient {
 
       // This sort of assumes a stream of data, not bursty data.
       AppClient.ECNStatus Update(int ecn) {
-        if (isStaleTimer()) {
+        if (false && isStaleTimer()) { // This messes up debugging.
           aggregateBandwidth.clear();
           averageBandwidth = 0d;
-          bandwidth = RAMPUPSPEED;
+          //bandwidth = RAMPUPSPEED;
           idx = 0;
         }
         staleDataTimer.reset();
@@ -1536,7 +1557,8 @@ public class PeerConnectionClient {
                     bandwidth = minimumBandwidth;
                 }
             } else if (ecnBit == AppClient.ECNBit.ECT_0 || ecnBit == AppClient.ECNBit.ECT_1) {
-                bandwidth += (1 + rampUpScale) * RAMPUPSPEED;   // That is, not exponentially faster, but there are no maximums either.
+                double new_bandwidth = bandwidth + (1 + rampUpScale) * RAMPUPSPEED; // This while nice, pays no attention to the scale. Sigmoid scale curve better for upward scaling?
+                bandwidth = Math.min(maximumBandwidth, new_bandwidth);
             } else {
                 // Not supported (anymore?)
                 Log.d(TAG, "connection claims ECN marking is unsupported.");
@@ -1549,7 +1571,7 @@ public class PeerConnectionClient {
                 bandwidth = minimumBandwidth;
                 Log.d(TAG, "Notice: Hit minimum bandwidth.");
             }
-            Log.d(TAG, "ZZZ ECN Bandwidth: " + bandwidth);
+            Log.d(TAG, "ZZZ ECN " + ecn +", Bandwidth: " + bandwidth);
 
             // sample(s) update (and historical samples)
             if (aggregateBandwidth.size() < capacity) {

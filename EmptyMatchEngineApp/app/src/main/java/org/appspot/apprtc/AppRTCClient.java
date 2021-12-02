@@ -68,6 +68,12 @@ public interface AppRTCClient {
   void sendLocalIceCandidateRemovals(final IceCandidate[] candidates);
 
   /**
+   * Test: Send general message:
+   * @param message
+   */
+  void send(String message);
+
+  /**
    * Disconnect from room.
    */
   void disconnectFromRoom();

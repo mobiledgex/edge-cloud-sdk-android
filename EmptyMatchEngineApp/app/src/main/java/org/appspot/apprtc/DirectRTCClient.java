@@ -219,6 +219,11 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
     });
   }
 
+  @Override
+  public void send(String msg) {
+      sendMessage(msg);
+  }
+
   // -------------------------------------------------------------------
   // TCPChannelClient event handlers
 

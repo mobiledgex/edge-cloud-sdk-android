@@ -22,7 +22,7 @@ android {
         minSdkVersion 24
         targetSdkVersion 31
         versionCode 26
-        versionName "3.0.7"
+        versionName "3.0.7-ecn"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -34,7 +34,6 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            debuggable false
         }
     }
 
