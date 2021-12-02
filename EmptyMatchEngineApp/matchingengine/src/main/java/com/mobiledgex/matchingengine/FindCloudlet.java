@@ -141,6 +141,42 @@ public class FindCloudlet implements Callable {
         return appPort;
     }
 
+    private String getLocalIpv4() {
+        String localIp = getLocalIpAny();
+        if (localIp.contains(".")) {
+            return localIp;
+        }
+        else {
+            Log.d(TAG, "Local default interface is IPv6 only. Returning empty string.");
+            return "";
+        }
+    }
+
+    // Returns empty string if nothing is found.
+    private String getLocalIpAny() {
+        Network net = mMatchingEngine.getNetworkManager().getActiveNetwork();
+        if (net == null) {
+            return "";
+        }
+        // UDP "connect" to get the default route's local IP address.
+        DatagramSocket ds = null;
+        try {
+            ds = new DatagramSocket();
+            ds.connect(InetAddress.getByName(mMatchingEngine.wifiOnlyDmeHost), mMatchingEngine.getPort());
+            InetAddress localInet = ds.getLocalAddress();
+            String hostStr;
+            if (localInet != null && (hostStr = localInet.getHostAddress()) != null) {
+                return hostStr;
+            }
+            else {
+                return "";
+            }
+        } catch (SocketException | UnknownHostException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
     // If UDP, then ICMP must respond. TODO: Allow UDP "response"?
     private void insertAppInstances(NetTest netTest, Network network, AppClient.AppInstListReply appInstListReply) {
         int numSamples = Site.DEFAULT_NUM_SAMPLES;
