@@ -1514,92 +1514,99 @@ public class PeerConnectionClient {
     long sendIntervalMs = 5000; // ms;
 
     public EcnCalculator() {
-            Log.d(TAG, "New ECNCalucator.");
-        }
+      Log.d(TAG, "New ECNCalucator.");
+    }
 
-      public void resetSendTimer() {
-        sendTimer.reset();
-        sendTimer.start();
+    public void resetSendTimer() {
+      sendTimer.reset();
+      sendTimer.start();
+    }
+
+    public void resetStaleTimer() {
+      staleDataTimer.reset();
+      staleDataTimer.start();
+    }
+
+    boolean isShouldSend() {
+      if (sendTimer.elapsed(TimeUnit.MILLISECONDS) >= sendIntervalMs) {
+        return true;
+      }
+      return false;
+    }
+
+    boolean isStaleTimer() {
+      if (staleDataTimer.elapsed(TimeUnit.MILLISECONDS) > clearThreshold) {
+        return true;
+      }
+      return false;
+    }
+
+    // This sort of assumes a stream of data, not bursty data.
+    AppClient.ECNStatus Update(int ecn) {
+      if (false && isStaleTimer()) { // This messes up debugging.
+        aggregateBandwidth.clear();
+        averageBandwidth = 0d;
+        bandwidth = RAMPUPSPEED;
+        idx = 0;
+      }
+      resetStaleTimer();
+      if (!sendTimer.isRunning()) {
+          resetSendTimer();
       }
 
-      boolean isShouldSend() {
-        if (sendTimer.elapsed(TimeUnit.MILLISECONDS) >= sendIntervalMs) {
-          return true;
+      try {
+        AppClient.ECNBit ecnBit = AppClient.ECNBit.internalGetValueMap().findValueByNumber(ecn);
+
+        // Update stats:
+        if (ecnBit == AppClient.ECNBit.CE) {
+          bandwidth *= ecnCeScaleDown;
+          if (bandwidth <= minimumBandwidth) {
+            bandwidth = minimumBandwidth;
+          }
+        } else if (ecnBit == AppClient.ECNBit.ECT_0 || ecnBit == AppClient.ECNBit.ECT_1) {
+          double new_bandwidth = bandwidth + (1 + rampUpScale) * RAMPUPSPEED; // This while nice, pays no attention to the scale. Sigmoid scale curve better for upward scaling?
+          bandwidth = Math.min(maximumBandwidth, new_bandwidth);
+        } else {
+          // Not supported (anymore?)
+          Log.d(TAG, "connection claims ECN marking is unsupported.");
+          return null;
         }
-        return false;
-      }
+        //Log.d(TAG, "ZZZ ECN Bit to use: " + ecnBit);
 
-      boolean isStaleTimer() {
-        if (staleDataTimer.elapsed(TimeUnit.MILLISECONDS) > clearThreshold) {
-          return true;
+        // Minimum guard:
+        if (bandwidth <= minimumBandwidth) {
+          bandwidth = minimumBandwidth;
+          Log.d(TAG, "Notice: Hit minimum bandwidth.");
         }
-        return false;
-      }
+        Log.d(TAG, "ZZZ ECN " + ecn +", Bandwidth: " + bandwidth);
 
-      // This sort of assumes a stream of data, not bursty data.
-      AppClient.ECNStatus Update(int ecn) {
-        if (false && isStaleTimer()) { // This messes up debugging.
-          aggregateBandwidth.clear();
-          averageBandwidth = 0d;
-          //bandwidth = RAMPUPSPEED;
-          idx = 0;
+        // sample(s) update (and historical samples)
+        if (aggregateBandwidth.size() < capacity) {
+          aggregateBandwidth.add(idx, bandwidth);
+        } else {
+          aggregateBandwidth.set(idx, bandwidth);
         }
-        staleDataTimer.reset();
-        staleDataTimer.start();
+        idx = (idx + 1) % capacity;
+        double num = bandwidth + (averageBandwidth * (aggregateBandwidth.size() - 1));
+        averageBandwidth = num / aggregateBandwidth.size();
 
-        try {
-            AppClient.ECNBit ecnBit = AppClient.ECNBit.internalGetValueMap().findValueByNumber(ecn);
-
-            // Update stats:
-            if (ecnBit == AppClient.ECNBit.CE) {
-                bandwidth *= ecnCeScaleDown;
-                if (bandwidth <= minimumBandwidth) {
-                    bandwidth = minimumBandwidth;
-                }
-            } else if (ecnBit == AppClient.ECNBit.ECT_0 || ecnBit == AppClient.ECNBit.ECT_1) {
-                double new_bandwidth = bandwidth + (1 + rampUpScale) * RAMPUPSPEED; // This while nice, pays no attention to the scale. Sigmoid scale curve better for upward scaling?
-                bandwidth = Math.min(maximumBandwidth, new_bandwidth);
-            } else {
-                // Not supported (anymore?)
-                Log.d(TAG, "connection claims ECN marking is unsupported.");
-                return null;
-            }
-            //Log.d(TAG, "ZZZ ECN Bit to use: " + ecnBit);
-
-            // Minimum guard:
-            if (bandwidth <= minimumBandwidth) {
-                bandwidth = minimumBandwidth;
-                Log.d(TAG, "Notice: Hit minimum bandwidth.");
-            }
-            Log.d(TAG, "ZZZ ECN " + ecn +", Bandwidth: " + bandwidth);
-
-            // sample(s) update (and historical samples)
-            if (aggregateBandwidth.size() < capacity) {
-                aggregateBandwidth.add(idx, bandwidth);
-            } else {
-                aggregateBandwidth.set(idx, bandwidth);
-            }
-            idx = (idx + 1) % capacity;
-            double num = bandwidth + (averageBandwidth * (aggregateBandwidth.size() - 1));
-            averageBandwidth = num / aggregateBandwidth.size();
-
-            AppClient.ECNStatus ecnStatus;
-            AppClient.ECNStatus.Builder builder = AppClient.ECNStatus.newBuilder();
-            if (builder == null) {
-                Log.d(TAG, "Bad ECNStatus buildler!!!");
-                return null;
-            }
-            ecnStatus = builder
-                    .setBandwidth((float) averageBandwidth) // FIXME: Remove casting
-                    .setEcnBit(ecnBit)
-                    .setStrategy(AppClient.ECNStrategy.STRATEGY_1)
-                    .build();
-
-            return ecnStatus;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+        AppClient.ECNStatus ecnStatus;
+        AppClient.ECNStatus.Builder builder = AppClient.ECNStatus.newBuilder();
+        if (builder == null) {
+          Log.d(TAG, "Bad ECNStatus buildler!!!");
+          return null;
         }
+        ecnStatus = builder
+            .setBandwidth((float) averageBandwidth) // FIXME: Remove casting
+            .setEcnBit(ecnBit)
+            .setStrategy(AppClient.ECNStrategy.STRATEGY_1)
+            .build();
+
+        return ecnStatus;
+      } catch (Exception e) {
+        e.printStackTrace();
+        return null;
       }
     }
+  }
 }

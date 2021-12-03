@@ -394,22 +394,27 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
 
     if (me == null || me.isShutdown()) {
         me = new MatchingEngine(this);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setSSLEnabled(false); // edgebox.
         // Just start MatchingEngine in the background until needed.
         CompletableFuture.runAsync( () -> {
             Log.d(TAG, "OnResume, creating matchingEngine connections.");
             try {
                 // EdgeBox: Create!
-                String dmeHostOverride = "192.168.1.176";
+                String dmeHostOverride = "10.59.41.153"; // SAME network needed.
+                String appName = "ComputerVision"; // "DevOrg SDK Demo";
+                String appVersion = "2.2"; //"1.0";
+                String devOrg = "MobiledgeX"; // "DevOrg";
                 String carrierNameOverride = "";
                 AppClient.RegisterClientRequest registerClientRequest =
-                        me.createDefaultRegisterClientRequest(this, "DevOrg")
-                                .setAppName("DevOrg SDK Demo")
-                                .setAppVers("1.0")
+                        me.createDefaultRegisterClientRequest(this, devOrg)
+                                .setAppName(appName)
+                                .setAppVers(appVersion)
                                 .setCarrierName(carrierNameOverride)
                                 .build();
                 AppClient.RegisterClientReply reply = me.registerClient(registerClientRequest, dmeHostOverride, me.getPort(), TIMEOUT_MS);
 
-                if (reply != null) {
+                if (reply != null && reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS) {
                     Log.d(TAG, "Registered!");
                 }
                 else {
@@ -425,7 +430,9 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
                 AppClient.FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, dmeHostOverride, me.getPort(), TIMEOUT_MS);
 
                 // EdgeConnection should be up.
+                Log.d(TAG, "FindCloudlet: " + findCloudletReply.getStatus().toString());
 
+                // FIXME: Don't need a real appInst, just the edgeEvents connection to be up receiving updates every 5 seconds, so long as *some* AppInst is FIND_FOUND.
                 // Launch WebRTC client, with our DME enabled peer observer callback, with roomID:
 
 
@@ -435,8 +442,9 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
                 e.printStackTrace();
             } catch (ExecutionException e) {
                 e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-
         });
 
     }
