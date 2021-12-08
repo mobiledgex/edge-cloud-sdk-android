@@ -75,9 +75,14 @@ public class FindCloudlet implements Callable {
         if (host == null || host.equals("")) {
             return false;
         }
-        mRequest = FindCloudletRequest.newBuilder(request)
-                .putTags("ip_user_equipment", getLocalIpv4())
-                .build();
+
+        FindCloudletRequest.Builder findCloudletRequestBuilder = FindCloudletRequest.newBuilder(request);
+        String localIp = getLocalIpv4();
+        if (localIp != null) {
+            findCloudletRequestBuilder.putTags("ip_user_equipment", localIp);
+        }
+
+        mRequest = findCloudletRequestBuilder.build();
         mHost = host;
         mPort = port;
         mMode = mode;
@@ -141,20 +146,22 @@ public class FindCloudlet implements Callable {
 
     private String getLocalIpv4() {
         String localIp = getLocalIpAny();
-        if (localIp.contains(".")) {
+        if (localIp == null) {
+            return null;
+        }
+        else if (localIp.contains(".")) {
             return localIp;
         }
         else {
             Log.d(TAG, "Local default interface is IPv6 only. Returning empty string.");
-            return "";
+            return null;
         }
     }
 
-    // Returns empty string if nothing is found.
     private String getLocalIpAny() {
         Network net = mMatchingEngine.getNetworkManager().getActiveNetwork();
         if (net == null) {
-            return "";
+            return null;
         }
         // UDP "connect" to get the default route's local IP address.
         DatagramSocket ds = null;
@@ -167,11 +174,11 @@ public class FindCloudlet implements Callable {
                 return hostStr;
             }
             else {
-                return "";
+                return null;
             }
         } catch (SocketException | UnknownHostException e) {
             e.printStackTrace();
-            return "";
+            return null;
         }
     }
 
@@ -338,14 +345,17 @@ public class FindCloudlet implements Callable {
             // Remaining mode(s) is Performance:
 
             // GetAppInstList, using the same FindCloudlet Request values.
-            AppClient.AppInstListRequest appInstListRequest = GetAppInstList.createFromFindCloudletRequest(mRequest)
+            AppClient.AppInstListRequest.Builder appInstListRequestBuilder = GetAppInstList.createFromFindCloudletRequest(mRequest)
                     // Do non-trivial transfer, stuffing Tag to do so.
                     .setCarrierName(mRequest.getCarrierName() == null ?
                             mMatchingEngine.getLastRegisterClientRequest().getCarrierName() :
                             mRequest.getCarrierName())
-                    .putTags("Buffer", new String(new byte[2048]))
-                    .putTags("ip_user_equipment", getLocalIpv4())
-                    .build();
+                    .putTags("Buffer", new String(new byte[2048]));
+            String localIP = getLocalIpv4();
+            if (localIP != null) {
+                appInstListRequestBuilder.putTags("ip_user_equipment", localIP);
+            }
+            AppClient.AppInstListRequest appInstListRequest = appInstListRequestBuilder.build();
 
             AppClient.AppInstListReply appInstListReply = stub.withDeadlineAfter(remainder, TimeUnit.MILLISECONDS)
                     .getAppInstList(appInstListRequest);
