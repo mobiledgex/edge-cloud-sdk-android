@@ -386,7 +386,6 @@ public class EngineCallTest {
             AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
-                    //.setCellId(me.retrieveCellId(context).get(0).second.intValue())
                     .build();
             if (useHostOverride) {
                 reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -439,7 +438,6 @@ public class EngineCallTest {
             AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
-                    //.setCellId(me.retrieveCellId(context).get(0).second.intValue())
                     .setUniqueIdType("applicationInstallId")
                     .setUniqueId(me.getUniqueId(context))
                     .build();

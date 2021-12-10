@@ -174,7 +174,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName(applicationName)
         .setAppVers(appVersion)
-        //.setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);

@@ -389,10 +389,10 @@ public class MatchingEngine {
 
         // This is an exposed path to start/restart EdgeEvents, state check everything.
         if (!validateEdgeEventsConfig()) {
-            Log.e(TAG, "startEdgeEvents EdgeEvents Configuration for starting does not look correct: " + mEdgeEventsConfig);
+            Log.e(TAG, "startEdgeEvents EdgeEvents Configuration for starting does not look correct: " + edgeEventsConfig);
             return false; // NOT started.
         }
-        Log.i(TAG, "startEdgeEvents has been started with this edgeEventsConfig parameter: " + mEdgeEventsConfig);
+        Log.i(TAG, "startEdgeEvents has been started with this edgeEventsConfig parameter: " + edgeEventsConfig);
 
         // Start, if not already, the edgeEvents connection. It also starts any deferred events.
         // Reconnecting via FindCloudlet, will also call startEdgeEvents.
@@ -1193,7 +1193,7 @@ public class MatchingEngine {
 
         // No carrierName is used for DME in register.
         builder.setAuthToken("");
-        return builder;
+                return builder;
     }
 
     /*!
