@@ -210,7 +210,6 @@ public class LimitsTest {
             registerClient(me);
             AppClient.VerifyLocationRequest verifyLocationRequest1 = me.createDefaultVerifyLocationRequest(context, location)
                     .setCarrierName(carrierName)
-                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
                     .build();
             for (int i = 0; i < elapsed1.length; i++) {
                 start = System.currentTimeMillis();
@@ -233,7 +232,6 @@ public class LimitsTest {
             registerClient(me);
             AppClient.VerifyLocationRequest verifyLocationRequest2 = me.createDefaultVerifyLocationRequest(context, location)
                     .setCarrierName(carrierName)
-                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
                     .build();
             try {
                 for (int i = 0; i < elapsed2.length; i++) {
@@ -312,7 +310,6 @@ public class LimitsTest {
             // Future
             request = me.createDefaultVerifyLocationRequest(context, location)
                     .setCarrierName(carrierName)
-                    .setCellId(me.retrieveCellId(context).get(0).second.intValue())
                     .build();
             AppClient.VerifyLocationReply response2 = null;
             try {

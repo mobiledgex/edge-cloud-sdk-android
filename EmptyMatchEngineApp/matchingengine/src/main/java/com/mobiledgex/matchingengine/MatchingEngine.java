@@ -1167,9 +1167,8 @@ public class MatchingEngine {
         }
 
         // No carrierName is used for DME in register.
-        builder.setAuthToken("")
-                .setCellId(0);
-                return builder;
+        builder.setAuthToken("");
+        return builder;
     }
 
     /*!
@@ -1218,8 +1217,7 @@ public class MatchingEngine {
                 .setOrgName((organizationName == null) ? "" : organizationName)
                 .setAppName(appName)
                 .setAppVers(versionName)
-                .setAuthToken((authToken == null) ? "" : authToken)
-                .setCellId(cellId);
+                .setAuthToken((authToken == null) ? "" : authToken);
 
         if (tags != null) {
             builder.putAllTags(tags);
@@ -1275,8 +1273,7 @@ public class MatchingEngine {
         VerifyLocationRequest.Builder builder = AppClient.VerifyLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(carrierName)
-                .setGpsLocation(aLoc) // Latest token is unknown until retrieved.
-                .setCellId((int)cellId);
+                .setGpsLocation(aLoc); // Latest token is unknown until retrieved.
         return builder;
     }
 
@@ -1310,8 +1307,7 @@ public class MatchingEngine {
         FindCloudletRequest.Builder builder = FindCloudletRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(getCarrierName(context))
-                .setGpsLocation(aLoc)
-                .setCellId(0);
+                .setGpsLocation(aLoc);
         return builder;
     }
 
@@ -1331,8 +1327,7 @@ public class MatchingEngine {
 
         return GetLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
-                .setCarrierName(getCarrierName(context))
-                .setCellId(0);
+                .setCarrierName(getCarrierName(context));
     }
 
     /*!
@@ -1361,8 +1356,7 @@ public class MatchingEngine {
         return AppInstListRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(carrierName)
-                .setGpsLocation(aLoc)
-                .setCellId(0);
+                .setGpsLocation(aLoc);
     }
 
     /*!
@@ -1382,8 +1376,7 @@ public class MatchingEngine {
         return DynamicLocGroupRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setLgId(1001L) // FIXME: NOT IMPLEMENTED
-                .setCommType(commType)
-                .setCellId(0);
+                .setCommType(commType);
     }
 
     /*!
@@ -1408,8 +1401,7 @@ public class MatchingEngine {
         QosPositionRequest.Builder builder = QosPositionRequest.newBuilder();
         builder.setSessionCookie(mSessionCookie)
                 .addAllPositions(requests)
-                .setLteCategory(lte_category)
-                .setCellId(0);
+                .setLteCategory(lte_category);
 
         if (band_selection != null) {
             builder.setBandSelection(band_selection);
@@ -2035,8 +2027,7 @@ public class MatchingEngine {
                 RegisterClientRequest.Builder registerClientRequestBuilder = createDefaultRegisterClientRequest(context, organizationName)
                         .setAppName(applicationName)
                         .setAppVers(appVersion)
-                        .setAuthToken(authToken)
-                        .setCellId(cellId);
+                        .setAuthToken(authToken);
                 if (tags != null) {
                     registerClientRequestBuilder.putAllTags(tags);
                 }
@@ -2048,8 +2039,7 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location)
-                    .setCellId(cellId);
+                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location);
                 if (tags != null) {
                   findCloudletRequestBuilder.putAllTags(tags);
                 }
@@ -2097,8 +2087,7 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location)
-                        .setCellId(cellId);
+                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location);
                 if (tags != null) {
                     findCloudletRequestBuilder.putAllTags(tags);
                 }
@@ -2151,8 +2140,7 @@ public class MatchingEngine {
                     return null;
                 }
 
-                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location)
-                        .setCellId(cellId);
+                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location);
                 if (tags != null) {
                     findCloudletRequestBuilder.putAllTags(tags);
                 }
