@@ -1151,7 +1151,12 @@ public class EdgeEventsConnection {
 
             switch (locationUpdateConfig.updatePattern) {
                 case onStart:
-                    postLocationUpdate(getLocation());
+                    if (locationUpdateConfig != null) {
+                        if (locationUpdateConfig.maxNumberOfUpdates > 1) {
+                            locationUpdateConfig.maxNumberOfUpdates = 1;
+                        }
+                        addEdgeEventsIntervalTask(new EdgeEventsLocationIntervalHandler(me, locationUpdateConfig));
+                    }
                     break;
                 case onTrigger:
                     eventBusRegister(); // Attach Subscriber for triggers.
@@ -1173,10 +1178,12 @@ public class EdgeEventsConnection {
 
             switch (latencyUpdateConfig.updatePattern) {
                 case onStart:
-                    if (mEdgeEventsConfig.latencyInternalPort <= 0) {
-                        testPingAndPostLatencyUpdate(getLocation());
-                    } else {
-                        testConnectAndPostLatencyUpdate(getLocation());
+                    eventBusRegister();
+                    if (latencyUpdateConfig != null) {
+                        if (latencyUpdateConfig.maxNumberOfUpdates > 1) {
+                            latencyUpdateConfig.maxNumberOfUpdates = 1;
+                        }
+                        addEdgeEventsIntervalTask(new EdgeEventsLatencyIntervalHandler(me, mEdgeEventsConfig.latencyTestType, latencyUpdateConfig));
                     }
                     break;
                 case onTrigger:

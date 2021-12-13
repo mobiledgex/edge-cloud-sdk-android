@@ -32,6 +32,7 @@ import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEventTrigger;
+import com.mobiledgex.matchingengine.edgeeventsconfig.UpdateConfig;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 
 import junit.framework.TestCase;
@@ -409,8 +410,8 @@ public class EdgeEventsConnectionTest {
         }
     }
 
-    //@Test
-    public void testEdgeConnectionJustWait() {
+    @Test
+    public void testEdgeConnectionJustWaitForOne() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         AppClient.FindCloudletReply findCloudletReply1;
 
@@ -447,7 +448,8 @@ public class EdgeEventsConnectionTest {
             EdgeEventsConfig config = me.createDefaultEdgeEventsConfig();
             // Some of this can spuriously break the DME connection for reconnection.
             config.latencyUpdateConfig = null; // Disable. This could break the test with spurious newFindCloudlets.
-            config.locationUpdateConfig.maxNumberOfUpdates = 0; // Infinity.
+            config.locationUpdateConfig.maxNumberOfUpdates = 0; // Infinity for onStart, should result in 1 call and response.
+            config.locationUpdateConfig.updatePattern = UpdateConfig.UpdatePattern.onStart;
 
             // Set orgName and location, then override the rest for testing:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
@@ -468,8 +470,11 @@ public class EdgeEventsConnectionTest {
             assertTrue("Did not start. Completion failed!", value);
             assertFalse("Should throw no exceptions!", startFuture.isCompletedExceptionally());
 
-            Thread.sleep(900000);
-            Log.i(TAG, "XXX Done stop.");
+            latch.await(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            assertEquals("Expecte only one for OnStart!", 1, latch.getCount());
+
+            Thread.sleep((long)config.locationUpdateConfig.updateIntervalSeconds * 1000l);
+            Log.i(TAG, "Done stop.");
         } catch (Exception e) {
             Log.e(TAG, "Exception: " + e + ", " + e.getLocalizedMessage());
             e.printStackTrace();
