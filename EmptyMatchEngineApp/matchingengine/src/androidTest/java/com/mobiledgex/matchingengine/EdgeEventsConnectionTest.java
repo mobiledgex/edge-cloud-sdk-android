@@ -179,9 +179,6 @@ public class EdgeEventsConnectionTest {
                     .setOrgName(organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion);
-            if (ids.size() > 0) {
-                regRequestBuilder.setCellId(me.retrieveCellId(context).get(0).second.intValue());
-            }
             regRequest = regRequestBuilder.build();
             if (useHostOverride) {
                 registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);

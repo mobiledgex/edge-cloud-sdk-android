@@ -87,15 +87,6 @@ public class RegisterClientTest {
   String meluuid = MelMessaging.getUid();
   String uuidType = "Platos:PlatosEnablingLayer";
 
-  private int getCellId(Context context, MatchingEngine me) {
-    int cellId = 0;
-    List<Pair<String, Long>> cellIdList = me.retrieveCellId(context);
-    if (cellIdList != null && cellIdList.size() > 0) {
-      cellId = cellIdList.get(0).second.intValue();
-    }
-    return cellId;
-  }
-
   private Location getTestLocation(double latitude, double longitude) {
     Location location = new Location("MobiledgeX_Test");
     location.setLatitude(latitude);
@@ -272,7 +263,6 @@ public class RegisterClientTest {
         .setAppVers(appVersion)
         //.setUniqueId(uuid)
         //.setUniqueIdType("platos")
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -354,7 +344,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationNamePlatos)
         .setAppName(applicationNamePlatos)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .setUniqueIdType("TestAdvertisingID")
         .setUniqueId(me.getUniqueId(context))
         .build();
@@ -430,7 +419,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationNamePlatos)
         .setAppNameBytes(ByteString.copyFromUtf8(applicationNamePlatos))
         .setAppVersBytes(ByteString.copyFromUtf8(appVersion))
-        .setCellId(getCellId(context, me))
         .setUniqueIdTypeBytes(ByteString.copyFromUtf8("applicationInstallId"))
         .setUniqueIdBytes(ByteString.copyFromUtf8(me.getUniqueId(context)))
         .build();
@@ -506,7 +494,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationNamePlatos)
         .setAppName(applicationNamePlatos)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .setUniqueIdType("")
         .setUniqueId("")
         .build();
@@ -581,7 +568,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationNamePlatos)
         .setAppName(applicationNamePlatos)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         reply = me.registerClient(request, hostOverridePlatos, portOverride, GRPC_TIMEOUT_MS);
@@ -655,7 +641,6 @@ public class RegisterClientTest {
         .setAppName(applicationNamePlatos)
         .setAppVers(appVersion)
         .setUniqueId("xxxx")
-        .setCellId(getCellId(context, me))
         .build();
 
       if (useHostOverride) {
@@ -705,7 +690,6 @@ public class RegisterClientTest {
         .setAppName(applicationNamePlatos)
         .setAppVers(appVersion)
         .setUniqueIdType("xxxx")
-        .setCellId(getCellId(context, me))
         .build();
 
       if (useHostOverride) {
@@ -752,7 +736,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(null,"")
         .setAppName(applicationName)
         .setAppVers("")
-        .setCellId(getCellId(context, me))
         .build();
 
     } catch (PackageManager.NameNotFoundException nnfe) {
@@ -785,7 +768,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, "")
         .setAppName(applicationName)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .build();
     } catch (PackageManager.NameNotFoundException nnfe) {
       Log.e(TAG, Log.getStackTraceString(nnfe));
@@ -816,7 +798,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, null)
         .setAppName(applicationName)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .build();
     } catch (PackageManager.NameNotFoundException nnfe) {
       Log.e(TAG, Log.getStackTraceString(nnfe));
@@ -845,7 +826,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName(applicationName)
         .setAppVers("")
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -886,7 +866,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName("")
         .setAppVers("1.0")
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -927,7 +906,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName(applicationNameAuth)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -968,7 +946,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, "badorg")
         .setAppName(applicationName)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1008,7 +985,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, "badorg")
         .setAppName("badapp")
         .setAppVers("badversion")
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1048,7 +1024,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName("Leon's Bogus App")
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1088,7 +1063,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName(applicationName)
         .setAppVers("-999")
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1131,7 +1105,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName(applicationName)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         registerReplyFuture = me.registerClientFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1207,7 +1180,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName(applicationName)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .setUniqueIdType("applicationInstallId")
         .setUniqueId(me.getUniqueId(context))
         .build();
@@ -1285,7 +1257,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationNamePlatos)
         .setAppName(applicationNamePlatos)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .setUniqueIdType("applicationInstallId")
         .setUniqueId(me.getUniqueId(context))
         .build();
@@ -1363,7 +1334,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationNamePlatos)
         .setAppName(applicationNamePlatos)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .setUniqueIdType("")
         .setUniqueId("")
         .build();
@@ -1440,7 +1410,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationNamePlatos)
         .setAppName(applicationNamePlatos)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         registerReplyFuture = me.registerClientFuture(request, hostOverridePlatos, portOverride, GRPC_TIMEOUT_MS);
@@ -1516,7 +1485,6 @@ public class RegisterClientTest {
         .setAppName(applicationNamePlatos)
         .setAppVers(appVersion)
         .setUniqueId("xxxx")
-        .setCellId(getCellId(context, me))
         .build();
 
       if (useHostOverride) {
@@ -1567,7 +1535,6 @@ public class RegisterClientTest {
         .setAppName(applicationNamePlatos)
         .setAppVers(appVersion)
         .setUniqueIdType("xxxx")
-        .setCellId(getCellId(context, me))
         .build();
 
       if (useHostOverride) {
@@ -1616,7 +1583,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName(applicationName)
         .setAppVers("")
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         registerReplyFuture = me.registerClientFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1656,7 +1622,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName("")
         .setAppVers("1.0")
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         registerReplyFuture = me.registerClientFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1697,7 +1662,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName(applicationNameAuth)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         registerReplyFuture = me.registerClientFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1738,7 +1702,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, "badorg")
         .setAppName(applicationName)
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         registerReplyFuture = me.registerClientFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1779,7 +1742,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, "badorg")
         .setAppName("badapp")
         .setAppVers("badversion")
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         registerReplyFuture = me.registerClientFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1820,7 +1782,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName("Leon's Bogus App")
         .setAppVers(appVersion)
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         registerReplyFuture = me.registerClientFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1861,7 +1822,6 @@ public class RegisterClientTest {
       AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
         .setAppName(applicationName)
         .setAppVers("-999")
-        .setCellId(getCellId(context, me))
         .build();
       if (useHostOverride) {
         registerReplyFuture = me.registerClientFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);

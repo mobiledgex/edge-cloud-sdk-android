@@ -320,10 +320,6 @@ public class NetworkManager extends SubscriptionManager.OnSubscriptionsChangedLi
     }
 
     synchronized public List<SubscriptionInfo> getActiveSubscriptionInfoList(boolean clone) throws SecurityException {
-        if (!isNetworkSwitchingEnabled()) {
-            return new ArrayList<>();
-        }
-
         if (mActiveSubscriptionInfoList == null) {
              mActiveSubscriptionInfoList = mSubscriptionManager.getActiveSubscriptionInfoList();
         }
