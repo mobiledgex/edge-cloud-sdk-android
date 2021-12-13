@@ -25,9 +25,7 @@ import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.mel.MelMessaging;
 
-import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +75,7 @@ public class FindCloudlet implements Callable {
         }
 
         FindCloudletRequest.Builder findCloudletRequestBuilder = FindCloudletRequest.newBuilder(request);
-        String localIp = getLocalIpv4();
+        String localIp = mMatchingEngine.getLocalIpv4();
         if (localIp != null) {
             findCloudletRequestBuilder.putTags("ip_user_equipment", localIp);
         }
@@ -142,44 +140,6 @@ public class FindCloudlet implements Callable {
 
         }
         return appPort;
-    }
-
-    private String getLocalIpv4() {
-        String localIp = getLocalIpAny();
-        if (localIp == null) {
-            return null;
-        }
-        else if (localIp.contains(".")) {
-            return localIp;
-        }
-        else {
-            Log.d(TAG, "Local default interface is IPv6 only. Returning empty string.");
-            return null;
-        }
-    }
-
-    private String getLocalIpAny() {
-        Network net = mMatchingEngine.getNetworkManager().getActiveNetwork();
-        if (net == null) {
-            return null;
-        }
-        // UDP "connect" to get the default route's local IP address.
-        DatagramSocket ds = null;
-        try {
-            ds = new DatagramSocket();
-            ds.connect(InetAddress.getByName(mMatchingEngine.wifiOnlyDmeHost), mMatchingEngine.getPort());
-            InetAddress localInet = ds.getLocalAddress();
-            String hostStr;
-            if (localInet != null && (hostStr = localInet.getHostAddress()) != null) {
-                return hostStr;
-            }
-            else {
-                return null;
-            }
-        } catch (SocketException | UnknownHostException e) {
-            e.printStackTrace();
-            return null;
-        }
     }
 
     // If UDP, then ICMP must respond. TODO: Allow UDP "response"?
@@ -351,7 +311,7 @@ public class FindCloudlet implements Callable {
                             mMatchingEngine.getLastRegisterClientRequest().getCarrierName() :
                             mRequest.getCarrierName())
                     .putTags("Buffer", new String(new byte[2048]));
-            String localIP = getLocalIpv4();
+            String localIP = mMatchingEngine.getLocalIpv4();
             if (localIP != null) {
                 appInstListRequestBuilder.putTags("ip_user_equipment", localIP);
             }
