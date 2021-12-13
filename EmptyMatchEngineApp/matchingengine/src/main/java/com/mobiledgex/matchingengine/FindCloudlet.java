@@ -73,7 +73,14 @@ public class FindCloudlet implements Callable {
         if (host == null || host.equals("")) {
             return false;
         }
-        mRequest = request;
+
+        FindCloudletRequest.Builder findCloudletRequestBuilder = FindCloudletRequest.newBuilder(request);
+        String localIp = mMatchingEngine.getLocalIpv4();
+        if (localIp != null) {
+            findCloudletRequestBuilder.putTags("ip_user_equipment", localIp);
+        }
+
+        mRequest = findCloudletRequestBuilder.build();
         mHost = host;
         mPort = port;
         mMode = mode;
@@ -298,13 +305,17 @@ public class FindCloudlet implements Callable {
             // Remaining mode(s) is Performance:
 
             // GetAppInstList, using the same FindCloudlet Request values.
-            AppClient.AppInstListRequest appInstListRequest = GetAppInstList.createFromFindCloudletRequest(mRequest)
+            AppClient.AppInstListRequest.Builder appInstListRequestBuilder = GetAppInstList.createFromFindCloudletRequest(mRequest)
                     // Do non-trivial transfer, stuffing Tag to do so.
                     .setCarrierName(mRequest.getCarrierName() == null ?
                             mMatchingEngine.getLastRegisterClientRequest().getCarrierName() :
                             mRequest.getCarrierName())
-                    .putTags("Buffer", new String(new byte[2048]))
-                    .build();
+                    .putTags("Buffer", new String(new byte[2048]));
+            String localIP = mMatchingEngine.getLocalIpv4();
+            if (localIP != null) {
+                appInstListRequestBuilder.putTags("ip_user_equipment", localIP);
+            }
+            AppClient.AppInstListRequest appInstListRequest = appInstListRequestBuilder.build();
 
             AppClient.AppInstListReply appInstListReply = stub.withDeadlineAfter(remainder, TimeUnit.MILLISECONDS)
                     .getAppInstList(appInstListRequest);

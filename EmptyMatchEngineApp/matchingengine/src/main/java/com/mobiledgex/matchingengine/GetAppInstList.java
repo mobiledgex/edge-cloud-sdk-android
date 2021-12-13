@@ -85,9 +85,6 @@ public class GetAppInstList implements Callable {
         if (findCloudletRequest.hasGpsLocation()) {
             appInstListRequestBuilder.setGpsLocation(findCloudletRequest.getGpsLocation());
         }
-        if (findCloudletRequest.getCellId() > 0) {
-            appInstListRequestBuilder.setCellId(findCloudletRequest.getCellId());
-        }
         if (findCloudletRequest.getTagsCount() > 0) {
             appInstListRequestBuilder.putAllTags(findCloudletRequest.getTagsMap());
         }

@@ -358,9 +358,6 @@ public class EngineCallTest {
                     .setOrgName(organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion);
-            if (ids.size() > 0) {
-                regRequestBuilder.setCellId(me.retrieveCellId(context).get(0).second.intValue());
-            }
             registerClientRequest = regRequestBuilder.build();
             if (useHostOverride) {
                 //! [registeroverrideexample]
