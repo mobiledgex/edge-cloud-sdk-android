@@ -53,7 +53,9 @@ import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 
 import java.nio.charset.StandardCharsets;
@@ -1110,6 +1112,54 @@ public class MatchingEngine {
     public void ensureSessionCookie(String sessionCookie) {
         if (sessionCookie == null || sessionCookie.equals((""))) {
             throw new IllegalArgumentException("An unexpired RegisterClient sessionCookie is required.");
+        }
+    }
+
+    /*!
+     * Retrieves the current default route network interface IPv4 address.
+     * \return Local IPv4 address
+     * \ingroup functions_dmeapis
+     */
+    public String getLocalIpv4() {
+        String localIp = getLocalIpAny();
+        if (localIp == null) {
+            return null;
+        }
+        else if (localIp.contains(".")) {
+            return localIp;
+        }
+        else {
+            Log.d(TAG, "Local default interface is IPv6 only. Returning empty string.");
+            return null;
+        }
+    }
+
+    /*!
+     * Retrieves the current default route network interface address.
+     * \return Local IP address
+     * \ingroup functions_dmeapis
+     */
+    public String getLocalIpAny() {
+        Network net = getNetworkManager().getActiveNetwork();
+        if (net == null) {
+            return null;
+        }
+        // UDP "connect" to get the default route's local IP address.
+        DatagramSocket ds = null;
+        try {
+            ds = new DatagramSocket();
+            ds.connect(InetAddress.getByName(wifiOnlyDmeHost), getPort());
+            InetAddress localInet = ds.getLocalAddress();
+            String hostStr;
+            if (localInet != null && (hostStr = localInet.getHostAddress()) != null) {
+                return hostStr;
+            }
+            else {
+                return null;
+            }
+        } catch (SocketException | UnknownHostException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
