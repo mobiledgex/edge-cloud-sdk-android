@@ -100,7 +100,7 @@ public class EngineCallTest {
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
-    public static final String organizationName = "MobiledgeX";
+    public static final String organizationName = "automation_dev_org";
     // Other globals:
     public static final String applicationName = "automation-sdk-porttest";
     public static final String appVersion = "1.0";
@@ -151,6 +151,9 @@ public class EngineCallTest {
             uiAutomation.grantRuntimePermission(
                     InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
                     "android.permission.ACCESS_FINE_LOCATION");
+            uiAutomation.grantRuntimePermission(
+                    InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
+                    "android.permission.ACCESS_MOCK_LOCATION");
         }
     }
     // Mini test of wifi only:
@@ -494,6 +497,7 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
         Location location = getTestLocation();
+
         try {
             registerClient(me);
 

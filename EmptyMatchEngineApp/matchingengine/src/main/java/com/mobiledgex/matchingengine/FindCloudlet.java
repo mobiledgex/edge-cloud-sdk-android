@@ -534,6 +534,9 @@ public class FindCloudlet implements Callable {
                     Log.w(TAG, "Public AppOfficialFqdn DNS resolve FAILURE for: " + appOfficialFqdnHost);
                 }
                 appOfficialFqdnHost.wait(300);
+                if (dnsStopwatch.elapsed(TimeUnit.MILLISECONDS) > 3000) {
+                    break;
+                }
             }
         }
 

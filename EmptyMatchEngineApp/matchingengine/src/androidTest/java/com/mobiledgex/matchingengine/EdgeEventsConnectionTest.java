@@ -17,9 +17,12 @@
 
 package com.mobiledgex.matchingengine;
 
+import static android.content.Context.LOCATION_SERVICE;
+
 import android.app.UiAutomation;
 import android.content.Context;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Looper;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -34,6 +37,7 @@ import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEventTrigger;
 import com.mobiledgex.matchingengine.edgeeventsconfig.UpdateConfig;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
+import com.mobiledgex.matchingengine.util.MeLocation;
 
 import junit.framework.TestCase;
 
@@ -76,7 +80,7 @@ public class EdgeEventsConnectionTest {
     public static final String appVersion = "1.0";
 
 
-    public static String hostOverride = "eu-qa.dme.mobiledgex.net";
+    public static String hostOverride = "us-qa.dme.mobiledgex.net";
     public static int portOverride = 50051;
     public static String findCloudletCarrierOverride = ""; // Allow "Any" if using "", but this likely breaks test cases.
 
@@ -122,8 +126,7 @@ public class EdgeEventsConnectionTest {
                     "android.permission.ACCESS_COARSE_LOCATION");
             uiAutomation.grantRuntimePermission(
                     InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
-                    "android.permission.ACCESS_FINE_LOCATION"
-            );
+                    "android.permission.ACCESS_FINE_LOCATION");
         }
     }
 
@@ -162,6 +165,12 @@ public class EdgeEventsConnectionTest {
         Location location = new Location("EngineCallTestLocation");
         location.setLongitude(-121.8919);
         location.setLatitude(37.3353);
+        location.setTime(System.currentTimeMillis());
+        location.setAccuracy((float)Math.random() * 0.00001f);
+        location.setAltitude(0.1);
+        location.setBearing(0.1f);
+        location.setElapsedRealtimeNanos(1);
+        location.setSpeed(0);
         return location;
     }
 
@@ -241,7 +250,6 @@ public class EdgeEventsConnectionTest {
         EventReceiver2 er = new EventReceiver2();
         me.getEdgeEventsBus().register(er);
         try {
-            Location location = getTestLocation(); // Test needs this configurable in a sensible way.
             registerClient(me);
             //enableMockLocation(context,true);
 
@@ -416,11 +424,30 @@ public class EdgeEventsConnectionTest {
         AppClient.FindCloudletReply findCloudletReply1;
 
         MatchingEngine me = null;
+        String locationProvider = "testEdgeConnectionJustWaitForOne";
         try {
             me = new MatchingEngine(context);
             me.setMatchingEngineLocationAllowed(true);
             registerClient(me);
             Location location = automationHamburgCloudlet;
+            LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+
+            // Explicit mock test provider
+            try {
+                locationManager.addTestProvider(LocationManager.GPS_PROVIDER, false,
+                        false, false, false, false, true, true, 0, 5);
+                locationManager.addTestProvider(LocationManager.NETWORK_PROVIDER, false,
+                        false, false, false, false, true, true, 0, 5);
+            } catch (IllegalArgumentException iae) {
+                // Might already exist. Just use the named provider then.
+                iae.printStackTrace();
+            }
+
+            //locationManager.setTestProviderEnabled(LocationManager.GPS_PROVIDER, true);
+            locationManager.setTestProviderEnabled(LocationManager.NETWORK_PROVIDER, true);
+
+            //locationManager.setTestProviderLocation(LocationManager.GPS_PROVIDER, location);
+            locationManager.setTestProviderLocation(LocationManager.NETWORK_PROVIDER, location);
 
             CountDownLatch latch = new CountDownLatch(2);
             ConcurrentLinkedQueue<AppClient.ServerEdgeEvent> responses = new ConcurrentLinkedQueue<>();
@@ -451,7 +478,6 @@ public class EdgeEventsConnectionTest {
             config.locationUpdateConfig.maxNumberOfUpdates = 0; // Infinity for onStart, should result in 1 call and response.
             config.locationUpdateConfig.updatePattern = UpdateConfig.UpdatePattern.onStart;
 
-            // Set orgName and location, then override the rest for testing:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setCarrierName(findCloudletCarrierOverride)
                     .build();
@@ -463,14 +489,17 @@ public class EdgeEventsConnectionTest {
             assertEquals("Not successful findCloudlet", FIND_FOUND, findCloudletReply1.getStatus());
 
             // Probably is false, since we didn't wait.
-            CompletableFuture<Boolean> startFuture = me.startEdgeEventsFuture(config);
+            CompletableFuture<Boolean>  startFuture = me.startEdgeEventsFuture(config);
+            boolean bvalue = startFuture.getNow(false);
+            assertFalse("Not enough time, likely fails", bvalue);
 
             // More patient get:
             boolean value = startFuture.get(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+
             assertTrue("Did not start. Completion failed!", value);
             assertFalse("Should throw no exceptions!", startFuture.isCompletedExceptionally());
 
-            latch.await(GRPC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            latch.await(GRPC_TIMEOUT_MS*1999, TimeUnit.MILLISECONDS);
             assertEquals("Expecte only one for OnStart!", 1, latch.getCount());
 
             Thread.sleep((long)config.locationUpdateConfig.updateIntervalSeconds * 1000l);
