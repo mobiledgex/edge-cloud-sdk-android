@@ -1152,7 +1152,7 @@ public class EdgeEventsConnection {
             switch (locationUpdateConfig.updatePattern) {
                 case onStart:
                     if (locationUpdateConfig != null) {
-                        if (locationUpdateConfig.maxNumberOfUpdates > 1) {
+                        if (locationUpdateConfig.updatePattern == UpdateConfig.UpdatePattern.onStart) {
                             locationUpdateConfig.maxNumberOfUpdates = 1;
                         }
                         addEdgeEventsIntervalTask(new EdgeEventsLocationIntervalHandler(me, locationUpdateConfig));
@@ -1180,7 +1180,7 @@ public class EdgeEventsConnection {
                 case onStart:
                     eventBusRegister();
                     if (latencyUpdateConfig != null) {
-                        if (latencyUpdateConfig.maxNumberOfUpdates > 1) {
+                        if (latencyUpdateConfig.updatePattern == UpdateConfig.UpdatePattern.onStart) {
                             latencyUpdateConfig.maxNumberOfUpdates = 1;
                         }
                         addEdgeEventsIntervalTask(new EdgeEventsLatencyIntervalHandler(me, mEdgeEventsConfig.latencyTestType, latencyUpdateConfig));
