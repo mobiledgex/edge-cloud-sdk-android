@@ -91,6 +91,11 @@ public class EdgeEventsLatencyIntervalHandler extends EdgeEventsIntervalHandler 
                     default:
                         Log.e(TAG, "Unexpected test type: " + testType);
                 }
+
+                if (ceConfig.updatePattern == UpdateConfig.UpdatePattern.onStart) {
+                    Log.i(TAG, "OnStart Latency Update fired.");
+                    cancel();
+                }
             } else {
                 Log.i(TAG, "Timer task complete.");
                 cancel(); // Tests done.

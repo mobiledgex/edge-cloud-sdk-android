@@ -100,14 +100,14 @@ public class EngineCallTest {
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
-    public static final String organizationName = "MobiledgeX";
+    public static final String organizationName = "automation_dev_org";
     // Other globals:
     public static final String applicationName = "automation-sdk-porttest";
     public static final String appVersion = "1.0";
 
     FusedLocationProviderClient fusedLocationClient;
 
-    public static String hostOverride = "eu-qa.dme.mobiledgex.net";
+    public static String hostOverride = "us-qa.dme.mobiledgex.net";
     public static int portOverride = 50051;
     public static String findCloudletCarrierOverride = ""; // Allow "Any" if using "", but this likely breaks test cases.
 
@@ -494,6 +494,7 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
         Location location = getTestLocation();
+
         try {
             registerClient(me);
 

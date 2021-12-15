@@ -410,19 +410,19 @@ public class MatchingEngine {
 
         // This is an exposed path to start/restart EdgeEvents, state check everything.
         if (!validateEdgeEventsConfig()) {
-            Log.e(TAG, "startEdgeEvents EdgeEvents Configuration for starting does not look correct: " + edgeEventsConfig);
+            Log.e(TAG, "startEdgeEvents EdgeEvents Configuration for starting does not look correct: " + mEdgeEventsConfig);
             return false; // NOT started.
         }
-        Log.i(TAG, "startEdgeEvents has been started with this edgeEventsConfig parameter: " + edgeEventsConfig);
+        Log.i(TAG, "startEdgeEvents has been started with this edgeEventsConfig parameter: " + mEdgeEventsConfig);
 
         // Start, if not already, the edgeEvents connection. It also starts any deferred events.
         // Reconnecting via FindCloudlet, will also call startEdgeEvents.
         if (mEdgeEventsConnection.isShutdown()) {
             mEdgeEventsConnection.open(dmeHost, dmePort, network, edgeEventsConfig);
-            Log.i(TAG, "EdgeEventsConnection is now started.");
+            Log.i(TAG, "EdgeEventsConnection is now started with: " + edgeEventsConfig);
         } else {
-            Log.i(TAG, "EdgeEventsConnection will be restarted.");
-            mEdgeEventsConnection.reconnect();
+            Log.i(TAG, "EdgeEventsConnection will be restarted with: " + edgeEventsConfig);
+            mEdgeEventsConnection.reconnect(edgeEventsConfig);
         }
         return true;
     }
@@ -466,7 +466,7 @@ public class MatchingEngine {
             if (mEdgeEventsConnection.isShutdown()) {
                 mEdgeEventsConnection.open();
             } else {
-                mEdgeEventsConnection.reconnect();
+                mEdgeEventsConnection.reconnect(mEdgeEventsConfig);
             }
             return true;
         } catch (DmeDnsException dde) {
