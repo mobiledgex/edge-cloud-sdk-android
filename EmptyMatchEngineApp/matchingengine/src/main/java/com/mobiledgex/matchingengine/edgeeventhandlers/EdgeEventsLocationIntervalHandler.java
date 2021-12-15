@@ -73,6 +73,10 @@ public class EdgeEventsLocationIntervalHandler extends EdgeEventsIntervalHandler
                 location = edgeEventsConnection.getLocation();
 
                 edgeEventsConnection.postLocationUpdate(location);
+                if (ceConfig.updatePattern == UpdateConfig.UpdatePattern.onStart) {
+                    Log.i(TAG, "OnStart LocationUpdate fired.");
+                    cancel();
+                }
             } else {
                 Log.i(TAG, "Timer task complete.");
                 cancel(); // Tests done.

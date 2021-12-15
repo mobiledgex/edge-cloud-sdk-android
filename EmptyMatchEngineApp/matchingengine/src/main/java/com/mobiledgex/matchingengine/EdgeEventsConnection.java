@@ -346,9 +346,9 @@ public class EdgeEventsConnection {
     /*!
      * Reconnects the EdgeEventsConnection with current settings. This will block until opened.
      */
-    synchronized public void reconnect() throws DmeDnsException {
+    synchronized public void reconnect(EdgeEventsConfig eeConfig) throws DmeDnsException {
         // FIXME: using existing config until FindCloudletReply has the "new DME".
-        reconnect(lastConnectionDetails.host, lastConnectionDetails.port, lastConnectionDetails.network, mEdgeEventsConfig);
+        reconnect(lastConnectionDetails.host, lastConnectionDetails.port, lastConnectionDetails.network, eeConfig);
     }
 
     synchronized void reconnect(String host, int port, Network network, EdgeEventsConfig eeConfig) throws DmeDnsException {
@@ -522,7 +522,7 @@ public class EdgeEventsConnection {
 
                 // Reopen DME connection.
                 try {
-                    reconnect();
+                    reconnect(mEdgeEventsConfig);
                 } catch (DmeDnsException dde) {
                     Log.e(TAG, "Message: " + dde.getLocalizedMessage());
                 } catch (Exception e) {
@@ -644,7 +644,7 @@ public class EdgeEventsConnection {
                         Log.d(TAG, "Received this event to post to server: " + clientEdgeEvent);
                         if (isShutdown() && channelStatus != ChannelStatus.closing && channelStatus != ChannelStatus.closed) {
                             Log.d(TAG, "Reconnecting to post: Channel status: " + channelStatus);
-                            reconnect();
+                            reconnect(mEdgeEventsConfig);
                         }
                         if (sender != null) {
                             sender.onNext(clientEdgeEvent);
@@ -1151,7 +1151,12 @@ public class EdgeEventsConnection {
 
             switch (locationUpdateConfig.updatePattern) {
                 case onStart:
-                    postLocationUpdate(getLocation());
+                    if (locationUpdateConfig != null) {
+                        if (locationUpdateConfig.updatePattern == UpdateConfig.UpdatePattern.onStart) {
+                            locationUpdateConfig.maxNumberOfUpdates = 1;
+                        }
+                        addEdgeEventsIntervalTask(new EdgeEventsLocationIntervalHandler(me, locationUpdateConfig));
+                    }
                     break;
                 case onTrigger:
                     eventBusRegister(); // Attach Subscriber for triggers.
@@ -1173,10 +1178,12 @@ public class EdgeEventsConnection {
 
             switch (latencyUpdateConfig.updatePattern) {
                 case onStart:
-                    if (mEdgeEventsConfig.latencyInternalPort <= 0) {
-                        testPingAndPostLatencyUpdate(getLocation());
-                    } else {
-                        testConnectAndPostLatencyUpdate(getLocation());
+                    eventBusRegister();
+                    if (latencyUpdateConfig != null) {
+                        if (latencyUpdateConfig.updatePattern == UpdateConfig.UpdatePattern.onStart) {
+                            latencyUpdateConfig.maxNumberOfUpdates = 1;
+                        }
+                        addEdgeEventsIntervalTask(new EdgeEventsLatencyIntervalHandler(me, mEdgeEventsConfig.latencyTestType, latencyUpdateConfig));
                     }
                     break;
                 case onTrigger:
@@ -1360,7 +1367,7 @@ public class EdgeEventsConnection {
             }
             else {
                 try {
-                    reconnect();
+                    reconnect(mEdgeEventsConfig);
                 } catch (DmeDnsException dde) {
                     postErrorToEventHandler(EdgeEventsError.missingDmeDnsEntry);
                     return false; // Cannot reconnect.
