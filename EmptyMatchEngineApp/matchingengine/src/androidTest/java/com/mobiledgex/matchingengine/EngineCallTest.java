@@ -107,7 +107,7 @@ public class EngineCallTest {
 
     FusedLocationProviderClient fusedLocationClient;
 
-    public static String hostOverride = "eu-qa.dme.mobiledgex.net";
+    public static String hostOverride = "us-qa.dme.mobiledgex.net";
     public static int portOverride = 50051;
     public static String findCloudletCarrierOverride = ""; // Allow "Any" if using "", but this likely breaks test cases.
 
@@ -151,9 +151,6 @@ public class EngineCallTest {
             uiAutomation.grantRuntimePermission(
                     InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
                     "android.permission.ACCESS_FINE_LOCATION");
-            uiAutomation.grantRuntimePermission(
-                    InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
-                    "android.permission.ACCESS_MOCK_LOCATION");
         }
     }
     // Mini test of wifi only:

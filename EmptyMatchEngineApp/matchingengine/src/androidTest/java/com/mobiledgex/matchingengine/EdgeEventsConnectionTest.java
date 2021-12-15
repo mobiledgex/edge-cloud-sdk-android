@@ -433,6 +433,7 @@ public class EdgeEventsConnectionTest {
 
     @Test
     public void testEdgeConnectionJustWaitForOne() {
+        LooperEnsure();
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         AppClient.FindCloudletReply findCloudletReply1;
 
@@ -467,7 +468,7 @@ public class EdgeEventsConnectionTest {
             fusedLocationProviderClient.requestLocationUpdates(
                     locationRequest,
                     locationCallback,
-                    Looper.myLooper() /* Looper */);
+                    Looper.getMainLooper() /* Looper */);
 
             // Explicit mock test provider, however the Test LocationService seems to not be working.
 /*
@@ -540,7 +541,7 @@ public class EdgeEventsConnectionTest {
             config.locationUpdateConfig.maxNumberOfUpdates = 0; // Infinity for onStart, should result in 1 call and response.
             config.locationUpdateConfig.updatePattern = UpdateConfig.UpdatePattern.onInterval;
             config.locationUpdateConfig.updateIntervalSeconds = 7;
-            config.locationUpdateConfig.maxNumberOfUpdates = 1;
+            config.locationUpdateConfig.maxNumberOfUpdates = 99;
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
                     .setCarrierName(findCloudletCarrierOverride)
