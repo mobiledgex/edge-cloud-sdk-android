@@ -53,6 +53,8 @@ public class FindCloudlet implements Callable {
     private int mPort;
     private long mTimeoutInMilliseconds = -1;
     private long mMaximumLatencyMs = -1;
+    private long mDNSRetryIntervalMilliseconds = 300;
+    private long mDNSRetryMaximumMilliseconds = mDNSRetryIntervalMilliseconds * 10;
     private MatchingEngine.FindCloudletMode mMode;
 
     private boolean mDoLatencyMigration = false;
@@ -533,8 +535,8 @@ public class FindCloudlet implements Callable {
                 } catch (UnknownHostException uhe) {
                     Log.w(TAG, "Public AppOfficialFqdn DNS resolve FAILURE for: " + appOfficialFqdnHost);
                 }
-                appOfficialFqdnHost.wait(300);
-                if (dnsStopwatch.elapsed(TimeUnit.MILLISECONDS) > 3000) {
+                appOfficialFqdnHost.wait(mDNSRetryIntervalMilliseconds);
+                if (dnsStopwatch.elapsed(TimeUnit.MILLISECONDS) >= mDNSRetryMaximumMilliseconds) {
                     break;
                 }
             }
