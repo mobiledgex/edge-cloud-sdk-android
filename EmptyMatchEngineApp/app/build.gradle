@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 31
     defaultConfig {
         applicationId "com.mobiledgex.sdkdemo"
         minSdkVersion 24
-        targetSdkVersion 29
-        versionCode 25
-        versionName '3.0.5'
+        targetSdkVersion 31
+        versionCode 26
+        versionName '3.0.6'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -24,23 +24,21 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'androidx.appcompat:appcompat:1.3.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    implementation 'com.google.android.material:material:1.0.0'
+    implementation 'androidx.appcompat:appcompat:1.4.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.2'
+    implementation 'com.google.android.material:material:1.4.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
 
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 
     // Use local project Matching Engine SDK:
     implementation project(":matchingengine")
-    implementation project(":mel")
 
     implementation 'com.google.guava:guava:29.0-android'
 
     // Use maven:
     //implementation 'com.mobiledgex:matchingengine:3.0'
-    //implementation 'com.mobiledgex:mel:1.0.11'
     // Dependencies of Matching Engine, if using Maven:
     implementation "io.grpc:grpc-stub:${grpcVersion}"
 
@@ -49,6 +47,5 @@ dependencies {
     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
 
     // For Google Location Services.
-    implementation 'com.google.android.gms:play-services-location:18.0.0'
-
+    implementation 'com.google.android.gms:play-services-location:19.0.0'
 }

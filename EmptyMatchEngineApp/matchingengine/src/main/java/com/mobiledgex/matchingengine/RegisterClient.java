@@ -21,8 +21,6 @@ import android.net.Network;
 import android.os.Build;
 import android.util.Log;
 
-import com.mobiledgex.mel.MelMessaging;
-
 import java.util.HashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -49,7 +47,7 @@ public class RegisterClient implements Callable {
     public boolean setRequest(AppClient.RegisterClientRequest request, String host, int port, long timeoutInMilliseconds) {
         if (request == null) {
             throw new IllegalArgumentException("Request object must not be null.");
-        } else if (!mMatchingEngine.isMatchingEngineLocationAllowed()) {
+        } else if (!MatchingEngine.isMatchingEngineLocationAllowed()) {
             Log.e(TAG, "MatchingEngine location is disabled.");
             mRequest = null;
             return false;
@@ -69,32 +67,19 @@ public class RegisterClient implements Callable {
         return true;
     }
 
-    private void isBoundToCellNetwork() {
-
-    }
-
-    private AppClient.RegisterClientRequest.Builder updateRequestFoMel(AppClient.RegisterClientRequest.Builder builder) {
-        String uid = MelMessaging.getUid();
-
+    AppClient.RegisterClientRequest.Builder updateRequestAid(AppClient.RegisterClientRequest.Builder builder) {
         // This is the hashed value of Advertising ID.
         String ad_id = mMatchingEngine.getUniqueId(mMatchingEngine.mContext);
         String manufacturer = Build.MANUFACTURER;
         String model = Build.MODEL;
 
-        // Whether MEL is activated or not, look for a UID. If there is one, we can attempt to
-        // activate the device at the DME.
-        if (uid != null && !uid.isEmpty()) {
-             builder
-                .setUniqueIdType("Samsung:" + model + ":SamsungEnablingLayer") // TBD: Only one enabling layer.
-                .setUniqueId(uid)
-                .build();
-        } else if (manufacturer != null && ad_id != null && !ad_id.isEmpty()) {
+        // Look for a UID and append. FIXME: Move to DeviceInfo at FindCloudlet.
+        if (manufacturer != null && ad_id != null && !ad_id.isEmpty()) {
             builder
-                .setUniqueIdType(manufacturer + ":" + model + ":HASHED_ID")
-                .setUniqueId(ad_id)
-                .build();
+                    .setUniqueIdType(manufacturer + ":" + model + ":HASHED_ID")
+                    .setUniqueId(ad_id)
+                    .build();
         }
-
         return builder;
     }
 
@@ -103,7 +88,6 @@ public class RegisterClient implements Callable {
         builder.putAllTags(map);
         return builder;
     }
-
 
     @Override
     public AppClient.RegisterClientReply call() throws MissingRequestException, StatusRuntimeException, InterruptedException, ExecutionException {
@@ -114,7 +98,7 @@ public class RegisterClient implements Callable {
         AppClient.RegisterClientReply reply;
         ManagedChannel channel = null;
         NetworkManager nm;
-        Network network = null;
+        Network network;
         try {
             nm = mMatchingEngine.getNetworkManager();
             network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
@@ -123,9 +107,9 @@ public class RegisterClient implements Callable {
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
             AppClient.RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder(mRequest);
-            updateRequestFoMel(builder);
             appendDeviceDetails(builder);
-            mRequest = builder.build();
+            mRequest = updateRequestAid(builder)
+                    .build();
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .registerClient(mRequest);
