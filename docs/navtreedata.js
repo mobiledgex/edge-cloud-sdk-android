@@ -53,7 +53,7 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "classcom_1_1mobiledgex_1_1matchingengine_1_1_app_connection_manager.html",
-"group__functions__dmeapis.html#ga877d45362c239856a69f7e77f50a425c"
+"group__functions__dmeapis.html#ga870d927ea317deebec52dd7f31a4c458"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
