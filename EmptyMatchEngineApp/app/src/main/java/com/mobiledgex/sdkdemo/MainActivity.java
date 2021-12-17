@@ -36,7 +36,6 @@ import android.telephony.SubscriptionInfo;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -45,7 +44,6 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.common.eventbus.Subscribe;
 import com.mobiledgex.matchingengine.DmeDnsException;
@@ -57,7 +55,6 @@ import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.RequestPermissions;
-import com.mobiledgex.mel.MelMessaging;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
@@ -184,42 +181,30 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         //! [basic_location_handler_example]
 
         FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                doEnhancedLocationVerification();
-            }
-        });
+        fab.setOnClickListener(view -> doEnhancedLocationVerification());
 
         // Some test buttons (that run on the UI thread, but should really be on a background thread or completableFuture).
         Button edmontonButton = findViewById(R.id.btnLocationEdmonton);
-        edmontonButton.setOnClickListener(new  View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Post location update:
-                me.getEdgeEventsConnectionFuture()
-                        .thenApply(connection -> {
-                            if (connection != null) {
-                                connection.postLocationUpdate(automationFairviewCloudlet);
-                            }
-                            return null;
-                        });
-            };
-
+        edmontonButton.setOnClickListener(v -> {
+            // Post location update:
+            me.getEdgeEventsConnectionFuture()
+                    .thenApply(connection -> {
+                        if (connection != null) {
+                            connection.postLocationUpdate(automationFairviewCloudlet);
+                        }
+                        return null;
+                    });
         });
         Button montrealButton = findViewById(R.id.btnLocatioMontreal);
-        montrealButton.setOnClickListener(new  View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Post into matching engine:
-                me.getEdgeEventsConnectionFuture()
-                        .thenApply(connection -> {
-                            if (connection != null) {
-                                connection.postLocationUpdate(automationHawkinsCloudlet);
-                            }
-                            return null;
-                        });
-            }
+        montrealButton.setOnClickListener(v -> {
+            // Post into matching engine:
+            me.getEdgeEventsConnectionFuture()
+                    .thenApply(connection -> {
+                        if (connection != null) {
+                            connection.postLocationUpdate(automationHawkinsCloudlet);
+                        }
+                        return null;
+                    });
         });
 
 
@@ -285,7 +270,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             me.setEnableEdgeEvents(true); // default is true.
             //! [enable_edgeevents]
 
-            //! [edgeevents_subsscriber_setup_example]
+            //! [edgeevents_subscriber_setup_example]
             mEdgeEventsSubscriber = new EdgeEventsSubscriber();
             me.getEdgeEventsBus().register(mEdgeEventsSubscriber);
 
@@ -301,7 +286,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; // The default is 30.
             backgroundEdgeEventsConfig.latencyThresholdTrigger = 186;
 
-            //! [edgeevents_subsscriber_setup_example]
+            //! [edgeevents_subscriber_setup_example]
             //backgroundEdgeEventsConfig.latencyUpdateConfig = null;
             //backgroundEdgeEventsConfig.locationUpdateConfig = null; // app driven.
 
@@ -535,51 +520,48 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             if (event.getEventType() != AppClient.ServerEdgeEvent.ServerEventType.EVENT_LATENCY_REQUEST) {
                 return;
             }
-            CompletableFuture<Void> latencyTestFuture = CompletableFuture.runAsync(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        // NetTest
-                        // Local copy:
-                        NetTest netTest = new NetTest();
+            CompletableFuture<Void> latencyTestFuture = CompletableFuture.runAsync(() -> {
+                try {
+                    // NetTest
+                    // Local copy:
+                    NetTest netTest = new NetTest();
 
-                        // Need a connected AppInst that the app is aware of to test with this code.
-                        if (mLastFindCloudlet == null) {
-                            return;
-                        }
-
-                        // Assuming some knowledge of your own internal un-remapped server port
-                        // discover, and test with the PerformanceMetrics API:
-                        int publicPort;
-                        HashMap<Integer, Appcommon.AppPort> ports = me.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
-                        Appcommon.AppPort anAppPort = ports.get(internalPort);
-                        if (anAppPort == null) {
-                            System.out.println("Your expected server (or port) doesn't seem to be here!");
-                        }
-
-                        // Test with default network in use:
-                        publicPort = anAppPort.getPublicPort();
-                        String host = me.getAppConnectionManager().getHost(mLastFindCloudlet, anAppPort);
-
-                        Site site = new Site(getApplicationContext(), NetTest.TestType.CONNECT, 5, host, publicPort);
-                        netTest.addSite(site);
-                        netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
-
-                        if (me.isShutdown()) {
-                            return;
-                        }
-
-                        me.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host),
-                                mLastLocationResult == null ? null : mLastLocationResult.getLastLocation());
-
-                        // Post with Ping Util:
-                        me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(mLastLocationResult.getLastLocation());
-
-                        // Post with Connect Util:
-                        me.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(mLastLocationResult.getLastLocation());
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    // Need a connected AppInst that the app is aware of to test with this code.
+                    if (mLastFindCloudlet == null) {
+                        return;
                     }
+
+                    // Assuming some knowledge of your own internal un-remapped server port
+                    // discover, and test with the PerformanceMetrics API:
+                    int publicPort;
+                    HashMap<Integer, Appcommon.AppPort> ports = me.getAppConnectionManager().getTCPMap(mLastFindCloudlet);
+                    Appcommon.AppPort anAppPort = ports.get(internalPort);
+                    if (anAppPort == null) {
+                        System.out.println("Your expected server (or port) doesn't seem to be here!");
+                    }
+
+                    // Test with default network in use:
+                    publicPort = anAppPort.getPublicPort();
+                    String host = me.getAppConnectionManager().getHost(mLastFindCloudlet, anAppPort);
+
+                    Site site = new Site(getApplicationContext(), NetTest.TestType.CONNECT, 5, host, publicPort);
+                    netTest.addSite(site);
+                    netTest.testSites(netTest.TestTimeoutMS); // Test the one we just added.
+
+                    if (me.isShutdown()) {
+                        return;
+                    }
+
+                    me.getEdgeEventsConnection().postLatencyUpdate(netTest.getSite(host),
+                            mLastLocationResult == null ? null : mLastLocationResult.getLastLocation());
+
+                    // Post with Ping Util:
+                    me.getEdgeEventsConnection().testPingAndPostLatencyUpdate(mLastLocationResult.getLastLocation());
+
+                    // Post with Connect Util:
+                    me.getEdgeEventsConnection().testConnectAndPostLatencyUpdate(mLastLocationResult.getLastLocation());
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             });
         }
@@ -604,9 +586,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     @Override
     public void onRestoreInstanceState(@NonNull Bundle restoreInstanceState) {
         super.onRestoreInstanceState(restoreInstanceState);
-        if (restoreInstanceState != null) {
-            MatchingEngine.setMatchingEngineLocationAllowed(restoreInstanceState.getBoolean(MatchingEngine.MATCHING_ENGINE_LOCATION_PERMISSION));
-        }
+        MatchingEngine.setMatchingEngineLocationAllowed(restoreInstanceState.getBoolean(MatchingEngine.MATCHING_ENGINE_LOCATION_PERMISSION));
     }
 
     /**
@@ -651,18 +631,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         final AppCompatActivity ctx = this;
 
         // Run in the background and post text results to the UI thread.
-        mFusedLocationClient.getLastLocation().addOnCompleteListener(new OnCompleteListener<Location>() {
-            @Override
-            public void onComplete(@NonNull Task<Location> task) {
-                if (task.isSuccessful() && task.getResult() != null) {
-                    doEnhancedLocationUpdateInBackground(task, ctx);
-                } else {
-                    Log.w(TAG, "getLastLocation:exception", task.getException());
-                    someText = "Last location not found, or has never been used. Location cannot be verified using 'getLastLocation()'. " +
-                            "Use the requestLocationUpdates() instead if applicable for location verification.";
-                    TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
-                    tv.setText(someText);
-                }
+        mFusedLocationClient.getLastLocation().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                doEnhancedLocationUpdateInBackground(task, ctx);
+            } else {
+                Log.w(TAG, "getLastLocation:exception", task.getException());
+                someText = "Last location not found, or has never been used. Location cannot be verified using 'getLastLocation()'. " +
+                        "Use the requestLocationUpdates() instead if applicable for location verification.";
+                TextView tv = findViewById(R.id.mobiledgex_verified_location_content);
+                tv.setText(someText);
             }
         });
     }
@@ -670,7 +647,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private void runFlow(Task<Location> locationTask, AppCompatActivity ctx) {
         Location location = locationTask.getResult();
         if (location == null) {
-            Log.e(TAG, "Mising location. Cannot update.");
+            Log.e(TAG, "Missing location. Cannot update.");
             return;
         }
         // Location found. Create a request:
@@ -718,8 +695,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 // For Demo app, we use the wifi dme server to continue to MobiledgeX.
                 dmeHostAddress = MatchingEngine.wifiOnlyDmeHost;
             }
-            dmeHostAddress = "eu-qa." + MatchingEngine.baseDmeHost;
-            me.setUseWifiOnly(true);
+            dmeHostAddress = "us-qa." + MatchingEngine.baseDmeHost;
+            //me.setUseWifiOnly(true);
             me.setSSLEnabled(true);
             //mMatchingEngine.setNetworkSwitchingEnabled(true);
             //dmeHostAddress = mMatchingEngine.generateDmeHostAddress();
@@ -905,7 +882,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 updateText(ctx, someText);
             }
         } catch (InterruptedException | IllegalArgumentException | Resources.NotFoundException | PackageManager.NameNotFoundException e) {
-            MelMessaging.getCookie("MobiledgeX SDK Demo"); // Import MEL messaging.
             someText += "Exception failure: " + e.getMessage();
             updateText(ctx, someText);
             Log.e(TAG, Log.getStackTraceString(e));
@@ -930,6 +906,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     private void doEnhancedLocationUpdateInBackground(final Task<Location> locationTask, final AppCompatActivity ctx) {
         ExecutorService service = Executors.newCachedThreadPool();
-        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> runFlow(locationTask, ctx), service);
+        CompletableFuture.runAsync(() -> runFlow(locationTask, ctx), service);
     }
 }

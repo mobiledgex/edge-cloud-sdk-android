@@ -177,7 +177,7 @@ Setup EdgeEvents</h2>
 <div class="line">            backgroundEdgeEventsConfig.latencyTestType = NetTest.TestType.CONNECT;</div>
 <div class="line"> </div>
 <div class="line">            <span class="comment">// This is the internal port, that has not been remapped to a public port for a particular appInst.</span></div>
-<div class="line">            backgroundEdgeEventsConfig.latencyInternalPort = 3765; <span class="comment">// 0 will favor the first TCP port if found for connect test.</span></div>
+<div class="line">            backgroundEdgeEventsConfig.latencyInternalPort = 0; <span class="comment">// 3765; // 0 will favor the first TCP port if found for connect test.</span></div>
 <div class="line">            <span class="comment">// Latency config. There is also a very similar location update config.</span></div>
 <div class="line">            backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 0; <span class="comment">// Default is 0, which means test forever.</span></div>
 <div class="line">            backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; <span class="comment">// The default is 30.</span></div>

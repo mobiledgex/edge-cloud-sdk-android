@@ -90,7 +90,6 @@ import distributed_match_engine.AppClient.QosPositionRequest;
 import distributed_match_engine.AppClient.QosPositionKpiReply;
 import distributed_match_engine.AppClient.QosPosition;
 import distributed_match_engine.AppClient.BandSelection;
-import distributed_match_engine.AppClient.AppOfficialFqdnReply;
 
 import distributed_match_engine.AppClient.DynamicLocGroupRequest;
 import distributed_match_engine.AppClient.DynamicLocGroupReply;
@@ -111,7 +110,6 @@ import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.EventBus;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
-import com.mobiledgex.mel.MelMessaging;
 
 import static android.content.Context.TELEPHONY_SUBSCRIPTION_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
@@ -145,7 +143,6 @@ public class MatchingEngine {
     private VerifyLocationReply mVerifyLocationReply;
     private GetLocationReply mGetLocationReply;
     private DynamicLocGroupReply mDynamicLocGroupReply;
-    private AppOfficialFqdnReply mAppOfficialFqdnReply;
 
     private LocOuterClass.Loc mMatchEngineLocation;
 
@@ -194,11 +191,6 @@ public class MatchingEngine {
         mEnableEdgeEvents = true;
         mEdgeEventBus = new AsyncEventBus(threadpool);
         mEdgeEventsConnection = new EdgeEventsConnection(this, null);
-
-        if (MelMessaging.isMelEnabled()) {
-            // Updates and sends for MEL status:
-            MelMessaging.sendForMelStatus(context, getAppName(context));
-        }
     }
 
     /*!
@@ -217,11 +209,6 @@ public class MatchingEngine {
         mEnableEdgeEvents = true;
         mEdgeEventBus = new AsyncEventBus(executorService);
         mEdgeEventsConnection = new EdgeEventsConnection(this, null);
-
-        if (MelMessaging.isMelEnabled()) {
-            // Updates and sends for MEL status:
-            MelMessaging.sendForMelStatus(context, getAppName(context));
-        }
     }
 
     public boolean warnIfUIThread() {
@@ -334,10 +321,6 @@ public class MatchingEngine {
         if (isShutdown()) {
             return false;
         }
-        if (MelMessaging.isMelEnabled()) {
-            Log.w(TAG, "MEL Mode is not compatible with EdgeEvents. Not starting EdgeEvents.");
-            return false;
-        }
 
         mAppInitiatedRunEdgeEvents = true;
         try {
@@ -356,10 +339,6 @@ public class MatchingEngine {
             edgeEventsConfig.locationUpdateConfig = null;
         }
         if (isShutdown()) {
-            return false;
-        }
-        if (MelMessaging.isMelEnabled()) {
-            Log.w(TAG, "MEL Mode is not compatible with EdgeEvents. Not starting EdgeEvents.");
             return false;
         }
 
@@ -766,10 +745,6 @@ public class MatchingEngine {
 
     synchronized void setDynamicLocGroupReply(DynamicLocGroupReply reply) {
         mDynamicLocGroupReply = reply;
-    }
-
-    synchronized void setAppOfficialFqdnReply(AppClient.AppOfficialFqdnReply reply) {
-        mAppOfficialFqdnReply = reply;
     }
 
     /*!

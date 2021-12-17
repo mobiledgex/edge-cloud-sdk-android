@@ -9,7 +9,7 @@ var classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection =
     [ "isShutdown", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a24744a69d3f551ac5957363bc1f7a435", null ],
     [ "postLatencyUpdate", "group__functions__edge__events__api.html#ga3ca4aed2892998633663476b538af3f0", null ],
     [ "postLocationUpdate", "group__functions__edge__events__api.html#gafba5e6b5c12c52332b7b54031c3d0688", null ],
-    [ "reconnect", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a2dfcb1662e56aba11af511dfbbfff5fb", null ],
+    [ "reconnect", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a7b7c62f63f344cb84d5db6d5f59ed1b0", null ],
     [ "removeEdgeEventsIntervalTask", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a297dafc040b4ea152c763908f1ae595e", null ],
     [ "runEdgeEvents", "group__functions__edge__events__api.html#ga9e5c720f356679cfd006c21ea496b8f5", null ],
     [ "send", "classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a8539dbaea395821ecdba82b624d20c89", null ],
