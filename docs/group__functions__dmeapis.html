@@ -116,6 +116,10 @@ Functions</h2></td></tr>
 <tr class="separator:ga6a27f7bfe897b776c92d9744fb0007c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga6e66e0506a2ce266e63c94b58ef04f1c"><td class="memItemLeft" align="right" valign="top">synchronized void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga6e66e0506a2ce266e63c94b58ef04f1c">com.mobiledgex.matchingengine.MatchingEngine.close</a> ()</td></tr>
 <tr class="separator:ga6e66e0506a2ce266e63c94b58ef04f1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga9dd451dc32ea33ecfd51b56438ca3088"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga9dd451dc32ea33ecfd51b56438ca3088">com.mobiledgex.matchingengine.MatchingEngine.getLocalIpv4</a> ()</td></tr>
+<tr class="separator:ga9dd451dc32ea33ecfd51b56438ca3088"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1d6040f96f519ed3cccadf03483b5ed9"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga1d6040f96f519ed3cccadf03483b5ed9">com.mobiledgex.matchingengine.MatchingEngine.getLocalIpAny</a> ()</td></tr>
+<tr class="separator:ga1d6040f96f519ed3cccadf03483b5ed9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae2042ac3377ddc4e3f2a0a01cbe681a7"><td class="memItemLeft" align="right" valign="top">RegisterClientRequest.Builder&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gae2042ac3377ddc4e3f2a0a01cbe681a7">com.mobiledgex.matchingengine.MatchingEngine.createDefaultRegisterClientRequest</a> (Context context, String organizationName)  throws PackageManager.NameNotFoundException </td></tr>
 <tr class="separator:gae2042ac3377ddc4e3f2a0a01cbe681a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf50898d2fab682fea4f84effdcfdcef2"><td class="memItemLeft" align="right" valign="top"><a id="gaf50898d2fab682fea4f84effdcfdcef2"></a>
@@ -1037,6 +1041,42 @@ Example</h1>
 
 </div>
 </div>
+<a id="ga1d6040f96f519ed3cccadf03483b5ed9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1d6040f96f519ed3cccadf03483b5ed9">&#9670;&nbsp;</a></span>getLocalIpAny()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">String com.mobiledgex.matchingengine.MatchingEngine.getLocalIpAny </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Retrieves the current default route network interface address. </p><dl class="section return"><dt>Returns</dt><dd>Local IP address </dd></dl>
+
+</div>
+</div>
+<a id="ga9dd451dc32ea33ecfd51b56438ca3088"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga9dd451dc32ea33ecfd51b56438ca3088">&#9670;&nbsp;</a></span>getLocalIpv4()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">String com.mobiledgex.matchingengine.MatchingEngine.getLocalIpv4 </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Retrieves the current default route network interface IPv4 address. </p><dl class="section return"><dt>Returns</dt><dd>Local IPv4 address </dd></dl>
+
+</div>
+</div>
 <a id="ga870d927ea317deebec52dd7f31a4c458"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga870d927ea317deebec52dd7f31a4c458">&#9670;&nbsp;</a></span>getQosPositionKpi() <span class="overload">[1/2]</span></h2>
 
@@ -1341,7 +1381,7 @@ Example</h1>
 <div class="line">                    organizationName, applicationName,</div>
 <div class="line">                    appVersion, location, <span class="stringliteral">&quot;&quot;</span>,</div>
 <div class="line">                    0, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <a class="code" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">MatchingEngine</a>.FindCloudletMode.PROXIMITY); <span class="comment">// FIXME: These parameters should be overloaded or optional.</span></div>
-<div class="ttc" id="aclasscom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_html_a169f68551802701593df83c15e1ee7c5"><div class="ttname"><a href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">com.mobiledgex.matchingengine.MatchingEngine.MatchingEngine</a></div><div class="ttdeci">MatchingEngine(Context context)</div><div class="ttdef"><b>Definition:</b> MatchingEngine.java:185</div></div>
+<div class="ttc" id="aclasscom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_html_a169f68551802701593df83c15e1ee7c5"><div class="ttname"><a href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">com.mobiledgex.matchingengine.MatchingEngine.MatchingEngine</a></div><div class="ttdeci">MatchingEngine(Context context)</div><div class="ttdef"><b>Definition:</b> MatchingEngine.java:186</div></div>
 </div><!-- fragment -->
 </div>
 </div>

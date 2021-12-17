@@ -23,7 +23,6 @@ import android.util.Log;
 import com.google.common.base.Stopwatch;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
-import com.mobiledgex.mel.MelMessaging;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -53,8 +52,6 @@ public class FindCloudlet implements Callable {
     private int mPort;
     private long mTimeoutInMilliseconds = -1;
     private long mMaximumLatencyMs = -1;
-    private long mDNSRetryIntervalMilliseconds = 300;
-    private long mDNSRetryMaximumMilliseconds = mDNSRetryIntervalMilliseconds * 10;
     private MatchingEngine.FindCloudletMode mMode;
 
     private boolean mDoLatencyMigration = false;
@@ -382,77 +379,6 @@ public class FindCloudlet implements Callable {
         return fcreply;
     }
 
-    // Mel Mode, token or not, get the official FQDN:
-    private AppClient.FindCloudletReply FindCloudletMelMode(final long remainderMs)
-        throws ExecutionException, InterruptedException {
-
-        AppClient.FindCloudletReply fcReply;
-        ManagedChannel channel = null;
-        NetworkManager nm;
-
-        Stopwatch stopwatch = Stopwatch.createUnstarted();
-        try {
-            nm = mMatchingEngine.getNetworkManager();
-            // Do not fall back to WiFI for MEL mode.
-            Network network = nm.getCellularNetworkBlocking(false);
-
-            final AppClient.AppOfficialFqdnRequest appOfficialFqdnRequest = AppClient.AppOfficialFqdnRequest.newBuilder()
-                .setSessionCookie(mRequest.getSessionCookie())
-                .setGpsLocation(mRequest.getGpsLocation())
-                .build();
-
-            channel = mMatchingEngine.channelPicker(mHost, mPort, network);
-            final MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
-
-            AppClient.AppOfficialFqdnReply reply = stub.withDeadlineAfter(remainderMs, TimeUnit.MILLISECONDS)
-                .getAppOfficialFqdn(appOfficialFqdnRequest);
-
-            // Status Conversion:
-            AppClient.FindCloudletReply.FindStatus fcStatus = reply.getStatus() == AppClient.AppOfficialFqdnReply.AOFStatus.AOF_SUCCESS ?
-                AppClient.FindCloudletReply.FindStatus.FIND_FOUND : AppClient.FindCloudletReply.FindStatus.FIND_NOTFOUND;
-
-            // Copy ports into MEL:
-            List<Appcommon.AppPort> portList = new ArrayList<>();
-            for (Appcommon.AppPort aPort : reply.getPortsList()) {
-                Appcommon.AppPort port = Appcommon.AppPort.newBuilder(aPort)
-                        .setPublicPort(aPort.getPublicPort() == 0 ? aPort.getInternalPort() : aPort.getPublicPort())
-                        .build();
-                portList.add(port);
-            }
-            // Compatibility with mel unaware clients, if empty, give app something to iterate on (to find no public port, use known port):
-            if (portList.size() == 0) {
-                portList.add(Appcommon.AppPort.newBuilder().build());
-            }
-
-            // Create a very basic FindCloudletReply from AppOfficialFqdn reply:
-            fcReply = AppClient.FindCloudletReply.newBuilder()
-                .setFqdn(reply.getAppOfficialFqdn()) // Straight copy.
-                .setStatus(fcStatus)
-                .addAllPorts(portList)
-                .build();
-
-            mMatchingEngine.setFindCloudletResponse(fcReply);
-            mMatchingEngine.setAppOfficialFqdnReply(reply); // has client location token
-
-            // Let MEL platform know the client location token:
-            MelMessaging.sendSetToken(
-                mMatchingEngine.mContext,
-                reply.getClientToken(),
-                mMatchingEngine.getLastRegisterClientRequest().getAppName());
-
-        } catch (Exception e) {
-            Log.e(TAG, "Exception during FindCloudlet: " + e.getMessage());
-            throw e;
-        } finally {
-            if (channel != null) {
-                channel.shutdown();
-                channel.awaitTermination(remainderMs - stopwatch.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
-            }
-        }
-
-        return fcReply;
-    }
-
     @Override
     public AppClient.FindCloudletReply call()
             throws MissingRequestException, StatusRuntimeException, InterruptedException, ExecutionException {
@@ -468,20 +394,7 @@ public class FindCloudlet implements Callable {
                 .getCellularNetworkOrWifiBlocking(
                         false,
                         mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
-
-        // Is Wifi Enabled, and has IP?
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        long ip = mMatchingEngine.getWifiIp(mMatchingEngine.mContext);
-
-        if (MelMessaging.isMelEnabled() && ip == 0) { // MEL is Cellular only. No WiFi.
-            // MEL is enabled, alternate findCloudlet behavior:
-            fcReply = FindCloudletMelMode(mTimeoutInMilliseconds);
-
-            // Fall back to Proximity mode if Mel Mode DNS resolve fails for whatever reason:
-            fcReply = handleMelFallback(fcReply, stopwatch);
-        } else {
-            fcReply = FindCloudletWithMode(); // Regular FindCloudlet.
-        }
+        fcReply = FindCloudletWithMode();
 
         // Create message channel for DME EdgeEvents:
         if (mMaximumLatencyMs != -1 && // alt mode for performance swap
@@ -504,56 +417,5 @@ public class FindCloudlet implements Callable {
             }
         }
         return fcReply;
-    }
-
-    private AppClient.FindCloudletReply handleMelFallback(AppClient.FindCloudletReply fcReply, Stopwatch stopwatch)
-        throws InterruptedException, ExecutionException {
-
-        String appOfficialFqdnHost = fcReply.getFqdn();
-
-        // Handle NULL:
-        try {
-            if (appOfficialFqdnHost == null) {
-              throw new UnknownHostException("Host is null!");
-            }
-        } catch (UnknownHostException uhe) {
-            Log.w(TAG, "Public AppOfficialFqdn DNS resolve FAILURE for: " + appOfficialFqdnHost);
-            fcReply = FindCloudletWithMode();
-            return fcReply; // As-is.
-        }
-
-        // Handle MEL DNS Proxy, this does not have proper feedback of MEL errors or Server misconfiguration:
-        boolean found = false;
-        synchronized (appOfficialFqdnHost) {
-            Stopwatch dnsStopwatch = Stopwatch.createStarted();
-            while (stopwatch.elapsed(TimeUnit.MILLISECONDS) < mTimeoutInMilliseconds) {
-                try {
-                    InetAddress address = InetAddress.getByName(appOfficialFqdnHost);
-                    Log.d(TAG, "Public AppOfficialFqdn DNS resolved : " + address.getHostAddress() + "elapsed time in ms: " + dnsStopwatch.elapsed(TimeUnit.MILLISECONDS));
-                    found = true;
-                    break;
-                } catch (UnknownHostException uhe) {
-                    Log.w(TAG, "Public AppOfficialFqdn DNS resolve FAILURE for: " + appOfficialFqdnHost);
-                }
-                appOfficialFqdnHost.wait(mDNSRetryIntervalMilliseconds);
-                if (dnsStopwatch.elapsed(TimeUnit.MILLISECONDS) >= mDNSRetryMaximumMilliseconds) {
-                    break;
-                }
-            }
-        }
-
-        // We need the edge Events cookie, MEL or not.
-        AppClient.FindCloudletReply normalModeFc;
-        normalModeFc = FindCloudletWithMode();
-
-        if (found && !appOfficialFqdnHost.isEmpty()) {
-            fcReply = AppClient.FindCloudletReply.newBuilder(fcReply)
-                    .setEdgeEventsCookie(
-                            normalModeFc.getEdgeEventsCookie()
-                    ).build();
-            return fcReply;
-        } else {
-            return normalModeFc;
-        }
     }
 }
