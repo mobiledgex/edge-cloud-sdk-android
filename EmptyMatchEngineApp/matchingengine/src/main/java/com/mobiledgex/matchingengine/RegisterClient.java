@@ -76,9 +76,9 @@ public class RegisterClient implements Callable {
         // Look for a UID and append. FIXME: Move to DeviceInfo at FindCloudlet.
         if (manufacturer != null && ad_id != null && !ad_id.isEmpty()) {
             builder
-                    .setUniqueIdType(manufacturer + ":" + model + ":HASHED_ID")
-                    .setUniqueId(ad_id)
-                    .build();
+                .setUniqueIdType(manufacturer + ":" + model + ":HASHED_ID")
+                .setUniqueId(ad_id)
+                .build();
         }
         return builder;
     }
