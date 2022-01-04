@@ -255,11 +255,14 @@ public class NetTest
             // Ping:
             stopWatch = Stopwatch.createStarted();
             // SE Linux audit fails if the pinging from a specific network interface.
-            Log.i(TAG, "PING is for use if on a single active network only. Raw socket ping to internet from a particular NetworkInterface is not permitted.");
+            if (site.network != null) {
+                Log.i(TAG, "PING is for use if on a single active network only. Raw socket ping to internet from a particular NetworkInterface is not permitted.");
+            }
             boolean reachable = inetAddress.isReachable(TestTimeoutMS);
             if (reachable) {
                 elapsedMS = stopWatch.stop().elapsed(TimeUnit.MILLISECONDS);
             } else {
+                Log.e(TAG, "Site is NOT PING reachable! Test site: " + site.host);
                 elapsedMS = -1;
             }
         } catch (IOException ioe) {
