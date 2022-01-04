@@ -47,7 +47,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import com.auth0.android.jwt.JWT;
-import com.mobiledgex.mel.MelMessaging;
 
 import distributed_match_engine.AppClient;
 import io.grpc.StatusRuntimeException;
@@ -84,7 +83,6 @@ public class RegisterClientTest {
   // Must be set to true if you are running tests without a SIM card.
   public boolean useWifiOnly = true;
 
-  String meluuid = MelMessaging.getUid();
   String uuidType = "Platos:PlatosEnablingLayer";
 
   private Location getTestLocation(double latitude, double longitude) {
@@ -252,7 +250,6 @@ public class RegisterClientTest {
     me.setMatchingEngineLocationAllowed(true);
     //me.setAllowSwitchIfNoSubscriberInfo(true);
 
-
     AppClient.RegisterClientReply reply = null;
 
     try {
@@ -290,7 +287,6 @@ public class RegisterClientTest {
       assertEquals("orgname doesn't match!", organizationName, claimJson.get("orgname").getAsString());
       assertEquals("appname doesn't match!", applicationName, claimJson.get("appname").getAsString());
       assertEquals("appvers doesn't match!", appVersion, claimJson.get("appvers").getAsString());
-      assertEquals("uuid type not empty!", meluuid, claimJson.get("uniqueid").getAsString());
       assertEquals("uuid not empty!", uuidType, claimJson.get("uniqueidtype").getAsString());
       assertTrue(claimJson.get("peerip").getAsString().matches("\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b"));
 

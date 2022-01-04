@@ -33,7 +33,6 @@ import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEventTrigger;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.MeLocation;
-import com.mobiledgex.mel.MelMessaging;
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -1411,28 +1410,17 @@ public class EngineCallTest {
 
             assertTrue(findCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
             // Just using first one. This depends entirely on the server design.
-            if (!MelMessaging.isMelEnabled()) {
-                List<AppPort> appPorts = findCloudletReply.getPortsList();
-                assertTrue("AppPorts is null", appPorts != null);
-                assertTrue("AppPorts is empty!", appPorts.size() > 0);
 
-                HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
-                AppPort one = portMap.get(3001); // This internal port depends entirely the AppInst configuration/Docker image.
-                assertTrue("EndPort is expected to be 0 for this AppInst", one.getEndPort() == 0 );
-                // The actual mapped Public port, or one between getPublicPort() to getEndPort(), inclusive.
-                Future<Socket> fs = appConnect.getTcpSocket(findCloudletReply, one, one.getPublicPort(), (int)GRPC_TIMEOUT_MS);
-                s = fs.get(); // Nothing to do. Await value.
-            } else {
-                try {
-                    s = new Socket(findCloudletReply.getFqdn(), 3001);
-                } catch (UnknownHostException e) {
-                    e.printStackTrace();
-                    assertTrue("Bad hostname in findCloudlet!", false);
-                } catch (IOException ioe) {
-                    ioe.printStackTrace();
-                    assertTrue("IOException in findCloudlet!", false);
-                }
-            }
+            List<AppPort> appPorts = findCloudletReply.getPortsList();
+            assertTrue("AppPorts is null", appPorts != null);
+            assertTrue("AppPorts is empty!", appPorts.size() > 0);
+
+            HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
+            AppPort one = portMap.get(3001); // This internal port depends entirely the AppInst configuration/Docker image.
+            assertTrue("EndPort is expected to be 0 for this AppInst", one.getEndPort() == 0 );
+            // The actual mapped Public port, or one between getPublicPort() to getEndPort(), inclusive.
+            Future<Socket> fs = appConnect.getTcpSocket(findCloudletReply, one, one.getPublicPort(), (int)GRPC_TIMEOUT_MS);
+            s = fs.get(); // Nothing to do. Await value.
 
             // Interface bound TCP socket.
 
@@ -1569,15 +1557,11 @@ public class EngineCallTest {
             // Choose the port that we happen to know the internal port for, 3001.
             AppPort one = portMap.get(3001);
 
-            if (!MelMessaging.isMelEnabled()) {
-                //! [createurlexample]
-                String protocol = one.getTls() ? "https" : "http";
-                url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
-                //! [createurlexample]
-            } else {
-                String protocol = one.getTls() ? "https" : "http";
-                url = protocol + "://" + findCloudletReply.getFqdn() + ":3001";
-            }
+            //! [createurlexample]
+            String protocol = one.getTls() ? "https" : "http";
+            url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
+            //! [createurlexample]
+
             assertTrue("URL for server seems very incorrect. ", url != null && url.length() > "http://:".length());
 
             assertFalse("Failed to get an SSL Socket!", httpClientFuture == null);
@@ -1677,18 +1661,13 @@ public class EngineCallTest {
             String url = null;
 
             assertTrue(findCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
-            if (!MelMessaging.isMelEnabled()) {
-              HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
-              // Choose the TCP port, and we happen to know our server is on one port only: 3001.
-              AppPort one = portMap.get(3001);
-              assertTrue("Did not find server! ", one != null);
-              String protocol = one.getTls() ? "https" : "http";
-              url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
-            } else {
-              String protocol = "http";
-              url = protocol + "://" + findCloudletReply.getFqdn() + ":3001";
-            }
 
+            HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
+            // Choose the TCP port, and we happen to know our server is on one port only: 3001.
+            AppPort one = portMap.get(3001);
+            assertTrue("Did not find server! ", one != null);
+            String protocol = one.getTls() ? "https" : "http";
+            url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
 
             assertTrue("URL for server seems very incorrect. ", url != null && url.length() > "http://:3001".length());
 
@@ -1781,15 +1760,14 @@ public class EngineCallTest {
             assertTrue("Could not find an appInst: " + findCloudletReply.getStatus(), findCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
             HashMap<Integer, AppPort> appTcpPortMap = appConnectionManager.getTCPMap(findCloudletReply);
             AppPort appPort = appTcpPortMap.get(findCloudletReply.getPorts(0).getInternalPort());
-            if (!MelMessaging.isMelEnabled()) {
-                assertTrue(appPort != null); // There should be at least one for a connection to be made.
-                // Allow some flexibility test AppInst:
-                assertTrue("We should have TLS transport the AppInst for this test.", appPort.getTls());
-                Future<SSLSocket> socketFuture = me.getAppConnectionManager().getTcpSslSocket(findCloudletReply, appPort, appPort.getPublicPort(), (int) GRPC_TIMEOUT_MS);
-                socket = socketFuture.get();
-                assertTrue("Socket should have been created!", socket != null);
-                assertTrue("SSL Socket must be connected!", socket.isConnected());
-            }
+
+            assertTrue(appPort != null); // There should be at least one for a connection to be made.
+            // Allow some flexibility test AppInst:
+            assertTrue("We should have TLS transport the AppInst for this test.", appPort.getTls());
+            Future<SSLSocket> socketFuture = me.getAppConnectionManager().getTcpSslSocket(findCloudletReply, appPort, appPort.getPublicPort(), (int) GRPC_TIMEOUT_MS);
+            socket = socketFuture.get();
+            assertTrue("Socket should have been created!", socket != null);
+            assertTrue("SSL Socket must be connected!", socket.isConnected());
 
             assertTrue("FindCloudletReply failed!", findCloudletReply != null);
         } catch (ExecutionException ee) {
