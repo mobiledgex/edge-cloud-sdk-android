@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: "com.google.android.gms.oss-licenses-plugin"
 
 android {
     compileSdkVersion 31
@@ -6,8 +7,8 @@ android {
         applicationId "com.mobiledgex.sdkdemo"
         minSdkVersion 24
         targetSdkVersion 31
-        versionCode 26
-        versionName '3.0.6'
+        versionCode 27
+        versionName '3.0.8'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -38,7 +39,7 @@ dependencies {
     implementation 'com.google.guava:guava:29.0-android'
 
     // Use maven:
-    //implementation 'com.mobiledgex:matchingengine:3.0'
+    //implementation 'com.mobiledgex:matchingengine:3.0.8'
     // Dependencies of Matching Engine, if using Maven:
     implementation "io.grpc:grpc-stub:${grpcVersion}"
 
@@ -47,5 +48,6 @@ dependencies {
     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
 
     // For Google Location Services.
-    implementation 'com.google.android.gms:play-services-location:19.0.0'
+    implementation 'com.google.android.gms:play-services-location:19.0.1'
+    implementation("com.google.android.gms:play-services-oss-licenses:17.0.0")
 }
