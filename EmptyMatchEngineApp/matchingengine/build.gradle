@@ -21,8 +21,8 @@ android {
     defaultConfig {
         minSdkVersion 24
         targetSdkVersion 31
-        versionCode 26
-        versionName "3.0.7"
+        versionCode 27
+        versionName "3.0.8"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -90,7 +90,6 @@ protobuf {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-
     implementation 'androidx.appcompat:appcompat:1.4.0'
     implementation 'com.google.android.material:material:1.4.0'
 
@@ -119,8 +118,28 @@ publishing {
             groupId = "com.mobiledgex"
             artifactId = project.getName()
             version = android.defaultConfig.versionName
+
             // Tell maven to prepare the generated "*.aar" file for publishing
             artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
+
+            pom.withXml {
+                asNode().with {
+                    appendNode('name', 'matchingengine')
+                    appendNode('description', 'MobiledgeX MatchingEngine library to access your global edge cloud application resources')
+                    appendNode('url', 'https://github.com/mobiledgex/edge-cloud-sdk-android')
+                    appendNode('licenses').with {
+                        appendNode('license').with {
+                            appendNode('name', 'The Apache Software License, Version 2.0')
+                            appendNode('url', 'https://www.apache.org/licenses/LICENSE-2.0.txt')
+                        }
+                    }
+                    appendNode('developers').with {
+                        appendNode('developer').with {
+                            appendNode('name', 'MobiledgeX, Inc.')
+                        }
+                    }
+                }
+            }
         }
     }
 }
