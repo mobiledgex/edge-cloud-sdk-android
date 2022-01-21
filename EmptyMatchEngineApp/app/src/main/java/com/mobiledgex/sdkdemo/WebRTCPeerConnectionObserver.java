@@ -5,6 +5,7 @@ import android.util.Log;
 import com.google.common.base.Stopwatch;
 import com.mobiledgex.matchingengine.EdgeEventsConnection;
 import com.mobiledgex.matchingengine.MatchingEngine;
+import com.mobiledgex.matchingengine.performancemetrics.EcnCalculator;
 
 import org.webrtc.DataChannel;
 import org.webrtc.IceCandidate;
@@ -94,117 +95,10 @@ public class WebRTCPeerConnectionObserver implements PeerConnection.Observer {
             return;
         }
 
+        // Move to EdgeEventsConnection.
         if (ecnCalculator.isShouldSend()) {
             ecnCalculator.resetSendTimer();
             eec.postECNMarkings(ecnStatus);
-        }
-    }
-
-    /*
-     * Inplace bandwidth calculator (UDP).
-     *
-     * Bandwidth determination needs a bit of history.
-     * (bits per second needs 1) to start assumptions and 2) status updates to start adjusting).
-     * With no limits to bandwidth, there needs to be a ramp up amount (and strategy to do
-     * so, as well as a ramp down in case of ECNStatus signaled CE congestion encountered.
-     *
-     * As the router/network path only signals "congestion encountered", it is offering
-     * no additional details as to what that bandwidth should be. Ideally, one would like to go
-     * as fast as possible given moment to moment ECN signaling, but before packets are dropped
-     * too often.
-     *
-     * And of course, all this ideally will beat TCP slow start.
-     */
-     public class EcnCalculator {
-        Stopwatch staleDataTimer = Stopwatch.createUnstarted();
-        Stopwatch sendTimer = Stopwatch.createUnstarted();
-        public double bandwidth = 0d;
-        public static final int clearThreshold = 100; // If the data hasn't been refreshed in some time, start over from scratch.
-        public static final float RAMPUPSPEED = 200000f;
-        public float minimumBandwidth = 50000f; // Floor bandwidth, if below this, the connection might not be usable anymore.
-
-
-        public static final float rampUpScale = 0.2f;
-        public static final float ecnCeScaleDown = 0.9f;
-
-
-        boolean shouldSend = false;
-
-        private int idx = 0;
-        int capacity = 3;
-        ArrayList<Double> aggregateBandwidth = new ArrayList<Double>(capacity);
-        double averageBandwidth = 0;
-        long sendIntervalMs = 5000; // ms;
-
-        public EcnCalculator() {
-            Log.d(TAG, "New ECNCalucator.");
-        }
-
-        public void resetSendTimer() {
-            sendTimer.reset();
-            sendTimer.start();
-        }
-
-        boolean isShouldSend() {
-            if (sendTimer.elapsed(TimeUnit.MILLISECONDS) >= sendIntervalMs) {
-                return true;
-            }
-            return false;
-        }
-
-        boolean isStaleTimer() {
-            if (staleDataTimer.elapsed(TimeUnit.MILLISECONDS) > clearThreshold) {
-                return true;
-            }
-            return false;
-        }
-
-        // This sort of assumes a stream of data, not bursty data.
-        AppClient.ECNStatus Update(int ecn) {
-            if (isStaleTimer()) {
-                aggregateBandwidth.clear();
-                averageBandwidth = 0d;
-                bandwidth = RAMPUPSPEED;
-            }
-            staleDataTimer.reset();
-            staleDataTimer.start();
-
-            AppClient.ECNBit ecnBit = AppClient.ECNBit.internalGetValueMap().findValueByNumber(ecn);
-
-            // Update stats:
-            if (ecnBit == AppClient.ECNBit.CE) {
-                bandwidth *= ecnCeScaleDown;
-                if (bandwidth <= minimumBandwidth) {
-                    bandwidth = minimumBandwidth;
-                }
-            }
-            else if (ecnBit == AppClient.ECNBit.ECT_0 && ecnBit == AppClient.ECNBit.ECT_1) {
-                bandwidth += (1 + rampUpScale) * RAMPUPSPEED;   // That is, not exponentially faster, but there are no maximums either.
-            }
-            else {
-                // Not supported (anymore?)
-                Log.d(TAG, "connection claims ECN marking is unsupported.");
-            }
-
-            // Minimum guard:
-            if (bandwidth <= minimumBandwidth) {
-                bandwidth = minimumBandwidth;
-            }
-
-
-            // sample(s) update (and historical samples)
-            aggregateBandwidth.add(idx, bandwidth);
-            idx = (idx + 1) % capacity;
-            double num = bandwidth + (averageBandwidth * (aggregateBandwidth.size() - 1));
-            averageBandwidth = num / aggregateBandwidth.size();
-
-            AppClient.ECNStatus ecnStatus = AppClient.ECNStatus.newBuilder()
-                    .setBandwidth((float)averageBandwidth) // FIXME: Remove casting
-                    .setEcnBit(ecnBit)
-                    .setStrategy(AppClient.ECNStrategy.STRATEGY_1)
-                    .build();
-
-            return ecnStatus;
         }
     }
 }

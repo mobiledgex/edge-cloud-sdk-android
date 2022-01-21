@@ -1,0 +1,61 @@
+apply plugin: 'com.android.application'
+apply plugin: "com.google.android.gms.oss-licenses-plugin"
+
+android {
+    compileSdkVersion 31
+    defaultConfig {
+        applicationId "com.mobiledgex.sdkdemo"
+        minSdkVersion 24
+        targetSdkVersion 31
+        versionCode 26
+        versionName '3.0.6'
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'androidx.appcompat:appcompat:1.4.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.2'
+    implementation 'com.google.android.material:material:1.4.0'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+
+    // Use local project Matching Engine SDK:
+    implementation project(":matchingengine")
+
+    implementation 'com.google.guava:guava:29.0-android'
+
+    // Use maven:
+    //implementation 'com.mobiledgex:matchingengine:3.0'
+    // Dependencies of Matching Engine, if using Maven:
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
+
+    // Common dependencies between maven and local project:
+    implementation "io.grpc:grpc-okhttp:${grpcVersion}" // If using embedded OKHttp from GPRC
+    implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
+
+    // For Google Location Services.
+<<<<<<< Updated upstream
+    implementation 'com.google.android.gms:play-services-location:19.0.0'
+=======
+    implementation 'com.google.android.gms:play-services-location:19.0.1'
+    implementation("com.google.android.gms:play-services-oss-licenses:17.0.0")
+
+
+    // AppRTC has a few local depedencies:
+    implementation files('third_party/autobanh/lib/autobanh.jar')
+>>>>>>> Stashed changes
+}
