@@ -51,6 +51,12 @@ public class EcnCalculator {
     private long ce_count = 0;
     private long num_packets = 0;
 
+    /**
+     * The application and protocol in use owns the ECN bandwidth calculation strategy.
+     * TODO: Plugin interface.
+     */
+    private String applicationEcnStrategy = "ecn_strategy_0";
+
     public EcnCalculator() {
         Log.d(TAG, "New ECNCalculator.");
     }
@@ -78,6 +84,7 @@ public class EcnCalculator {
         num_packets = 0;
     }
 
+    // Statistic summary for sending is cleared, bandwidth and everything is stale.
     private void resetForStaleTimer() {
         sampleStartTs = getCurrentTimestamp();
         sendTimer.reset();
@@ -118,7 +125,20 @@ public class EcnCalculator {
         num_packets = 0;
     }
 
+    public String getCurrentEcnStrategy() {
+        return applicationEcnStrategy;
+    }
+    public boolean setCurrentECNStrategy(String application_ecn_bandwidth_strategy) {
+        if (application_ecn_bandwidth_strategy != null) {
+            applicationEcnStrategy = application_ecn_bandwidth_strategy.trim();
+        } else {
+            applicationEcnStrategy = "";
+        }
+        return true;
+    }
+
     // This sort of assumes a stream of data, not data that comes in bursts.
+    // TODO: ECN Strategy interface.
     public AppClient.ECNStatus Update(int ecn) {
         AppClient.ECNBit ecnBit;
         try {
@@ -168,9 +188,8 @@ public class EcnCalculator {
         return AppClient.ECNStatus.newBuilder()
                 .setBandwidth(averageBandwidth)
                 .setEcnBit(ecnBit)
-                .setStrategy(AppClient.ECNStrategy.STRATEGY_1)
-                .setSampleStart(sampleStartTs)
-                .setSampleEnd(getCurrentTimestamp())
+                .setStrategy(applicationEcnStrategy)
+                .setSampleDurationMs(sendTimer.elapsed(TimeUnit.MILLISECONDS))
                 .setNumCe(ce_count)
                 .setNumPackets(num_packets)
                 .build();
