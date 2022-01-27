@@ -18,6 +18,7 @@ import androidx.annotation.Nullable;
 
 import com.google.common.base.Stopwatch;
 import com.mobiledgex.matchingengine.EdgeEventsConnection;
+import com.mobiledgex.matchingengine.performancemetrics.EcnCalculator;
 import com.mobiledgex.sdkdemo.R;
 
 import java.io.File;
@@ -1478,135 +1479,6 @@ public class PeerConnectionClient {
     @Override
     public void onSetFailure(final String error) {
       reportError("setSDP error: " + error);
-    }
-  }
-
-  /*
-   * Inplace bandwidth calculator (UDP).
-   *
-   * Bandwidth determination needs a bit of history.
-   * (bits per second needs 1) to start assumptions and 2) status updates to start adjusting).
-   * With no limits to bandwidth, there needs to be a ramp up amount (and strategy to do
-   * so, as well as a ramp down in case of ECNStatus signaled CE congestion encountered.
-   *
-   * As the router/network path only signals "congestion encountered", it is offering
-   * no additional details as to what that bandwidth should be. Ideally, one would like to go
-   * as fast as possible given moment to moment ECN signaling, but before packets are dropped
-   * too often.
-   *
-   * And of course, all this ideally will beat TCP slow start.
-   */
-  public class EcnCalculator {
-    Stopwatch staleDataTimer = Stopwatch.createUnstarted();
-    Stopwatch sendTimer = Stopwatch.createUnstarted();
-    public double bandwidth = 0d;
-    public static final int clearThreshold = 100; // If the data hasn't been refreshed in some time, start over from scratch.
-    public static final float RAMPUPSPEED = 200000f;
-    public float minimumBandwidth = 150000f; // Floor bandwidth, if below this, the connection might not be usable anymore.
-    public double maximumBandwidth = 5 * Math.pow(1000,3);
-    public static final float rampUpScale = 0.2f;
-    public static final float ecnCeScaleDown = 0.9f;
-
-    private int idx = 0;
-    int capacity = 3;
-    ArrayList<Double> aggregateBandwidth = new ArrayList<Double>(capacity);
-    double averageBandwidth = 0;
-    long sendIntervalMs = 5000; // ms;
-
-    public EcnCalculator() {
-      Log.d(TAG, "New ECNCalucator.");
-    }
-
-    public void resetSendTimer() {
-      sendTimer.reset();
-      sendTimer.start();
-    }
-
-    public void resetStaleTimer() {
-      staleDataTimer.reset();
-      staleDataTimer.start();
-    }
-
-    boolean isShouldSend() {
-      if (sendTimer.elapsed(TimeUnit.MILLISECONDS) >= sendIntervalMs) {
-        return true;
-      }
-      return false;
-    }
-
-    boolean isStaleTimer() {
-      if (staleDataTimer.elapsed(TimeUnit.MILLISECONDS) > clearThreshold) {
-        return true;
-      }
-      return false;
-    }
-
-    // This sort of assumes a stream of data, not bursty data.
-    AppClient.ECNStatus Update(int ecn) {
-      if (false && isStaleTimer()) { // This messes up debugging.
-        aggregateBandwidth.clear();
-        averageBandwidth = 0d;
-        bandwidth = RAMPUPSPEED;
-        idx = 0;
-      }
-      resetStaleTimer();
-      if (!sendTimer.isRunning()) {
-          resetSendTimer();
-      }
-
-      try {
-        AppClient.ECNBit ecnBit = AppClient.ECNBit.internalGetValueMap().findValueByNumber(ecn);
-
-        // Update stats:
-        if (ecnBit == AppClient.ECNBit.CE) {
-          bandwidth *= ecnCeScaleDown;
-          if (bandwidth <= minimumBandwidth) {
-            bandwidth = minimumBandwidth;
-          }
-        } else if (ecnBit == AppClient.ECNBit.ECT_0 || ecnBit == AppClient.ECNBit.ECT_1) {
-          double new_bandwidth = bandwidth + (1 + rampUpScale) * RAMPUPSPEED; // This while nice, pays no attention to the scale. Sigmoid scale curve better for upward scaling?
-          bandwidth = Math.min(maximumBandwidth, new_bandwidth);
-        } else {
-          // Not supported (anymore?)
-          Log.d(TAG, "connection claims ECN marking is unsupported.");
-          return null;
-        }
-        //Log.d(TAG, "ZZZ ECN Bit to use: " + ecnBit);
-
-        // Minimum guard:
-        if (bandwidth <= minimumBandwidth) {
-          bandwidth = minimumBandwidth;
-          Log.d(TAG, "Notice: Hit minimum bandwidth.");
-        }
-        Log.d(TAG, "ZZZ ECN " + ecn +", Bandwidth: " + bandwidth);
-
-        // sample(s) update (and historical samples)
-        if (aggregateBandwidth.size() < capacity) {
-          aggregateBandwidth.add(idx, bandwidth);
-        } else {
-          aggregateBandwidth.set(idx, bandwidth);
-        }
-        idx = (idx + 1) % capacity;
-        double num = bandwidth + (averageBandwidth * (aggregateBandwidth.size() - 1));
-        averageBandwidth = num / aggregateBandwidth.size();
-
-        AppClient.ECNStatus ecnStatus;
-        AppClient.ECNStatus.Builder builder = AppClient.ECNStatus.newBuilder();
-        if (builder == null) {
-          Log.d(TAG, "Bad ECNStatus buildler!!!");
-          return null;
-        }
-        ecnStatus = builder
-            .setBandwidth((float) averageBandwidth) // FIXME: Remove casting
-            .setEcnBit(ecnBit)
-            .setStrategy(AppClient.ECNStrategy.STRATEGY_1)
-            .build();
-
-        return ecnStatus;
-      } catch (Exception e) {
-        e.printStackTrace();
-        return null;
-      }
     }
   }
 }

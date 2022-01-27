@@ -760,7 +760,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 return;
             }
 
-            connectToEcnServer(closestCloudlet);
+            //connectToEcnServer(closestCloudlet); // This is unlikely to connect outside a test machine.
 
             // This is a legal point to keep posting edgeEvents updates, as the EdgeEventBus
             // should now be initalized, unless disabled.
