@@ -27,6 +27,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 
+import androidx.test.core.app.ApplicationProvider;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import android.os.SystemClock;
@@ -47,6 +48,7 @@ import com.mobiledgex.matchingengine.edgeeventsconfig.UpdateConfig;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.util.MeLocation;
 
+import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 
 import org.junit.Assert;
@@ -172,6 +174,43 @@ public class EdgeEventsConnectionTest {
 
         toggleLocations = new Location[] {edmontonLoc, montrealLoc, automationFairviewCloudlet, automationHawkinsCloudlet};
         toggleIndex = (toggleIndex + 1) % toggleLocations.length;
+    }
+
+
+    FusedLocationProviderClient fusedLocationProviderClient;
+    @Before
+    public void setupLocationProvider() {
+        try {
+            Context context = ApplicationProvider.getApplicationContext();
+            fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context);
+            fusedLocationProviderClient.setMockMode(true);
+
+            LocationRequest locationRequest = LocationRequest.create();
+            LocationResult lastLocationResult[] = new LocationResult[1];
+            LocationCallback locationCallback = new LocationCallback() {
+                @Override
+                public void onLocationResult(LocationResult locationResult) {
+                    if (locationResult == null) {
+                        return;
+                    }
+                    String clientLocText = "";
+                    lastLocationResult[0] = locationResult;
+
+                    for (Location location : locationResult.getLocations()) {
+                        // Update UI with client location data
+                        clientLocText += "[" + location.toString() + "],";
+                    }
+                    Log.d(TAG, "New location: " + clientLocText);
+                }
+            };
+
+            fusedLocationProviderClient.requestLocationUpdates(
+                    locationRequest,
+                    locationCallback,
+                    Looper.getMainLooper() /* Looper */);
+        } catch (Exception e) {
+            Assert.fail("Failed getting lcoation");
+        }
     }
 
     public Location getTestLocation() {
@@ -471,32 +510,26 @@ public class EdgeEventsConnectionTest {
                     Looper.getMainLooper() /* Looper */);
 
             // Explicit mock test provider, however the Test LocationService seems to not be working.
-/*
-
             try {
                 locationManager.addTestProvider(LocationManager.GPS_PROVIDER, false,
-                       false, false, false, false, true, true, 0, 5);
-                locationManager.addTestProvider(LocationManager.NETWORK_PROVIDER, false,
-                        false, false, false, false, true, true, 0, 5);
+                       false, false, false, false, true, true, 3, 1);
+                //locationManager.addTestProvider(LocationManager.NETWORK_PROVIDER, false,
+                //        false, false, false, false, true, true, 3, 1);
             } catch (IllegalArgumentException iae) {
                 // Might already exist. Just use the named provider then.
                 iae.printStackTrace();
             }
+
             try {
-                locationManager.removeTestProvider(LocationManager.GPS_PROVIDER);
                 locationManager.setTestProviderEnabled(LocationManager.GPS_PROVIDER, true);
-                locationManager.setTestProviderLocation(LocationManager.GPS_PROVIDER, location);
             } catch (IllegalArgumentException iae) {
-
+                iae.printStackTrace();
             }
             try {
-                locationManager.removeTestProvider(LocationManager.NETWORK_PROVIDER);
-                locationManager.setTestProviderEnabled(LocationManager.NETWORK_PROVIDER, true);
-                locationManager.setTestProviderLocation(LocationManager.NETWORK_PROVIDER, location);
+                //locationManager.setTestProviderEnabled(LocationManager.NETWORK_PROVIDER, true);
             } catch (IllegalArgumentException iae) {
-
+                //iae.printStackTrace();
             }
-*/
 
             TimerTask task = new TimerTask() {
                 @Override
@@ -504,8 +537,8 @@ public class EdgeEventsConnectionTest {
                     locationGetTogglerSetup();
                     Location loc = toggleLocations[toggleIndex];
                     Log.d(TAG, "location set to : " + loc);
-                    fusedLocationProviderClient.setMockLocation(loc);
-                    //locationManager.setTestProviderLocation(LocationManager.GPS_PROVIDER, loc);
+                    //fusedLocationProviderClient.setMockLocation(loc);
+                    locationManager.setTestProviderLocation(LocationManager.GPS_PROVIDER, loc);
                     //locationManager.setTestProviderLocation(LocationManager.NETWORK_PROVIDER, loc);
                 }
             };
@@ -565,7 +598,7 @@ public class EdgeEventsConnectionTest {
             assertFalse("Should throw no exceptions!", startFuture.isCompletedExceptionally());
 
             // For this to work, mock location updates need to work.
-            latch.await(GRPC_TIMEOUT_MS * 999, TimeUnit.MILLISECONDS);
+            latch.await(GRPC_TIMEOUT_MS * 5, TimeUnit.MILLISECONDS);
             assertEquals("Expected only one for OnStart!", 1, latch.getCount());
 
             Thread.sleep((long)config.locationUpdateConfig.updateIntervalSeconds * 1000l);
