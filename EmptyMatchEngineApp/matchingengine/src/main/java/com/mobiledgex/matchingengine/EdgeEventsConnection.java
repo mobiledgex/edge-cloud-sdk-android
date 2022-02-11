@@ -15,6 +15,7 @@ import com.mobiledgex.matchingengine.edgeeventsconfig.UpdateConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEvent;
 import com.mobiledgex.matchingengine.edgeeventsconfig.FindCloudletEventTrigger;
+import com.mobiledgex.matchingengine.performancemetrics.EcnCalculator;
 import com.mobiledgex.matchingengine.performancemetrics.NetTest;
 import com.mobiledgex.matchingengine.performancemetrics.Site;
 import com.mobiledgex.matchingengine.util.MeLocation;
@@ -788,6 +789,7 @@ public class EdgeEventsConnection {
      */
     synchronized public boolean postECNMarkings(AppClient.ECNStatus status) {
         AppClient.ClientEdgeEvent clientEdgeEvent = AppClient.ClientEdgeEvent.newBuilder()
+                .setEventType(AppClient.ClientEdgeEvent.ClientEventType.EVENT_ECN_STATUS)
                 .setEcnStatus(status)
                 .build();
         return send(clientEdgeEvent);

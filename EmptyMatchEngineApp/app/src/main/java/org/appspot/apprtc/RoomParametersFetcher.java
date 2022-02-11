@@ -133,10 +133,11 @@ public class RoomParametersFetcher {
         for (String uri : server.urls) {
           if (uri.startsWith("turn:")) {
             isTurnPresent = true;
-            break;
+            // user/password?
           }
         }
       }
+
       // Request TURN servers.
       if (!isTurnPresent && !roomJson.optString("ice_server_url").isEmpty()) {
         List<PeerConnection.IceServer> turnServers =
@@ -159,13 +160,14 @@ public class RoomParametersFetcher {
 
   // Requests & returns a TURN ICE Server based on a request URL.  Must be run
   // off the main thread!
+  @SuppressWarnings("UseNetworkAnnotations")
   private List<PeerConnection.IceServer> requestTurnServers(String url)
       throws IOException, JSONException {
     List<PeerConnection.IceServer> turnServers = new ArrayList<>();
     Log.d(TAG, "Request TURN from: " + url);
     HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
     connection.setDoOutput(true);
-    connection.setRequestProperty("REFERER", "https://appr.tc");
+    connection.setRequestProperty("REFERER", "https://wombat-emeraldeyeconstruct.duckdns.org:8081"); // test url
     connection.setConnectTimeout(TURN_HTTP_TIMEOUT_MS);
     connection.setReadTimeout(TURN_HTTP_TIMEOUT_MS);
     int responseCode = connection.getResponseCode();
@@ -206,12 +208,19 @@ public class RoomParametersFetcher {
     List<PeerConnection.IceServer> ret = new ArrayList<>();
     for (int i = 0; i < servers.length(); ++i) {
       JSONObject server = servers.getJSONObject(i);
-      String url = server.getString("urls");
+      JSONArray jurls = server.getJSONArray("urls");
+      List<String> urls = new ArrayList<>();
+      for (int j = 0; j < jurls.length(); j++) {
+        urls.add(jurls.getString(j));
+      }
+
       String credential = server.has("credential") ? server.getString("credential") : "";
-        PeerConnection.IceServer turnServer =
-            PeerConnection.IceServer.builder(url)
-              .setPassword(credential)
-              .createIceServer();
+      String username = server.has("username") ? server.getString("username") : "";
+      PeerConnection.IceServer turnServer =
+        PeerConnection.IceServer.builder(urls)
+          .setUsername(username)
+          .setPassword(credential)
+          .createIceServer();
       ret.add(turnServer);
     }
     return ret;

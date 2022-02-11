@@ -460,7 +460,6 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     protected void onResume() {
         super.onResume();
 
-
     }
 
   @TargetApi(17)
@@ -689,7 +688,6 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     }
     // Enable statistics callback.
     peerConnectionClient.enableStatsEvents(true, STAT_CALLBACK_PERIOD);
-
     setSwappedFeeds(false /* isSwappedFeeds */);
   }
 
@@ -1016,7 +1014,6 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
         logAndToast("DTLS connected, delay=" + delta + "ms");
         connected = true;
         callConnected();
-        peerConnectionClient.sendPing();
       }
     });
   }

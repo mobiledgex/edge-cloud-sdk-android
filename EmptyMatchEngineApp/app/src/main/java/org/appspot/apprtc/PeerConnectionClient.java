@@ -58,6 +58,7 @@ import org.webrtc.DefaultVideoDecoderFactory;
 import org.webrtc.DefaultVideoEncoderFactory;
 import org.webrtc.EglBase;
 import org.webrtc.IceCandidate;
+import org.webrtc.IceCandidateErrorEvent;
 import org.webrtc.Logging;
 import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
@@ -464,7 +465,6 @@ public class PeerConnectionClient {
     if (peerConnectionParameters.loopback) {
       options.disableEncryption = true;
     }
-
     factory = PeerConnectionFactory.builder()
                   .setOptions(options)
                   .setAudioDeviceModule(adm)
@@ -636,8 +636,6 @@ public class PeerConnectionClient {
       init.id = peerConnectionParameters.dataChannelParameters.id;
       init.protocol = peerConnectionParameters.dataChannelParameters.protocol;
       dataChannel = peerConnection.createDataChannel("ApprtcDemo data", init);
-
-      sendPing();
     }
     isInitiator = false;
 
@@ -1227,27 +1225,6 @@ public class PeerConnectionClient {
     videoSource.adaptOutputFormat(width, height, framerate);
   }
 
-  public void send(String msg) {
-    ByteBuffer nioBuffer = ByteBuffer.allocate(msg.length()+1);
-    DataChannel.Buffer sendBuf = new DataChannel.Buffer(nioBuffer, false);
-    dataChannel.send(sendBuf);
-  }
-
-  // Put a `key`->`value` mapping in `json`.
-  private static void jsonPut(JSONObject json, String key, Object value) {
-    try {
-      json.put(key, value);
-    } catch (JSONException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public void sendPing() {
-    JSONObject json = new JSONObject();
-    jsonPut(json, "action", "ping");
-    send(json.toString());
-  }
-
   // Implementation detail: observe ICE & stream changes and react accordingly.
   private class PCObserver implements PeerConnection.Observer {
     Stopwatch stopwatch = Stopwatch.createStarted();
@@ -1255,6 +1232,13 @@ public class PeerConnectionClient {
     @Override
     public void onIceCandidate(final IceCandidate candidate) {
       executor.execute(() -> events.onIceCandidate(candidate));
+    }
+
+    @Override
+    public void onIceCandidateError(final IceCandidateErrorEvent event) {
+      Log.d(TAG,
+          "IceCandidateError address: " + event.address + ", port: " + event.port + ", url: "
+              + event.url + ", errorCode: " + event.errorCode + ", errorText: " + event.errorText);
     }
 
     @Override
@@ -1344,18 +1328,11 @@ public class PeerConnectionClient {
             Log.d(TAG, "Received binary msg over " + dc);
             return;
           }
-          String s = StandardCharsets.UTF_8.decode(buffer.data).toString();
-          Log.d(TAG, "Got msg: " + s);
-          /*
-          if (strData != null) {
-              try {
-                  //JSONObject msg = new JSONObject(strData);
-                  //Log.d(TAG, "ZZZ: " + msg.toString());
-              } catch (JSONException e) {
-                  e.printStackTrace(); // This does not appear to be what we sent.
-              }
-          }
-          */
+          ByteBuffer data = buffer.data;
+          final byte[] bytes = new byte[data.capacity()];
+          data.get(bytes);
+          String strData = new String(bytes, Charset.forName("UTF-8"));
+          Log.d(TAG, "Got msg: " + strData + " over " + dc);
         }
       });
     }
@@ -1374,6 +1351,7 @@ public class PeerConnectionClient {
 
     // Dummy for BestFormat calculation:
     CaptureQualityController dummyController = new CaptureQualityController(null, null);
+    /*
     @Override
     public void onReceiveECN(int ecn) {
 	  // On ReceiveECN
@@ -1406,6 +1384,7 @@ public class PeerConnectionClient {
       // HEAVY:
       //sendPing();
     }
+    */
   }
 
   // Implementation detail: handle offer creation/signaling and answer setting,

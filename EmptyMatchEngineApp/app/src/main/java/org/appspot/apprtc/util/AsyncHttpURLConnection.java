@@ -23,7 +23,7 @@ import java.util.Scanner;
  */
 public class AsyncHttpURLConnection {
   private static final int HTTP_TIMEOUT_MS = 8000;
-  private static final String HTTP_ORIGIN = "http://192.168.1.183:8888";
+  private static final String HTTP_ORIGIN = "https://wombat-emeraldeyeconstruct.duckdns.org:8082"; // test url
   private final String method;
   private final String url;
   private final String message;
@@ -53,6 +53,7 @@ public class AsyncHttpURLConnection {
     new Thread(this ::sendHttpMessage).start();
   }
 
+  @SuppressWarnings("UseNetworkAnnotations")
   private void sendHttpMessage() {
     try {
       HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
