@@ -83,7 +83,6 @@ public class WebRTCPeerConnectionObserver implements PeerConnection.Observer {
 
     EcnCalculator ecnCalculator = new EcnCalculator();
 
-    /*
     @Override
     public void onReceiveECN(int ecn) {
         EdgeEventsConnection eec = me.getEdgeEventsConnection();
@@ -103,5 +102,4 @@ public class WebRTCPeerConnectionObserver implements PeerConnection.Observer {
             eec.postECNMarkings(ecnStatus);
         }
     }
-    */
 }

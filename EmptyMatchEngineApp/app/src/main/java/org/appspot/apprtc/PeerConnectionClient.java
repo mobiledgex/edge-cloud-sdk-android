@@ -1351,7 +1351,7 @@ public class PeerConnectionClient {
 
     // Dummy for BestFormat calculation:
     CaptureQualityController dummyController = new CaptureQualityController(null, null);
-    /*
+
     @Override
     public void onReceiveECN(int ecn) {
 	  // On ReceiveECN
@@ -1380,11 +1380,8 @@ public class PeerConnectionClient {
         ecnCalculator.resetSendTimer();
         eec.postECNMarkings(ecnStatus);
       }
-
-      // HEAVY:
-      //sendPing();
     }
-    */
+
   }
 
   // Implementation detail: handle offer creation/signaling and answer setting,

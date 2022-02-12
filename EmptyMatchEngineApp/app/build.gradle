@@ -39,7 +39,7 @@ dependencies {
     implementation project(":matchingengine")
     implementation "de.telecom.llcto:ecn-lib:2.2"
     // ECN Chromium WebRTC
-    implementation "org.appspot:libwebrtc:1.0.6-noecn"
+    implementation "org.appspot:libwebrtc:1.0.7-ecn"
 
     implementation 'com.google.guava:guava:29.0-android'
 
