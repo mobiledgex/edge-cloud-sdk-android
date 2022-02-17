@@ -800,7 +800,6 @@ public class EngineCallTest {
         assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_ROAMING_COUNTRY_MATCH, verifyLocationReply.getGpsLocationStatus());
     }
 
-
     /**
      * Mocked Location test. Note that responsibility of verifying location is in the MatchingEngine
      * on the server side, not client side.
