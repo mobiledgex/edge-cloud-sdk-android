@@ -1399,7 +1399,7 @@ public class MatchingEngine {
      */
     public AppClient.QosPrioritySessionCreateRequest.Builder createDefaultQosPrioritySessionCreateRequest(Context context) {
         if (!mMatchingEngineLocationAllowed) {
-            Log.e(TAG, "Location Permission required to Create DefaultAppInstListRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
+            Log.e(TAG, "Location Permission required to Create DefaultQosPrioritySessionCreateRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
         }
         if (context == null) {
@@ -1422,7 +1422,7 @@ public class MatchingEngine {
      */
     public AppClient.QosPrioritySessionDeleteRequest.Builder createDefaultQosPrioritySessionDeleteRequest(Context context) {
         if (!mMatchingEngineLocationAllowed) {
-            Log.e(TAG, "Location Permission required to Delete DefaultAppInstListRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
+            Log.e(TAG, "Location Permission required to Delete DefaultQosPrioritySessionDeleteRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
         }
         if (context == null) {
