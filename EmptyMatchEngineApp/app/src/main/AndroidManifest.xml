@@ -76,7 +76,7 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https" android:host="wombat-emeraldeyeconstruct.duckdns.org"/> <!-- test url -->
-                <data android:scheme="http" android:host="wombat-emeraldeyeconstruct.duckdns.org:8080"/> <!-- test url -->
+                <data android:scheme="http" android:host="wombat-emeraldeyeconstruct.duckdns.org:8081"/> <!-- test url -->
             </intent-filter>
         </activity>
         <activity android:name="org.appspot.apprtc.SettingsActivity"

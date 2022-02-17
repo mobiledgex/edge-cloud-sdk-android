@@ -35,6 +35,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 
 import com.mobiledgex.matchingengine.MatchingEngine;
+import com.mobiledgex.matchingengine.edgeeventsconfig.EdgeEventsConfig;
 import com.mobiledgex.sdkdemo.R;
 import com.mobiledgex.sdkdemo.WebRTCPeerConnectionObserver;
 
@@ -45,6 +46,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.appspot.apprtc.AppRTCAudioManager.AudioDevice;
 import org.appspot.apprtc.AppRTCAudioManager.AudioManagerEvents;
@@ -71,6 +74,7 @@ import org.webrtc.VideoFrame;
 import org.webrtc.VideoSink;
 
 import distributed_match_engine.AppClient;
+import io.grpc.StatusRuntimeException;
 
 /**
  * Activity for peer connection call setup, call waiting
@@ -197,8 +201,8 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
   private CpuMonitor cpuMonitor;
 
   static WebRTCPeerConnectionObserver webRTCPeerConnectionObserver;
-  static MatchingEngine me;
-  int TIMEOUT_MS = 10000;
+  static MatchingEngine me; // FIXME: Find a better place, and reuse a Executor service pool.
+  ExecutorService executorServicePool;
 
   @Override
   // TODO(bugs.webrtc.org/8580): LayoutParams.FLAG_TURN_SCREEN_ON and
@@ -393,10 +397,13 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     peerConnectionClient.createPeerConnectionFactory(options);
 
     if (me == null || me.isShutdown()) {
+        executorServicePool = Executors.newCachedThreadPool();
         me = new MatchingEngine(this);
         me.setMatchingEngineLocationAllowed(true);
         me.setSSLEnabled(false); // edgebox.
+        final long TIMEOUT_MS = 10000;
         // Just start MatchingEngine in the background until needed.
+
         CompletableFuture.runAsync( () -> {
             Log.d(TAG, "OnResume, creating matchingEngine connections.");
             try {
@@ -421,6 +428,10 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
                     Log.d(TAG, "NOT registered!");
                 }
 
+                EdgeEventsConfig defaultConfig = new EdgeEventsConfig();
+                defaultConfig.locationUpdateConfig = null;
+                me.startEdgeEvents(defaultConfig);
+
                 Location location = new Location("MobiledgeX WebRTC location provider src");
                 location.setLongitude(-121.8863286);
                 location.setLatitude(37.3382082);
@@ -441,12 +452,16 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } catch (ExecutionException e) {
+                Log.d(TAG, "Execution exception: " + e.getMessage());
+                e.printStackTrace();
+            } catch (StatusRuntimeException e) {
+                Log.d(TAG, "Runtime exception: " + e.getMessage());
                 e.printStackTrace();
             } catch (Exception e) {
+                Log.d(TAG, "Exception: " + e.getMessage());
                 e.printStackTrace();
             }
-        });
-
+        }, executorServicePool);
     }
 
     if (screencaptureEnabled) {
@@ -593,6 +608,9 @@ public class CallActivity extends Activity implements AppRTCClient.SignalingEven
     // Close MatchingEngine static.
     if (me != null && !me.isShutdown()) {
       me.close();
+    }
+    if (executorServicePool != null && !executorServicePool.isShutdown()) {
+        executorServicePool.shutdown();
     }
     super.onDestroy();
   }

@@ -1408,8 +1408,8 @@ public class EdgeEventsConnection {
                 break;
 
             // Handle Event:
-            case HEALTH_CHECK_FAIL_ROOTLB_OFFLINE: // fallthrough
-            case HEALTH_CHECK_FAIL_SERVER_FAIL:
+            case HEALTH_CHECK_ROOTLB_OFFLINE: // fallthrough
+            case HEALTH_CHECK_SERVER_FAIL:
             case UNRECOGNIZED: // Presumably if not OK, means to get a new FindCloudlet.
             default:
                 Log.i(TAG, "AppInst Health event. Reason: " + event.getHealthCheck());

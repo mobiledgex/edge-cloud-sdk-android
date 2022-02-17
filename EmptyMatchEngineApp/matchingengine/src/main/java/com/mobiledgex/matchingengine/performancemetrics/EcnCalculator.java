@@ -38,7 +38,7 @@ public class EcnCalculator {
 
     private int idx = 0;
     int capacity = 3;
-    ArrayList<Double> aggregateBandwidth = new ArrayList<>(capacity);
+    ArrayList<Double> aggregateBandwidth;
 
     // Statistics:
     private double averageBandwidth = 0;
@@ -59,6 +59,7 @@ public class EcnCalculator {
 
     public EcnCalculator() {
         Log.d(TAG, "New ECNCalculator.");
+        aggregateBandwidth = new ArrayList<>(capacity);
     }
 
     public LocOuterClass.Timestamp getTimestampFromMs(long milliseconds) {
@@ -92,6 +93,7 @@ public class EcnCalculator {
         ce_count = 0;
         num_packets = 0;
 
+        idx = 0;
         aggregateBandwidth.clear();
         averageBandwidth = 0d;
         bandwidth = RAMP_UP_SPEED;
@@ -148,7 +150,13 @@ public class EcnCalculator {
             return null;
         }
 
+        if (!sendTimer.isRunning()) {
+            Log.d(TAG, "Starting send timer.");
+            resetSendTimer();
+        }
+
         if (isStaleTimer()) {
+            Log.d(TAG, "Restarting stale timer.");
             resetForStaleTimer();
         }
         staleTimerKeepAlive();
@@ -180,7 +188,12 @@ public class EcnCalculator {
         }
 
         // sample(s) update (and historical samples)
-        aggregateBandwidth.add(idx, bandwidth);
+        Log.d(TAG, "bandwidth index: " + idx);
+        if (aggregateBandwidth.size() < capacity && idx == aggregateBandwidth.size()) {
+            aggregateBandwidth.add(idx, bandwidth);
+        } else {
+            aggregateBandwidth.set(idx, bandwidth);
+        }
         idx = (idx + 1) % capacity;
         double num = bandwidth + (averageBandwidth * (aggregateBandwidth.size() - 1));
         averageBandwidth = num / aggregateBandwidth.size();

@@ -167,7 +167,7 @@ public class RoomParametersFetcher {
     Log.d(TAG, "Request TURN from: " + url);
     HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
     connection.setDoOutput(true);
-    connection.setRequestProperty("REFERER", "https://wombat-emeraldeyeconstruct.duckdns.org:8081"); // test url
+    connection.setRequestProperty("REFERER", "https://wombat-emeraldeyeconstruct.duckdns.org:8082"); // test url
     connection.setConnectTimeout(TURN_HTTP_TIMEOUT_MS);
     connection.setReadTimeout(TURN_HTTP_TIMEOUT_MS);
     int responseCode = connection.getResponseCode();

@@ -1370,6 +1370,7 @@ public class PeerConnectionClient {
       if (ecnStatus == null) {
         return;
       }
+      Log.d(TAG, "CEs" + ecnStatus.getNumCe());
 
       // Apply bandwidth, using the dummy to access enumerated camera formats.
       CameraEnumerationAndroid.CaptureFormat bestFormat = dummyController.getBestFormat(ecnStatus.getBandwidth());
