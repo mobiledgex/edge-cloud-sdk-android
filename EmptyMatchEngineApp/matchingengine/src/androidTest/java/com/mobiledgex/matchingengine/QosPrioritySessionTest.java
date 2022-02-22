@@ -230,7 +230,7 @@ public class QosPrioritySessionTest {
       String profile = "QOS_LOW_LATENCY";
 
       AppClient.QosPrioritySessionCreateRequest.Builder builder = me.createDefaultQosPrioritySessionCreateRequest(context);
-      builder.setPortApplicationServer("8008");
+      builder.setPortApplicationServer(""+port);
       builder.setIpUserEquipment(ipUserEquipment);
       builder.setIpApplicationServer(ipApplicationServer);
       builder.setProtocolIn(AppClient.QosSessionProtocol.valueOf(protocol));
@@ -270,6 +270,26 @@ public class QosPrioritySessionTest {
     } catch (InterruptedException ie) {
       Log.e(TAG, Log.getStackTraceString(ie));
       assertFalse("QosPrioritySessionCreate: InterruptedException!", true);
+    }
+  }
+
+  @Test
+  public void qosPrioritySessionCreateNoRegisterTest() {
+    Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+    MatchingEngine me = new MatchingEngine(context);
+    me.setMatchingEngineLocationAllowed(true);
+    me.setAllowSwitchIfNoSubscriberInfo(true);
+    me.setSSLEnabled(false);
+
+    try {
+      AppClient.QosPrioritySessionCreateRequest.Builder builder = me.createDefaultQosPrioritySessionCreateRequest(context);
+    } catch (IllegalArgumentException iae) {
+      Log.e(TAG, Log.getStackTraceString(iae));
+      assertEquals(iae.getMessage(), ("An unexpired RegisterClient sessionCookie is required."));
+    } catch (StatusRuntimeException sre) {
+      Log.e(TAG, Log.getStackTraceString(sre));
+      assertFalse("QosPrioritySessionCreate: StatusRuntimeException!", true);
     }
   }
 
@@ -361,6 +381,55 @@ public class QosPrioritySessionTest {
       assert (qosPrioritySessionDeleteReply != null);
       assertEquals(0, qosPrioritySessionDeleteReply.getVer());
       assertEquals("QDEL_DELETED", qosPrioritySessionDeleteReply.getStatus().name());
+
+    } catch (ExecutionException ee) {
+      Log.e(TAG, Log.getStackTraceString(ee));
+      assertFalse("QosPrioritySessionDelete: ExecutionExecution!", true);
+    } catch (StatusRuntimeException sre) {
+      Log.e(TAG, Log.getStackTraceString(sre));
+      assertFalse("QosPrioritySessionDelete: StatusRuntimeException!", true);
+    } catch (InterruptedException ie) {
+      Log.e(TAG, Log.getStackTraceString(ie));
+      assertFalse("QosPrioritySessionDelete: InterruptedException!", true);
+    }
+  }
+
+  @Test
+  public void qosPrioritySessionDeleteNonExistentTest() {
+    Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+    MatchingEngine me = new MatchingEngine(context);
+    me.setMatchingEngineLocationAllowed(true);
+    me.setAllowSwitchIfNoSubscriberInfo(true);
+    me.setSSLEnabled(false);
+
+    try {
+      registerClient(me);
+
+      String protocol = "TCP";
+      String profile = "QOS_LOW_LATENCY";
+
+      AppClient.QosPrioritySessionDeleteRequest.Builder builder = me.createDefaultQosPrioritySessionDeleteRequest(context);
+      builder.setProfile(AppClient.QosSessionProfile.valueOf(profile));
+      builder.setSessionId("this-is-a-bad-session-id");
+      AppClient.QosPrioritySessionDeleteRequest qosPrioritySessionDeleteRequest = builder.build();
+
+      AppClient.QosPrioritySessionDeleteReply qosPrioritySessionDeleteReply;
+
+      if (useHostOverride) {
+        //! [qosprioritysessiondeletefutureoverrideexample]
+        qosPrioritySessionDeleteReply = me.qosPrioritySessionDelete(qosPrioritySessionDeleteRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+        //! [qosprioritysessiondeletefutureoverrideexample]
+      } else {
+        //! [qosprioritysessiondeletefutureexample]
+        qosPrioritySessionDeleteReply = me.qosPrioritySessionDelete(qosPrioritySessionDeleteRequest, GRPC_TIMEOUT_MS);
+        //! [qosprioritysessiondeletefutureexample]
+      }
+      Log.i(TAG, "qosPrioritySessionDeleteReply.getStatus()="+ qosPrioritySessionDeleteReply.getStatus());
+
+      assert (qosPrioritySessionDeleteReply != null);
+      assertEquals(0, qosPrioritySessionDeleteReply.getVer());
+      assertEquals("QDEL_NOT_FOUND", qosPrioritySessionDeleteReply.getStatus().name());
 
     } catch (ExecutionException ee) {
       Log.e(TAG, Log.getStackTraceString(ee));
