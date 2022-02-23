@@ -67,22 +67,6 @@ public class RegisterClient implements Callable {
         return true;
     }
 
-    AppClient.RegisterClientRequest.Builder updateRequestAid(AppClient.RegisterClientRequest.Builder builder) {
-        // This is the hashed value of Advertising ID.
-        String ad_id = mMatchingEngine.getUniqueId(mMatchingEngine.mContext);
-        String manufacturer = Build.MANUFACTURER;
-        String model = Build.MODEL;
-
-        // Look for a UID and append. FIXME: Move to DeviceInfo at FindCloudlet.
-        if (manufacturer != null && ad_id != null && !ad_id.isEmpty()) {
-            builder
-                .setUniqueIdType(manufacturer + ":" + model + ":HASHED_ID")
-                .setUniqueId(ad_id)
-                .build();
-        }
-        return builder;
-    }
-
     private AppClient.RegisterClientRequest.Builder appendDeviceDetails(AppClient.RegisterClientRequest.Builder builder) {
         HashMap<String, String> map = mMatchingEngine.getDeviceInfo();
         builder.putAllTags(map);
@@ -107,8 +91,7 @@ public class RegisterClient implements Callable {
             MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
 
             AppClient.RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder(mRequest);
-            appendDeviceDetails(builder);
-            mRequest = updateRequestAid(builder)
+            appendDeviceDetails(builder)
                     .build();
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
