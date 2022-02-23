@@ -445,8 +445,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             }
 
             switch (event.getHealthCheck()) {
-                case HEALTH_CHECK_FAIL_ROOTLB_OFFLINE:
-                case HEALTH_CHECK_FAIL_SERVER_FAIL:
+                case HEALTH_CHECK_ROOTLB_OFFLINE:
+                case HEALTH_CHECK_SERVER_FAIL:
                     doEnhancedLocationVerification();
                     break;
                 case HEALTH_CHECK_OK:
