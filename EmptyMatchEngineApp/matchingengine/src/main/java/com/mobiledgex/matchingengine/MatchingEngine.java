@@ -946,42 +946,6 @@ public class MatchingEngine {
         return list;
     }
 
-    public String HashSha512(String aString) throws NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-512");
-
-        if (aString != null) {
-            byte[] encodedHash = digest.digest(aString.getBytes(StandardCharsets.UTF_8));
-            StringBuffer sb = new StringBuffer();
-            // Construct unsigned byte hex version (lower case).
-            for (byte b : encodedHash) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-        }
-
-        return null;
-    }
-
-    String getHashedAndroidId(Context context) throws NoSuchAlgorithmException{
-        String id;
-        id = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
-        return HashSha512(id);
-    }
-
-    // Returns a HEX String of a HASHED unique ads identifer. Or null if ID not found. Do not cache value.
-    String getUniqueId(Context context) {
-        String uuid = null;
-
-        try {
-            uuid = getHashedAndroidId(context);
-        } catch (NoSuchAlgorithmException nsae) {
-            Log.e(TAG, "Hash algorithm missing. Cannot create hashed ID." + nsae.getStackTrace());
-            uuid = null;
-        }
-
-        return uuid;
-    }
-
     /*!
      * GenerateDmeHostAddress
      * This will generate the dme host name based on GetMccMnc() -> "mcc-mnc.dme.mobiledgex.net".
