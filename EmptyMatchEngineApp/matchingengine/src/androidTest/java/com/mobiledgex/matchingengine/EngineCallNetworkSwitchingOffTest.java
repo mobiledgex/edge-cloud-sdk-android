@@ -139,8 +139,6 @@ public class EngineCallNetworkSwitchingOffTest {
                     .setOrgName(organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
-                    .setUniqueIdType("applicationInstallId")
-                    .setUniqueId(me.getUniqueId(context))
                     .build();
             if (useHostOverride) {
                 registerReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
