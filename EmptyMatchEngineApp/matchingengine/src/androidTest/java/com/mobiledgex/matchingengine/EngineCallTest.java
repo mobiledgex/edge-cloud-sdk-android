@@ -99,14 +99,14 @@ public class EngineCallTest {
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
-    public static final String organizationName = "automation_dev_org";
+    public static final String organizationName = "MobiledgeX"; // May be MobiledgeX-Samples test org as well.
     // Other globals:
-    public static final String applicationName = "automation-sdk-porttest";
-    public static final String appVersion = "1.0";
+    public static final String applicationName = "sdktest";
+    public static final String appVersion = "9.0";
 
     FusedLocationProviderClient fusedLocationClient;
 
-    public static String hostOverride = "us-qa.dme.mobiledgex.net";
+    public static String hostOverride = "192.168.1.172"; // Change this to: your local infra IP, eu-stage.dme, us-stage.dme.mobiledgex.net, etc.
     public static int portOverride = 50051;
     public static String findCloudletCarrierOverride = ""; // Allow "Any" if using "", but this likely breaks test cases.
 
@@ -358,6 +358,7 @@ public class EngineCallTest {
                     .setAppVers(appVersion);
             registerClientRequest = regRequestBuilder.build();
             if (useHostOverride) {
+                me.setSSLEnabled(false);
                 //! [registeroverrideexample]
                 registerReply = me.registerClient(registerClientRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
                 //! [registeroverrideexample]
@@ -1366,29 +1367,7 @@ public class EngineCallTest {
         BufferedOutputStream bos = null;
         BufferedInputStream bis = null;
         try {
-            // Test against Http Echo.
-            String carrierName = "TDG";
-            String appName = "HttpEcho";
-            String orgName = "MobiledgeX";
-            String appVersion = "20191204";
-
-            // Exercise and override the default:
-            // The app version will be null, but we can build from scratch for test
-            AppClient.RegisterClientRequest regRequest = AppClient.RegisterClientRequest.newBuilder()
-                    .setCarrierName(me.getCarrierName(context))
-                    .setOrgName(orgName)
-                    .setAppName(appName)
-                    .setAppVers(appVersion)
-                    .build();
-
-            AppClient.RegisterClientReply registerClientReply;
-            if (true) {
-                registerClientReply = me.registerClient(regRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            } else {
-                registerClientReply = me.registerClient(regRequest, GRPC_TIMEOUT_MS);
-            }
-            assertTrue("Register did not succeed for HttpEcho appInst", registerClientReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
-
+            registerClient(me);
 
             Location location = getTestLocation();
             // Defaults:
@@ -1411,7 +1390,7 @@ public class EngineCallTest {
             assertTrue("AppPorts is empty!", appPorts.size() > 0);
 
             HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
-            AppPort one = portMap.get(3001); // This internal port depends entirely the AppInst configuration/Docker image.
+            AppPort one = portMap.get(8011); // This internal port depends entirely the AppInst configuration/Docker image.
             assertTrue("EndPort is expected to be 0 for this AppInst", one.getEndPort() == 0 );
             // The actual mapped Public port, or one between getPublicPort() to getEndPort(), inclusive.
             Future<Socket> fs = appConnect.getTcpSocket(findCloudletReply, one, one.getPublicPort(), (int)GRPC_TIMEOUT_MS);
@@ -1421,14 +1400,7 @@ public class EngineCallTest {
 
             try {
                 bos = new BufferedOutputStream(s.getOutputStream());
-                String data = "{\"Data\": \"food\"}";
-                String rawpost = "POST / HTTP/1.1\r\n" +
-                        "Host: 10.227.66.62:3000\r\n" +
-                        "User-Agent: curl/7.54.0\r\n" +
-                        "Accept: */*\r\n" +
-                        "Content-Length: " + data.length() + "\r\n" +
-                        "Content-Type: application/json\r\n" +
-                        "\r\n" + data;
+                String rawpost = "ping";
                 bos.write(rawpost.getBytes());
                 bos.flush();
 
@@ -1447,8 +1419,9 @@ public class EngineCallTest {
 
                 String output = new String(b);
                 // Not an http client, so we're just going to get the substring of something stable:
-                boolean found = output.indexOf("food") != -1 ? true : false;;
-                assertTrue("Didn't find json data [" + data + "] in response!", found == true);
+                boolean found = output.indexOf("pong") != -1 ? true : false;
+
+                assertEquals("Didn't find response data [" + rawpost + "] in response!", "pong", output);
 
             } catch (IOException ioe) {
                 assertTrue("Failed to get output stream for socket!", false);
@@ -1744,6 +1717,7 @@ public class EngineCallTest {
         Location location = getTestLocation();
         Socket socket = null;
         try {
+            me.setSSLEnabled(false);
             //! [registerandfindoverrideexample]
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
                     organizationName, applicationName,
