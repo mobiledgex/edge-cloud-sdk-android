@@ -352,7 +352,6 @@ public class EngineCallTest {
 
         try {
             // The app version will be null, but we can build from scratch for test
-            List<Pair<String, Long>> ids = me.retrieveCellId(context);
             AppClient.RegisterClientRequest.Builder regRequestBuilder = AppClient.RegisterClientRequest.newBuilder()
                     .setOrgName(organizationName)
                     .setAppName(applicationName)
@@ -448,9 +447,6 @@ public class EngineCallTest {
             AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
-                    //.setCellId(me.retrieveCellId(context).get(0).second.intValue())
-                    .setUniqueIdType("applicationInstallId")
-                    .setUniqueId(me.getUniqueId(context))
                     .build();
             if (useHostOverride) {
                 registerReplyFuture = me.registerClientFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1991,27 +1987,6 @@ public class EngineCallTest {
         } catch (IllegalArgumentException iae) {
             Log.i(TAG, Log.getStackTraceString(iae));
             // Expected to be here. Success.
-        }
-    }
-
-    @Test
-    public void TestSha512HashingHexString() {
-        // This isn't supposed to be public, but it does need to be tested.
-        String test1 = "";
-        String test2 = "MobiledgeX";
-        String test3 = "asdf";
-        String test4 = "57122c99-6e00-4782-b437-eaf0ac38aaad"; // A UUID string.
-
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        MatchingEngine me = new MatchingEngine(context);
-
-        try {
-            assertEquals(me.HashSha512(test1), "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e");
-            assertEquals(me.HashSha512(test2), "a5f29b72a600486e147e5c594cd8ab81f16a853bdd5697af713b1e96b2749af635c8baabbfdd30ddd2f41ec1bfcea6127a496758eff940dbb89abd6616412cc7");
-            assertEquals(me.HashSha512(test3), "401b09eab3c013d4ca54922bb802bec8fd5318192b0a75f201d8b3727429080fb337591abd3e44453b954555b7a0812e1081c39b740293f765eae731f5a65ed1");
-            assertEquals(me.HashSha512(test4), "ce7f5fc3d185949c988244900f1b2c285854615b5f18f7552f5e89962015267152013ddb1d8e43e41aae345e3979bb7109f121f209be4e0bac26797dedf10e39");
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
         }
     }
 }

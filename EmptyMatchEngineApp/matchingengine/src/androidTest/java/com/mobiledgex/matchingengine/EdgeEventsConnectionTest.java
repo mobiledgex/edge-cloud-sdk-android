@@ -197,7 +197,6 @@ public class EdgeEventsConnectionTest {
 
         try {
             // The app version will be null, but we can build from scratch for test
-            List<Pair<String, Long>> ids = me.retrieveCellId(context);
             AppClient.RegisterClientRequest.Builder regRequestBuilder = AppClient.RegisterClientRequest.newBuilder()
                     .setOrgName(organizationName)
                     .setAppName(applicationName)
