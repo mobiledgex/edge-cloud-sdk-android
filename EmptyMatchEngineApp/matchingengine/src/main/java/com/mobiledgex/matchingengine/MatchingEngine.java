@@ -89,6 +89,10 @@ import distributed_match_engine.AppClient.AppInstListReply;
 import distributed_match_engine.AppClient.QosPositionRequest;
 import distributed_match_engine.AppClient.QosPositionKpiReply;
 import distributed_match_engine.AppClient.QosPosition;
+import distributed_match_engine.AppClient.QosPrioritySessionCreateRequest;
+import distributed_match_engine.AppClient.QosPrioritySessionReply;
+import distributed_match_engine.AppClient.QosPrioritySessionDeleteRequest;
+import distributed_match_engine.AppClient.QosPrioritySessionDeleteReply;
 import distributed_match_engine.AppClient.BandSelection;
 
 import distributed_match_engine.AppClient.DynamicLocGroupRequest;
@@ -1385,6 +1389,52 @@ public class MatchingEngine {
     }
 
     /*!
+     * Returns a builder for QosPrioritySessionCreateRequest. Call build() after setting
+     * additional optional fields like IPs and ports.
+     * \param context (android.content.Context)
+     * \return QosPrioritySessionCreateRequest.Builder
+     * \ingroup functions_dmeapis
+     * \section createdefappinstexample Example
+     * \snippet EngineCallTest.java createdefappinstexample
+     */
+    public AppClient.QosPrioritySessionCreateRequest.Builder createDefaultQosPrioritySessionCreateRequest(Context context) {
+        if (!mMatchingEngineLocationAllowed) {
+            Log.e(TAG, "Location Permission required to Create DefaultQosPrioritySessionCreateRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
+            return null;
+        }
+        if (context == null) {
+            throw new IllegalArgumentException("MatchingEngine requires a working application context.");
+        }
+        ensureSessionCookie();
+
+        return QosPrioritySessionCreateRequest.newBuilder()
+                .setSessionCookie(mSessionCookie);
+    }
+
+    /*!
+     * Returns a builder for QosPrioritySessionDeleteRequest. Call build() after setting
+     * additional optional fields like session ID and profile name.
+     * \param context (android.content.Context)
+     * \return QosPrioritySessionDeleteRequest.Builder
+     * \ingroup functions_dmeapis
+     * \section createdefappinstexample Example
+     * \snippet EngineCallTest.java createdefappinstexample
+     */
+    public AppClient.QosPrioritySessionDeleteRequest.Builder createDefaultQosPrioritySessionDeleteRequest(Context context) {
+        if (!mMatchingEngineLocationAllowed) {
+            Log.e(TAG, "Location Permission required to Delete DefaultQosPrioritySessionDeleteRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
+            return null;
+        }
+        if (context == null) {
+            throw new IllegalArgumentException("MatchingEngine requires a working application context.");
+        }
+        ensureSessionCookie();
+
+        return QosPrioritySessionDeleteRequest.newBuilder()
+                .setSessionCookie(mSessionCookie);
+    }
+
+    /*!
      * @private
      * \ingroup functions_dmeapis
      */
@@ -2016,6 +2066,142 @@ public class MatchingEngine {
         QosPositionKpi qosPositionKpi = new QosPositionKpi(this);
         qosPositionKpi.setRequest(request, host, port, timeoutInMilliseconds);
         return submit(qosPositionKpi);
+    }
+
+    /*!
+     * Creates a QOS priority session via the DME. Returns a QosPrioritySessionReply.
+     * \param request (QosPrioritySessionCreateRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \return Future<QosPrioritySessionReply>
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
+     */
+    public QosPrioritySessionReply qosPrioritySessionCreate(QosPrioritySessionCreateRequest request,
+                                                            String host, int port,
+                                                            long timeoutInMilliseconds)
+            throws ExecutionException, InterruptedException {
+        QosPrioritySessionCreate qosPrioritySessionCreate = new QosPrioritySessionCreate(this);
+        qosPrioritySessionCreate.setRequest(request, host, port, timeoutInMilliseconds);
+        return qosPrioritySessionCreate.call();
+    }
+
+    /*!
+     * Creates a QOS priority session via the DME. Returns a QosPrioritySessionReply.
+     * \param request (QosPrioritySessionCreateRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<QosPrioritySessionReply>
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
+     */
+    public QosPrioritySessionReply qosPrioritySessionCreate(QosPrioritySessionCreateRequest request,
+                                                            long timeoutInMilliseconds)
+            throws ExecutionException, InterruptedException {
+        QosPrioritySessionCreate qosPrioritySessionCreate = new QosPrioritySessionCreate(this);
+        qosPrioritySessionCreate.setRequest(request, host, port, timeoutInMilliseconds);
+        return qosPrioritySessionCreate.call();
+    }
+
+    /*!
+     * Creates a QOS priority session via the DME. Returns a Future.
+     * \param request (QosPrioritySessionCreateRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<QosPrioritySessionReply>
+     * \ingroup functions_dmeapis
+     */
+    public Future<QosPrioritySessionReply> qosPrioritySessionCreateFuture(QosPrioritySessionCreateRequest request,
+                                                                          long timeoutInMilliseconds) {
+        QosPrioritySessionCreate qosPrioritySessionCreate = new QosPrioritySessionCreate(this);
+        qosPrioritySessionCreate.setRequest(request, host, port, timeoutInMilliseconds);
+        return submit(qosPrioritySessionCreate);
+    }
+
+    /*!
+     * Creates a QOS priority session via the DME. Returns a Future.
+     * \param request (QosPrioritySessionCreateRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \return Future<QosPrioritySessionReply>
+     * \ingroup functions_dmeapis
+     */
+    public Future<QosPrioritySessionReply> qosPrioritySessionCreateFuture(QosPrioritySessionCreateRequest request,
+                                                                          String host, int port,
+                                                                          long timeoutInMilliseconds) {
+        QosPrioritySessionCreate qosPrioritySessionCreate = new QosPrioritySessionCreate(this);
+        qosPrioritySessionCreate.setRequest(request, host, port, timeoutInMilliseconds);
+        return submit(qosPrioritySessionCreate);
+    }
+
+    /*!
+     * Deletes a QOS priority session via the DME. Returns a QosPrioritySessionDeleteReply.
+     * \param request (QosPrioritySessionCreateRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \return Future<QosPrioritySessionReply>
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
+     */
+    public QosPrioritySessionDeleteReply qosPrioritySessionDelete(QosPrioritySessionDeleteRequest request,
+                                                                  String host, int port,
+                                                                  long timeoutInMilliseconds)
+            throws ExecutionException, InterruptedException {
+        QosPrioritySessionDelete qosPrioritySessionDelete = new QosPrioritySessionDelete(this);
+        qosPrioritySessionDelete.setRequest(request, host, port, timeoutInMilliseconds);
+        return qosPrioritySessionDelete.call();
+    }
+
+    /*!
+     * Deletes a QOS priority session via the DME. Returns a QosPrioritySessionDeleteReply.
+     * \param request (QosPrioritySessionCreateRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<QosPrioritySessionReply>
+     * \exception InterruptedException
+     * \exception ExecutionException
+     * \ingroup functions_dmeapis
+     */
+    public QosPrioritySessionDeleteReply qosPrioritySessionDelete(QosPrioritySessionDeleteRequest request,
+                                                                  long timeoutInMilliseconds)
+            throws ExecutionException, InterruptedException {
+        QosPrioritySessionDelete qosPrioritySessionDelete = new QosPrioritySessionDelete(this);
+        qosPrioritySessionDelete.setRequest(request, host, port, timeoutInMilliseconds);
+        return qosPrioritySessionDelete.call();
+    }
+
+    /*!
+     * Deletes a QOS priority session via the DME. Returns a Future.
+     * \param request (QosPrioritySessionCreateRequest)
+     * \param host (String): Distributed Matching Engine hostname
+     * \param port (int): Distributed Matching Engine port
+     * \param timeoutInMilliseconds (long)
+     * \return Future<QosPrioritySessionReply>
+     * \ingroup functions_dmeapis
+     */
+    public Future<QosPrioritySessionDeleteReply> qosPrioritySessionDeleteFuture(QosPrioritySessionDeleteRequest request,
+                                                                                String host, int port,
+                                                                                long timeoutInMilliseconds) {
+        QosPrioritySessionDelete qosPrioritySessionDelete = new QosPrioritySessionDelete(this);
+        qosPrioritySessionDelete.setRequest(request, host, port, timeoutInMilliseconds);
+        return submit(qosPrioritySessionDelete);
+    }
+
+    /*!
+     * Deletes a QOS priority session via the DME. Returns a Future.
+     * \param request (QosPrioritySessionCreateRequest)
+     * \param timeoutInMilliseconds (long)
+     * \return Future<QosPrioritySessionReply>
+     * \ingroup functions_dmeapis
+     */
+    public Future<QosPrioritySessionDeleteReply> qosPrioritySessionDeleteFuture(QosPrioritySessionDeleteRequest request,
+                                                                                long timeoutInMilliseconds) {
+        QosPrioritySessionDelete qosPrioritySessionDelete = new QosPrioritySessionDelete(this);
+        qosPrioritySessionDelete.setRequest(request, host, port, timeoutInMilliseconds);
+        return submit(qosPrioritySessionDelete);
     }
 
     // Combination Convenience methods:
