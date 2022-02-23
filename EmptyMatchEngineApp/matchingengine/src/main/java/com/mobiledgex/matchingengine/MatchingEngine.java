@@ -890,63 +890,6 @@ public class MatchingEngine {
     }
 
     /*!
-     * Optional Parameter cellular ID. This may be different between Cellular type (LTE, 5G, etc.)
-     * \param context (android.content.Context)
-     * \return List<Pair<String, Long>>: List of CellInfo simpleNames with the corresponding normalized long CellId. Could
-     *         be empty.
-     * \throws SecurityException if GET_PHONE_STATE missing.
-     * \ingroup functions_dmeutils
-     */
-    @Deprecated
-    public List<Pair<String, Long>> retrieveCellId(Context context) throws SecurityException {
-        TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-
-        List<Pair<String, Long>> list = new ArrayList<>();
-        long cid;
-        for (CellInfo cellInfo : telManager.getAllCellInfo()) {
-            Pair<String, Long> cellIdentityPair = null;
-            if (!cellInfo.isRegistered()) {
-                continue;
-            }
-            try {
-                if (Build.VERSION.SDK_INT >= 29 && cellInfo instanceof CellInfoNr) { // Q
-                    CellIdentityNr cellIdentityNr = (CellIdentityNr)((CellInfoNr)cellInfo).getCellIdentity();
-                    cid = cellIdentityNr.getNci();
-                    cellIdentityPair = new Pair(cellIdentityNr.getClass().getSimpleName(), cid);
-                } else if (Build.VERSION.SDK_INT >= 29 && cellInfo instanceof CellInfoTdscdma) {
-                    CellIdentityTdscdma cellIdentityTdscdma = ((CellInfoTdscdma)cellInfo).getCellIdentity();
-                    cid = cellIdentityTdscdma.getCid();
-                    cellIdentityPair = new Pair(cellIdentityTdscdma.getClass().getSimpleName(), cid);
-                } else if (cellInfo instanceof CellInfoLte) {
-                    CellIdentityLte cellIdentityLte = ((CellInfoLte)cellInfo).getCellIdentity();
-                    cid = cellIdentityLte.getCi();
-                    cellIdentityPair = new Pair(cellIdentityLte.getClass().getSimpleName(), cid);
-                } else if (cellInfo instanceof CellInfoGsm) {
-                    CellIdentityGsm cellIdentityGsm = ((CellInfoGsm)cellInfo).getCellIdentity();
-                    cid = cellIdentityGsm.getCid();
-                    cellIdentityPair = new Pair(cellIdentityGsm.getClass().getSimpleName(), cid);
-                } else if (cellInfo instanceof CellInfoWcdma) {
-                    CellIdentityWcdma cellIdentityWcdma = ((CellInfoWcdma)cellInfo).getCellIdentity();
-                    cid = cellIdentityWcdma.getCid();
-                    cellIdentityPair = new Pair(cellIdentityWcdma.getClass().getSimpleName(), cid);
-                } else if (cellInfo instanceof CellInfoCdma) {
-                    CellIdentityCdma cellIdentityCdma = ((CellInfoCdma)cellInfo).getCellIdentity();
-                    cid = cellIdentityCdma.getBasestationId();
-                    cellIdentityPair = new Pair(cellIdentityCdma.getClass().getSimpleName(), cid);
-                }
-
-                if (cellIdentityPair != null) {
-                    list.add(cellIdentityPair);
-                }
-            } catch (NullPointerException npe) {
-                continue;
-            }
-        }
-
-        return list;
-    }
-
-    /*!
      * GenerateDmeHostAddress
      * This will generate the dme host name based on GetMccMnc() -> "mcc-mnc.dme.mobiledgex.net".
      * If GetMccMnc fails or returns null, this will return a fallback dme host: "wifi.dme.mobiledgex.net"(this is the EU + TDG DME).
@@ -1253,15 +1196,6 @@ public class MatchingEngine {
 
         String carrierName = getCarrierName(context);
         Loc aLoc = androidLocToMeLoc(location);
-
-        List<Pair<String, Long>> ids = retrieveCellId(context);
-        long cellId = 0;
-        if (ids.size() > 0) {
-            // FIXME: Need a preference, as we can't guess here.
-            if (ids.size() > 0) {
-                cellId = ids.get(0).second;
-            }
-        }
 
         VerifyLocationRequest.Builder builder = AppClient.VerifyLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
