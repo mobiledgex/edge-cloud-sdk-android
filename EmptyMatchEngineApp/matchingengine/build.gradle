@@ -22,7 +22,7 @@ android {
         minSdkVersion 24
         targetSdkVersion 31
         versionCode 27
-        versionName "3.0.9"
+        versionName "3.0.10"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -154,6 +154,8 @@ doxygen {
     source              new File(projectDir,'src/main/java/com/mobiledgex/matchingengine'), new File(projectDir, '../doxygen/src/DoxygenModules.txt')
     outputDir           new File(projectDir,'../../')
     exclude             'build/'
-    file_paterns        '*.java', '*.class','*.md'
     recursive           true
+    executables {
+        doxygen path : '/usr/local/bin/doxygen'
+    }
 }
