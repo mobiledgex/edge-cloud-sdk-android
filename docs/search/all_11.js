@@ -1,6 +1,8 @@
 var searchData=
 [
-  ['validatepublicport_142',['validatePublicPort',['../group__functions__getconnectionutils.html#ga8ebc52af24d2c8b587250e79ed4dc3c7',1,'com::mobiledgex::matchingengine::AppConnectionManager']]],
-  ['verifylocation_143',['verifyLocation',['../group__functions__dmeapis.html#gaa7de1b379a29d24137562ea61c64066b',1,'com.mobiledgex.matchingengine.MatchingEngine.verifyLocation(VerifyLocationRequest request, long timeoutInMilliseconds)'],['../group__functions__dmeapis.html#ga6f645b849548c5b607b12346bc8c199f',1,'com.mobiledgex.matchingengine.MatchingEngine.verifyLocation(VerifyLocationRequest request, String host, int port, long timeoutInMilliseconds)']]],
-  ['verifylocationfuture_144',['verifyLocationFuture',['../group__functions__dmeapis.html#ga8d597525a9c7a2c72ec06918c9ec5727',1,'com.mobiledgex.matchingengine.MatchingEngine.verifyLocationFuture(VerifyLocationRequest request, long timeoutInMilliseconds)'],['../group__functions__dmeapis.html#gaa488ffe2e4fb55f616585f0084d34588',1,'com.mobiledgex.matchingengine.MatchingEngine.verifyLocationFuture(VerifyLocationRequest request, String host, int port, long timeoutInMilliseconds)']]]
+  ['updateconfig_0',['UpdateConfig',['../classcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_update_config.html',1,'com::mobiledgex::matchingengine::edgeeventsconfig']]],
+  ['updateintervalseconds_1',['updateIntervalSeconds',['../classcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_update_config.html#aa47ce52506e332c393fd9b061e85cc9c',1,'com::mobiledgex::matchingengine::edgeeventsconfig::UpdateConfig']]],
+  ['updatepattern_2',['updatePattern',['../classcom_1_1mobiledgex_1_1matchingengine_1_1edgeeventsconfig_1_1_update_config.html#a56e5f7e851398d9bc2169d83ed4800b6',1,'com::mobiledgex::matchingengine::edgeeventsconfig::UpdateConfig']]],
+  ['utility_20classes_3',['Utility Classes',['../group__classes__util.html',1,'']]],
+  ['utility_20exceptions_4',['Utility Exceptions',['../group__exceptions__util.html',1,'']]]
 ];

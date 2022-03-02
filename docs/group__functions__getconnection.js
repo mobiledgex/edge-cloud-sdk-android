@@ -1,7 +1,7 @@
 var group__functions__getconnection =
 [
-    [ "getHttpClient", "group__functions__getconnection.html#ga736cee5942e4bd4b91044e2cbc1921a6", null ],
-    [ "getTcpSocket", "group__functions__getconnection.html#ga6e23bdd546c619ad5cf2155d3e079a0f", null ],
-    [ "getTcpSslSocket", "group__functions__getconnection.html#ga47643c7212c173e1a4fc336c188ec8a1", null ],
-    [ "getUdpSocket", "group__functions__getconnection.html#gafa7333ec0d98d5a814249408e3c27c46", null ]
+    [ "com.mobiledgex.matchingengine.AppConnectionManager.getHttpClient", "group__functions__getconnection.html#ga0c2bdc7ff0212c6fb50392288f84a17e", null ],
+    [ "com.mobiledgex.matchingengine.AppConnectionManager.getTcpSocket", "group__functions__getconnection.html#ga9a5d3a68c2a69d8a51022333cd8792f5", null ],
+    [ "com.mobiledgex.matchingengine.AppConnectionManager.getTcpSslSocket", "group__functions__getconnection.html#gae843fd84a164195258084d35be2884d2", null ],
+    [ "com.mobiledgex.matchingengine.AppConnectionManager.getUdpSocket", "group__functions__getconnection.html#ga35f2b1d0e4b83cb805b5b447577af0fa", null ]
 ];
