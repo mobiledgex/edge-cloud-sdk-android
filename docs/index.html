@@ -182,7 +182,8 @@ Setup EdgeEvents</h2>
 <div class="line">            backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; <span class="comment">// The default is 30.</span></div>
 <div class="line">            backgroundEdgeEventsConfig.latencyThresholdTrigger = 186;</div>
 <div class="line"> </div>
-</div><!-- fragment --><p >Once defined, you can start monitoring with the following. Monitoring starts when the first successful FIND_FOUND FindCloudlet Reply is returned in the next few lines of code. </p><div class="fragment"><div class="line">            me.startEdgeEvents(backgroundEdgeEventsConfig);</div>
+</div><!-- fragment --><p> Note that there are 2 configurations set. A application should use only one config, after deciding between performance testing (latencyUpdateConfig), or proximity based (locationUpdateConfig) newCloudlet updates. To use LocationUpdateConfig, where server pushes newCloudlet updates, simply set latencyUpdateConfig = null.</p>
+<p >Once defined, you can start monitoring with the following. Monitoring starts when the first successful FIND_FOUND FindCloudlet Reply is returned in the next few lines of code. </p><div class="fragment"><div class="line">            me.startEdgeEvents(backgroundEdgeEventsConfig);</div>
 </div><!-- fragment --><h2><a class="anchor" id="register_and_findcloudlet"></a>
 Register and FindCloudlet</h2>
 <p >Many of these methods have asynchronous Futures versions. The blocking versions below should only be run inside something like a CompletableFuture so that the UI thread is not stuck waiting for a network response. The SDK will also print warnings if running on the UI thread. If you don't have a location service running, see the "Location Callback Example" section.</p>
