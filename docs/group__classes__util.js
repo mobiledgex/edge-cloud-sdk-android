@@ -1,98 +1,44 @@
 var group__classes__util =
 [
-    [ "ChannelIterator", "classcom_1_1mobiledgex_1_1matchingengine_1_1_channel_iterator.html", [
-      [ "ChannelIterator", "classcom_1_1mobiledgex_1_1matchingengine_1_1_channel_iterator.html#a39fe4b339892e84c3d76f13704eb4bf4", null ],
-      [ "hasNext", "classcom_1_1mobiledgex_1_1matchingengine_1_1_channel_iterator.html#af2835082d8d39c1bc7c17e6b66165fea", null ],
-      [ "next", "classcom_1_1mobiledgex_1_1matchingengine_1_1_channel_iterator.html#a1170a963b3bd34759e118ef3c565ad21", null ],
-      [ "remove", "classcom_1_1mobiledgex_1_1matchingengine_1_1_channel_iterator.html#a51d055eb9e4ffb1f715b38fcbb86db26", null ],
+    [ "com.mobiledgex.matchingengine.ChannelIterator< T >", "classcom_1_1mobiledgex_1_1matchingengine_1_1_channel_iterator.html", [
       [ "shutdown", "classcom_1_1mobiledgex_1_1matchingengine_1_1_channel_iterator.html#ab162aa33cd8381a501082e33c3411510", null ]
     ] ],
-    [ "RequestPermissions", "classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_request_permissions.html", [
-      [ "getNeededPermissions", "classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_request_permissions.html#a79eda2558367667727b4547cd5dfe972", null ],
-      [ "onRequestPermissionsResult", "classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_request_permissions.html#a25f9256ad3f17967568fdabbecf67663", null ],
-      [ "requestMultiplePermissions", "classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_request_permissions.html#a50ec1aca8356d3494a9b612e3e2f9db8", null ]
+    [ "com.mobiledgex.matchingengine.util.RequestPermissions", "classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_request_permissions.html", [
+      [ "onRequestPermissionsResult", "classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_request_permissions.html#a25f9256ad3f17967568fdabbecf67663", null ]
     ] ],
-    [ "MeLocation", "classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_me_location.html", [
-      [ "MeLocation", "classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_me_location.html#a222c6d51e413677e4a9e824bea13c673", null ],
+    [ "com.mobiledgex.matchingengine.util.MeLocation", "classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_me_location.html", [
       [ "getBlocking", "classcom_1_1mobiledgex_1_1matchingengine_1_1util_1_1_me_location.html#a1cc272288a13ac4ed34af1f4bb56faa8", null ]
     ] ],
-    [ "NetworkManager", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html", [
+    [ "com.mobiledgex.matchingengine.NetworkManager", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html", [
       [ "getActiveNetwork", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a9b0ad2bc2e69c5cd04cb786dcb2c3a07", null ],
-      [ "getActiveSubscriptionInfoList", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a91b3223f6162c329c35e9198a83982f5", null ],
-      [ "getBluetoothNetworkRequest", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a3ea74b2f7ca76a0e225a4a2350fa7d5b", null ],
-      [ "getCellularNetworkBlocking", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#ab68cf8bb6135b7a74c9b4ebe32e990ec", null ],
-      [ "getCellularNetworkOrWifiBlocking", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#adb7b62ccbffdb510d96c725879c50abf", null ],
-      [ "getCellularNetworkRequest", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#abc76a34be3d49eefcbe45281108201c6", null ],
-      [ "getEthernetNetworkRequest", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#afa2b71373710df63f795551c00c8a672", null ],
-      [ "getNetworkActiveTimeoutMilliseconds", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#aa11fb703ae2c32f0b9ee05dcf713c6ab", null ],
-      [ "getTimeout", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a364215e4613763e07b9fadcc98d9645d", null ],
-      [ "getWiFiAwareNetworkRequest", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#abeeb9175153fda91a92d2e4d45883573", null ],
-      [ "getWifiNetworkRequest", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a133da37eb5c248b86897248c2cfec1d5", null ],
-      [ "isAllowSwitchIfNoSubscriberInfo", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a19fb6a23f1aa9ab438298741176341c3", null ],
-      [ "isCurrentNetworkInternetCellularDataCapable", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#af300ba2668c6ab0cef41b917892a94cf", null ],
-      [ "isNetworkInternetCellularDataCapable", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#afe1bab5caa6ffb6b78bf544f28948467", null ],
-      [ "isNetworkSwitchingEnabled", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#ad3a3831d840d130f35c79dc413b0d854", null ],
-      [ "isSSLEnabled", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a3f07c8a3ae7986e1dee1c023d345e21b", null ],
       [ "onSubscriptionsChanged", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a260b9693543ac61609fa0549bbcc964a", null ],
       [ "requestCellularNetwork", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#ab7601e5527946231609d7ff2a2ea5802", null ],
       [ "resetNetworkToDefault", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a17939379441681d9fae0ce330b6c3d5e", null ],
-      [ "setAllowSwitchIfNoSubscriberInfo", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#aae3b816f7b263c049f6c2ba550d4c95e", null ],
       [ "setDefaulNetwork", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a29e900338aeffaf544af839418aa71fc", null ],
-      [ "setNetworkActiveTimeoutMilliseconds", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#ab786342b896b9b0d6bf4681ad5137ab0", null ],
-      [ "setNetworkSwitchingEnabled", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a666f1f732340860457d037f6946a1a3a", null ],
-      [ "setTimeout", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a2214625f677a6870b7e98a3bfb10a3f3", null ],
       [ "switchToCellularInternetNetworkBlocking", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#ae15a36664af7cf1dca2207d15fd92a09", null ],
-      [ "switchToCellularInternetNetworkFuture", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#ab6e9fd558c8defd7e1b1b1ca9f0dd9cc", null ],
+      [ "switchToCellularInternetNetworkFuture", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a2eda8e05839d378fd25ca8c6a8278bc8", null ],
       [ "switchToNetwork", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a247445c81463a093e82270227668b696", null ],
       [ "switchToNetworkBlocking", "classcom_1_1mobiledgex_1_1matchingengine_1_1_network_manager.html#a60933632fd6bd8e6e376291d7e012b9c", null ]
     ] ],
-    [ "NetTest", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html", [
-      [ "TestType", "enumcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test_1_1_test_type.html", [
-        [ "CONNECT", "enumcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test_1_1_test_type.html#a29b1155d12cda8256837592fbd12c524", null ],
-        [ "PING", "enumcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test_1_1_test_type.html#a4c2e291ca4020a29e6ea12d66704061a", null ]
-      ] ],
+    [ "com.mobiledgex.matchingengine.performancemetrics.NetTest", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html", [
+      [ "TestType", "enumcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test_1_1_test_type.html", null ],
       [ "NetTest", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#abfdf7eb72011241024ac28f4d4ae5395", null ],
-      [ "addSite", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a8fc99fa642e8c092e3e0baa48ca1e89f", null ],
       [ "bestSite", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a62078904e7851903c432dd5712e13eb6", null ],
       [ "ConnectAndDisconnect", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ad32da5115932bb99af0dba34b6c197e1", null ],
       [ "ConnectAndDisconnectHostAndPort", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a8c044d41406526f02bddc78a679a51ac", null ],
-      [ "doTest", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ad5f981a3e2d1aa3dba5f4666d5e11a05", null ],
-      [ "getSite", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a15446de0fdd9db38f3ea71d3a17a4246", null ],
-      [ "getSiteComparator", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ac8c0908a258ccd0ffc8f35658d9e1a71", null ],
       [ "Ping", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ac8753a5c221bd25dba02368505240463", null ],
       [ "RunNetTest", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a4284120d8fe157f79a02617f315cb10b", null ],
       [ "setExecutorService", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a0936ea4df597210e1b09eff63429b4f6", null ],
-      [ "setSiteComparator", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#af4a203723a688a39f5a32475c4a15561", null ],
-      [ "sortedSiteList", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a237bbf4d60336b9b9e55eb0c5c7b6f85", null ],
-      [ "testSite", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a30f03bbb3f5583776b090ba0ed38d1b7", null ],
+      [ "sortedSiteList", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#aff41e4f20ed81ad39a6405473c14dd1f", null ],
       [ "testSites", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ade5ddd599bbc53eff323be2a221dd836", null ],
-      [ "testSitesOnExecutor", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ac09d32af91a2fca7f977a8666f3636fa", null ],
-      [ "runTest", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ab11ae2683fde162e2baf78c98fd641fd", null ],
-      [ "TestIntervalMS", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#afe0e73f9a555a238c889b8eeef6f1277", null ],
-      [ "testRounds", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#aa125ae19ce5db246ca6da8749a2e40ca", null ],
-      [ "TestTimeoutMS", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#a6f11fd38ea115504cc0a16003ec2c297", null ]
+      [ "testSitesOnExecutor", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_net_test.html#ac09d32af91a2fca7f977a8666f3636fa", null ]
     ] ],
-    [ "Site", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html", [
+    [ "com.mobiledgex.matchingengine.performancemetrics.Site", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html", [
       [ "Site", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#af10b10244fc27b7205ac680bb27fa262", null ],
       [ "Site", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#aa320db7fbfed29dc3075c755dc290721", null ],
-      [ "addSample", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#aad06ca25ec0345e51f21fd529c7c236f", null ],
-      [ "hasSuccessfulTests", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a72032404ca13115799a67c08e7fed325", null ],
       [ "max", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#aafb89936e6f99ab6f812a4185afd10e2", null ],
       [ "min", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a9d1d424468a55404b7cd2977e2b3f4d2", null ],
-      [ "recalculateStats", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a1519e25df8163d985a1821420f96b628", null ],
-      [ "sameSite", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a1d2aecb33458ee4035015424208ca3c7", null ],
       [ "setAppinstance", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a913e265f442dbe1d712a54d4665d1a01", null ],
-      [ "setCloudletLocation", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#ade92c156186a359fe912ad2e0b2c2185", null ],
-      [ "appInstance", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a2697bd2a3a4fa8ee9c806113f8f4dccb", null ],
-      [ "average", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#aa46a9d08c5aedd0221cf4f57a4c4ca49", null ],
-      [ "cloudlet_location", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a7a3257a8c7ede861c60af060f0af7204", null ],
-      [ "host", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a2628cde0b14918707c908d2fac7a02e6", null ],
-      [ "L7Path", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#ac17b556837c130b7584f0298dc5c8e42", null ],
-      [ "lastPingMs", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a31b9cdaabbee3eb089c784a36d2c0a67", null ],
-      [ "network", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a29fe823ee5214c1b254c2a4fb0b11433", null ],
-      [ "port", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a73b4c54e748be8c184ee350561f3e9cb", null ],
-      [ "samples", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a0c5ce84e46b20cb0a860c3e7aafe2d23", null ],
-      [ "stddev", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a7d021643d671a5417d214f1e97456da5", null ],
-      [ "testType", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#a680f50e4af8f6ae8e7e2b111cbc662cf", null ]
+      [ "setCloudletLocation", "classcom_1_1mobiledgex_1_1matchingengine_1_1performancemetrics_1_1_site.html#ade92c156186a359fe912ad2e0b2c2185", null ]
     ] ]
 ];

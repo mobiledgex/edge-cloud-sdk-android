@@ -1113,8 +1113,7 @@ public class MatchingEngine {
     public RegisterClientRequest createRegisterClientRequest(Context context, String organizationName,
                                                              String applicationName, String appVersion,
                                                              String authToken,
-                                                             int cellId, String uniqueIdType,
-                                                             String uniqueId, Map<String, String> tags)
+                                                             Map<String, String> tags)
             throws PackageManager.NameNotFoundException
     {
         if (!mMatchingEngineLocationAllowed) {
@@ -1157,11 +1156,6 @@ public class MatchingEngine {
 
         if (tags != null) {
             builder.putAllTags(tags);
-        }
-
-        if (uniqueId != null && uniqueId.length() > 0) {
-            builder.setUniqueIdType(uniqueIdType); // Let server handle it, should not be null.
-            builder.setUniqueId(uniqueId);
         }
 
         return builder.build();
@@ -1657,7 +1651,7 @@ public class MatchingEngine {
 
     /*!
      * verifyLocation validates the client submitted information against known network
-     * Makes sure that the user's location is not spoofed based on cellID and gps location.
+     * Makes sure that the user's location is not spoofed based on gps location.
      * Returns the Cell Tower status (CONNECTED_TO_SPECIFIED_TOWER if successful) and Gps Location status (LOC_VERIFIED if successful).
      * Also provides the distance between where the user claims to be and where carrier believes user to be (via gps and cell id) in km.
      * parameters on the subscriber network side.
@@ -2113,7 +2107,6 @@ public class MatchingEngine {
      * \param appVersion (String)
      * \param location (android.location.Location)
      * \param authToken (String)
-     * \param cellId (int)
      * \param tags (Map<String, String>)
      * \param mode (FindCloudletMode): FindCloudletMode performance rated mode, or proximity mode.
      * \return Future<FindCloudletReply>
@@ -2125,7 +2118,6 @@ public class MatchingEngine {
                                                              final String appVersion,
                                                              final Location location,
                                                              final String authToken,
-                                                             final int cellId,
                                                              final Map<String, String> tags,
                                                              final FindCloudletMode mode) {
         final MatchingEngine me = this;
@@ -2167,54 +2159,6 @@ public class MatchingEngine {
     }
 
     /*!
-     * Register and FindCloudlet to get FindCloudletReply for cloudlet AppInsts info all at once:
-     * \ingroup functions_dmeapis
-     */
-    public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
-                                                             final String organizationName,
-                                                             final String applicationName,
-                                                             final String appVersion,
-                                                             final Location location,
-                                                             final String authToken,
-                                                             final int cellId,
-                                                             final String uniqueIdType,
-                                                             final String uniqueId,
-                                                             final Map<String, String> tags,
-                                                             final FindCloudletMode mode) {
-
-        final MatchingEngine me = this;
-
-        Callable<FindCloudletReply> future = new Callable<FindCloudletReply>() {
-            @Override
-            public FindCloudletReply call() throws Exception {
-                RegisterClientRequest registerClientRequest = createRegisterClientRequest(context,
-                        organizationName, applicationName, appVersion, authToken, cellId, uniqueIdType, uniqueId, tags);
-
-                RegisterClientReply registerClientReply = me.registerClient(registerClientRequest, me.getNetworkManager().getTimeout());
-
-                if (registerClientReply == null) {
-                    return null;
-                }
-
-                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location);
-                if (tags != null) {
-                    findCloudletRequestBuilder.putAllTags(tags);
-                }
-                FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
-                FindCloudletMode useMode = mode;
-                if (useMode == null) {
-                    useMode = FindCloudletMode.PROXIMITY;
-                }
-                FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, me.getNetworkManager().getTimeout(), useMode);
-
-                return findCloudletReply;
-            }
-        };
-
-        return threadpool.submit(future);
-    }
-
-    /*!
      * Register and FindCloudlet with DME host and port parameters, to get FindCloudletReply for cloudlet AppInsts info all at once:
      * \ingroup functions_dmeapis
      * \section registerandfindoverrideexample Example
@@ -2228,9 +2172,6 @@ public class MatchingEngine {
                                                              final String appVersion,
                                                              final Location location,
                                                              final String authToken,
-                                                             final int cellId,
-                                                             final String uniqueIdType,
-                                                             final String uniqueId,
                                                              final Map<String, String> tags,
                                                              final FindCloudletMode mode) {
 
@@ -2240,7 +2181,7 @@ public class MatchingEngine {
             @Override
             public FindCloudletReply call() throws Exception {
                 RegisterClientRequest registerClientRequest = createRegisterClientRequest(context,
-                        organizationName, applicationName, appVersion, authToken, cellId, uniqueIdType, uniqueId, tags);
+                        organizationName, applicationName, appVersion, authToken, tags);
 
                 RegisterClientReply registerClientReply = me.registerClient(registerClientRequest,
                         host, port, me.getNetworkManager().getTimeout());
