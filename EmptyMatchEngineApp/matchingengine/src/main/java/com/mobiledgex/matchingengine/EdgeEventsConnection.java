@@ -426,6 +426,11 @@ public class EdgeEventsConnection {
             mEdgeEventsConfig = new EdgeEventsConfig(eeConfig);
         }
 
+        if (mEdgeEventsConfig.latencyUpdateConfig != null &&
+                mEdgeEventsConfig.locationUpdateConfig != null) {
+            Log.w(TAG, "EdgeEventsConfig has more than one config specified! Only one config of LatencyUpdateConfig or LocationUpdateConfig should be passed in.");
+        }
+
         if (host != null && port > 0) {
             lastConnectionDetails.host = host;
             lastConnectionDetails.port = port;

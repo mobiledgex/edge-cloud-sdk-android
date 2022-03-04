@@ -99,14 +99,14 @@ public class EngineCallTest {
 
     // There's no clear way to get this programmatically outside the app signing certificate, and may
     // not be required in the future.
-    public static final String organizationName = "MobiledgeX"; // May be MobiledgeX-Samples test org as well.
+    public static final String organizationName = "automation_dev_org"; // May be MobiledgeX-Samples test org as well.
     // Other globals:
-    public static final String applicationName = "sdktest";
-    public static final String appVersion = "9.0";
+    public static final String applicationName = "automation-sdk-porttest";
+    public static final String appVersion = "1.0";
 
     FusedLocationProviderClient fusedLocationClient;
 
-    public static String hostOverride = "192.168.1.172"; // Change this to: your local infra IP, eu-stage.dme, us-stage.dme.mobiledgex.net, etc.
+    public static String hostOverride = "us-qa.dme.mobiledgex.net"; // Change this to: your local infra IP, eu-stage.dme, us-stage.dme.mobiledgex.net, etc.
     public static int portOverride = 50051;
     public static String findCloudletCarrierOverride = ""; // Allow "Any" if using "", but this likely breaks test cases.
 
@@ -395,7 +395,6 @@ public class EngineCallTest {
             AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
-                    //.setCellId(me.retrieveCellId(context).get(0).second.intValue())
                     .build();
             if (useHostOverride) {
                 reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
@@ -1722,7 +1721,7 @@ public class EngineCallTest {
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
                     organizationName, applicationName,
                     appVersion, location, "",
-                    0, null, null, null, MatchingEngine.FindCloudletMode.PROXIMITY); // FIXME: These parameters should be overloaded or optional.
+                    null, MatchingEngine.FindCloudletMode.PROXIMITY); // FIXME: These parameters should be overloaded or optional.
             //! [registerandfindoverrideexample]
             // Just wait:
             AppClient.FindCloudletReply findCloudletReply = findCloudletReplyFuture.get();
