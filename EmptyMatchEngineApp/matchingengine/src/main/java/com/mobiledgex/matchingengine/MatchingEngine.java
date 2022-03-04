@@ -34,19 +34,6 @@ import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 
 import android.telephony.CarrierConfigManager;
-import android.telephony.CellIdentityCdma;
-import android.telephony.CellIdentityGsm;
-import android.telephony.CellIdentityLte;
-import android.telephony.CellIdentityNr;
-import android.telephony.CellIdentityTdscdma;
-import android.telephony.CellIdentityWcdma;
-import android.telephony.CellInfo;
-import android.telephony.CellInfoCdma;
-import android.telephony.CellInfoGsm;
-import android.telephony.CellInfoLte;
-import android.telephony.CellInfoNr;
-import android.telephony.CellInfoTdscdma;
-import android.telephony.CellInfoWcdma;
 import android.telephony.SignalStrength;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
@@ -58,10 +45,6 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,7 +91,6 @@ import io.grpc.okhttp.OkHttpChannelBuilder;
 
 import android.content.pm.PackageInfo;
 import android.util.Log;
-import android.util.Pair;
 
 import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.EventBus;
@@ -175,7 +157,7 @@ public class MatchingEngine {
 
     private EdgeEventsConnection mEdgeEventsConnection;
     private EventBus mEdgeEventBus;
-    boolean mEnableEdgeEvents = true;
+    boolean mEnableEdgeEvents;
     EdgeEventsConfig mEdgeEventsConfig = null; // Developer's copy.
     boolean mAppInitiatedRunEdgeEvents = false;
 
@@ -358,26 +340,10 @@ public class MatchingEngine {
         }
     }
 
-    private CompletableFuture<Boolean> startEdgeEventsFuture(final String dmeHost,
-                                                                         final int dmePort,
-                                                                         final Network network,
-                                                                         final EdgeEventsConfig edgeEventsConfig) {
-        return CompletableFuture.supplyAsync(new Supplier<Boolean>() {
-            @Override
-            public Boolean get() {
-                try {
-                    return startEdgeEvents(dmeHost, dmePort, network, edgeEventsConfig);
-                } catch (DmeDnsException dde) {
-                    throw new CompletionException(dde);
-                }
-            }
-        });
-    }
-
-    synchronized private boolean startEdgeEvents(String dmeHost,
-                                                int dmePort,
-                                                Network network,
-                                                EdgeEventsConfig edgeEventsConfig) throws DmeDnsException {
+    synchronized boolean startEdgeEvents(String dmeHost,
+                                         int dmePort,
+                                         Network network,
+                                         EdgeEventsConfig edgeEventsConfig) throws DmeDnsException {
         warnIfUIThread();
         if (!mEnableEdgeEvents) {
             Log.w(TAG, "EdgeEvents has been disabled.");
@@ -388,7 +354,14 @@ public class MatchingEngine {
             Log.w(TAG, "Cannot start edgeEvents without a configuration. Doing nothing.");
             return false;
         } else {
-            mEdgeEventsConfig = new EdgeEventsConfig(edgeEventsConfig);
+            if (edgeEventsConfig != null) {
+                mEdgeEventsConfig = new EdgeEventsConfig(edgeEventsConfig);
+            }
+            else {
+                mEdgeEventsConfig = createDefaultEdgeEventsConfig();
+                mEdgeEventsConfig.locationUpdateConfig = null;
+                mEdgeEventsConfig.latencyUpdateConfig = null;
+            }
         }
 
         // This is an exposed path to start/restart EdgeEvents, state check everything.
@@ -405,7 +378,7 @@ public class MatchingEngine {
             Log.i(TAG, "EdgeEventsConnection is now started with: " + edgeEventsConfig);
         } else {
             Log.i(TAG, "EdgeEventsConnection will be restarted with: " + edgeEventsConfig);
-            mEdgeEventsConnection.reconnect(edgeEventsConfig);
+            mEdgeEventsConnection.reconnect(dmeHost, dmePort, network, edgeEventsConfig);
         }
         return true;
     }

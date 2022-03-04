@@ -39,7 +39,7 @@ dependencies {
     implementation 'com.google.guava:guava:29.0-android'
 
     // Use maven:
-    //implementation 'com.mobiledgex:matchingengine:3.0.11'
+    //implementation 'com.mobiledgex:matchingengine:3.0.12'
     // Dependencies of Matching Engine, if using Maven:
     implementation "io.grpc:grpc-stub:${grpcVersion}"
 
