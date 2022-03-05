@@ -157,7 +157,7 @@ public class MatchingEngine {
 
     private EdgeEventsConnection mEdgeEventsConnection;
     private EventBus mEdgeEventBus;
-    boolean mEnableEdgeEvents;
+    boolean mEnableEdgeEvents = true;
     EdgeEventsConfig mEdgeEventsConfig = null; // Developer's copy.
     boolean mAppInitiatedRunEdgeEvents = false;
 
@@ -174,7 +174,6 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-        mEnableEdgeEvents = true;
         mEdgeEventBus = new AsyncEventBus(threadpool);
         mEdgeEventsConnection = new EdgeEventsConnection(this, null);
     }
@@ -192,7 +191,6 @@ public class MatchingEngine {
         mAppConnectionManager = new AppConnectionManager(mNetworkManager, threadpool);
         mContext = context;
         mNetTest = new NetTest();
-        mEnableEdgeEvents = true;
         mEdgeEventBus = new AsyncEventBus(executorService);
         mEdgeEventsConnection = new EdgeEventsConnection(this, null);
     }
