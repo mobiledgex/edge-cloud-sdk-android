@@ -146,9 +146,9 @@ synchronized void&#160;</td><td class="memItemRight" valign="bottom"><b>setLastL
 <tr class="memitem:a24744a69d3f551ac5957363bc1f7a435"><td class="memItemLeft" align="right" valign="top"><a id="a24744a69d3f551ac5957363bc1f7a435" name="a24744a69d3f551ac5957363bc1f7a435"></a>
 boolean&#160;</td><td class="memItemRight" valign="bottom"><b>isShutdown</b> ()</td></tr>
 <tr class="separator:a24744a69d3f551ac5957363bc1f7a435"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8539dbaea395821ecdba82b624d20c89"><td class="memItemLeft" align="right" valign="top"><a id="a8539dbaea395821ecdba82b624d20c89" name="a8539dbaea395821ecdba82b624d20c89"></a>
-synchronized boolean&#160;</td><td class="memItemRight" valign="bottom"><b>send</b> (AppClient.ClientEdgeEvent clientEdgeEvent)</td></tr>
-<tr class="separator:a8539dbaea395821ecdba82b624d20c89"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a38422c890c1bfbd0718489682cc7233d"><td class="memItemLeft" align="right" valign="top"><a id="a38422c890c1bfbd0718489682cc7233d" name="a38422c890c1bfbd0718489682cc7233d"></a>
+synchronized boolean&#160;</td><td class="memItemRight" valign="bottom"><b>send</b> (final AppClient.ClientEdgeEvent clientEdgeEvent)</td></tr>
+<tr class="separator:a38422c890c1bfbd0718489682cc7233d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6ebddde8cebf412ec0449ca035146996"><td class="memItemLeft" align="right" valign="top">Location&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a6ebddde8cebf412ec0449ca035146996">getLocation</a> ()</td></tr>
 <tr class="separator:a6ebddde8cebf412ec0449ca035146996"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gafba5e6b5c12c52332b7b54031c3d0688"><td class="memItemLeft" align="right" valign="top">synchronized boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__edge__events__api.html#gafba5e6b5c12c52332b7b54031c3d0688">postLocationUpdate</a> (Location location)</td></tr>
@@ -172,9 +172,9 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:afa60cafa4c01a4161cd2c3b319fcdaf2"><td class="memItemLeft" align="right" valign="top"><a id="afa60cafa4c01a4161cd2c3b319fcdaf2" name="afa60cafa4c01a4161cd2c3b319fcdaf2"></a>
 final long&#160;</td><td class="memItemRight" valign="bottom"><b>OPEN_TIMEOUT_MS</b> = 10 * 1000</td></tr>
 <tr class="separator:afa60cafa4c01a4161cd2c3b319fcdaf2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3c94d0cf5c8b8fd4721332fcaa86b15c"><td class="memItemLeft" align="right" valign="top"><a id="a3c94d0cf5c8b8fd4721332fcaa86b15c" name="a3c94d0cf5c8b8fd4721332fcaa86b15c"></a>
-MatchEngineApiGrpc.MatchEngineApiStub&#160;</td><td class="memItemRight" valign="bottom"><b>asyncStub</b></td></tr>
-<tr class="separator:a3c94d0cf5c8b8fd4721332fcaa86b15c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6db1fc414ac0a4f65bec23572ebf7540"><td class="memItemLeft" align="right" valign="top"><a id="a6db1fc414ac0a4f65bec23572ebf7540" name="a6db1fc414ac0a4f65bec23572ebf7540"></a>
+boolean&#160;</td><td class="memItemRight" valign="bottom"><b>reconnectOnError</b> = true</td></tr>
+<tr class="separator:a6db1fc414ac0a4f65bec23572ebf7540"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
@@ -183,7 +183,7 @@ static final String&#160;</td><td class="memItemRight" valign="bottom"><b>TAG</b
 <tr class="separator:a77eedd99ab20e4522540fc0a91b7c895"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p ><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html">EdgeEventsConnection</a> provides a asynchronious bi-directional connection to the server side DME. </p>
+<div class="textblock"><p ><a class="el" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html">EdgeEventsConnection</a> provides a asynchronous bi-directional connection to the server side DME. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a4276bc805ff6b14d780a6016f38336a2" name="a4276bc805ff6b14d780a6016f38336a2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a4276bc805ff6b14d780a6016f38336a2">&#9670;&nbsp;</a></span>addEdgeEventsIntervalTask()</h2>
