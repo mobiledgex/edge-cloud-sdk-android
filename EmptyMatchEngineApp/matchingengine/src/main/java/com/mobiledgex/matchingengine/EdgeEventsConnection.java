@@ -38,7 +38,7 @@ import static distributed_match_engine.AppClient.ServerEdgeEvent.ServerEventType
 
 
 /**
- * EdgeEventsConnection provides a asynchronious bi-directional connection to the server side DME.
+ * EdgeEventsConnection provides a asynchronous bi-directional connection to the server side DME.
  * \ingroup classes
  */
 public class EdgeEventsConnection {
@@ -52,10 +52,11 @@ public class EdgeEventsConnection {
     public final long OPEN_TIMEOUT_MS = 10 * 1000;
     private long openTimeoutMs = OPEN_TIMEOUT_MS;
 
-    public MatchEngineApiGrpc.MatchEngineApiStub asyncStub;
+    MatchEngineApiGrpc.MatchEngineApiStub asyncStub;
 
     StreamObserver<AppClient.ClientEdgeEvent> sender;
     StreamObserver<AppClient.ServerEdgeEvent> receiver;
+    public boolean reconnectOnError = true;
 
     enum ChannelStatus {
         open,
@@ -212,7 +213,7 @@ public class EdgeEventsConnection {
      * EdgeEventsConnection is used to establish an asynchronous DME Connection for streamed EdgeEvents
      * to the current DME edge server.
      * \param me the parent MatchingEngine instance.
-     * \param eeConfig the configration to use, when the connection is up.
+     * \param eeConfig the configuration to use, when the connection is up.
      */
     EdgeEventsConnection(MatchingEngine me, EdgeEventsConfig eeConfig) {
         this.me = me;
@@ -486,11 +487,8 @@ public class EdgeEventsConnection {
                     me.getEdgeEventsBus().post(value);
                 }
 
-                if (channelStatus != ChannelStatus.open) {
-                    // Whatever it was, it's now open.
-                    channelStatus = ChannelStatus.open;
-                }
                 if (value.getEventType() == ServerEventType.EVENT_INIT_CONNECTION) {
+                    channelStatus = ChannelStatus.open;
                     notifyOpenAwaiter();
                     runEdgeEvents();
                 }
@@ -517,22 +515,40 @@ public class EdgeEventsConnection {
                 if (me.getEdgeEventsBus() != null) {
                     me.getEdgeEventsBus().post(EdgeEventsError.uninitializedEdgeEventsConnection);
                 }
-                Log.e("Message", "DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
+                if (reconnectOnError) {
+                    CompletableFuture.runAsync(() -> {
+                                try {
+                                    if (mEdgeEventsConfig.reconnectDelayMs > 0) {
+                                        Thread.sleep(mEdgeEventsConfig.reconnectDelayMs);
+                                    }
+                                    reconnect(mEdgeEventsConfig);
+                                } catch (DmeDnsException dde) {
+                                    Log.e(TAG, "Message: " + dde.getLocalizedMessage());
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Message: " + e.getLocalizedMessage() + " Exception. DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
+                                }
+                            }
+                            , me.threadpool);
+                }
             }
 
             @Override
             public void onCompleted() {
                 channelStatus = ChannelStatus.closed;
                 Log.i(TAG, "Stream closed.");
-
-                // Reopen DME connection.
-                try {
-                    reconnect(mEdgeEventsConfig);
-                } catch (DmeDnsException dde) {
-                    Log.e(TAG, "Message: " + dde.getLocalizedMessage());
-                } catch (Exception e) {
-                    Log.e(TAG, "Message: " + e.getLocalizedMessage() + " Exception. DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
-                }
+                CompletableFuture.runAsync(() -> {
+                            try {
+                                if (mEdgeEventsConfig.reconnectDelayMs > 0) {
+                                    Thread.sleep(mEdgeEventsConfig.reconnectDelayMs);
+                                }
+                                reconnect(mEdgeEventsConfig);
+                            } catch (DmeDnsException dde) {
+                                Log.e(TAG, "Message: " + dde.getLocalizedMessage());
+                            } catch (Exception e) {
+                                Log.e(TAG, "Message: " + e.getLocalizedMessage() + " Exception. DME Connection closed. A new client initiated FindCloudlet required for edge events stream.");
+                            }
+                        }
+                        , me.threadpool);
             }
         };
 
@@ -562,7 +578,7 @@ public class EdgeEventsConnection {
     /*!
      * Peer connection clear from onComplete, onError.
      */
-    void closeInternal() {
+    synchronized void closeInternal() {
         if (channelStatus == ChannelStatus.closed) {
             return;
         }
@@ -580,7 +596,7 @@ public class EdgeEventsConnection {
     /*!
      * Call this to shutdown EdgeEvents cleanly. Instance cannot be reopened.
      */
-    void close() {
+    synchronized void close() {
         if (!isShutdown()) {
             Log.d(TAG, "closing...");
             eventBusUnRegister();
@@ -627,12 +643,18 @@ public class EdgeEventsConnection {
         return channel.isShutdown();
     }
 
-    synchronized public boolean send(AppClient.ClientEdgeEvent clientEdgeEvent) {
+    synchronized public boolean send(final AppClient.ClientEdgeEvent clientEdgeEvent) {
 
         if (!me.isEnableEdgeEvents()) {
             Log.e(TAG, "EdgeEvents is disabled. Message is not sent.");
             return false;
         }
+
+        if (clientEdgeEvent == null) {
+            Log.e(TAG, "Cannot post empty message. Skipping.");
+            return false;
+        }
+
         // Submit from one thread to GRPC.
         CompletableFuture.runAsync(
                 () -> {
@@ -646,13 +668,24 @@ public class EdgeEventsConnection {
                             Log.w(TAG, "MatchingEngine is shutdown. Message is not Posted!");
                             return;
                         }
+                        if ((channelStatus == ChannelStatus.opening ||
+                                channelStatus == ChannelStatus.closing) &&
+                                clientEdgeEvent.getEventType() !=
+                                        AppClient.ClientEdgeEvent.ClientEventType.EVENT_INIT_CONNECTION)
+                        {
+                            Log.i(TAG, "Dropping message send until EdgeEventsConnection is initialized.");
+                            return;
+                        }
+
                         Log.d(TAG, "Received this event to post to server: " + clientEdgeEvent);
-                        if (isShutdown() && channelStatus != ChannelStatus.closing && channelStatus != ChannelStatus.closed) {
+                        if (channelStatus == ChannelStatus.closed) {
                             Log.d(TAG, "Reconnecting to post: Channel status: " + channelStatus);
                             reconnect(mEdgeEventsConfig);
                         }
                         if (sender != null) {
-                            sender.onNext(clientEdgeEvent);
+                            synchronized (sender) {
+                                sender.onNext(clientEdgeEvent);
+                            }
                             Log.d(TAG, "Posted!");
                         } else {
                             Log.d(TAG, "Sender does not exist. NOT Posted!");
@@ -1068,7 +1101,7 @@ public class EdgeEventsConnection {
 
     private void validateStartConfig(String host, EdgeEventsConfig edgeEventsConfig) {
         if (host == null || host.trim().isEmpty()) {
-            throw new IllegalArgumentException("Host canot be null!");
+            throw new IllegalArgumentException("Host cannot be null!");
         }
         if (edgeEventsConfig == null) {
             throw new IllegalArgumentException("Config cannot be null!");

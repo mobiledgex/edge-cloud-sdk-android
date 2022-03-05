@@ -285,13 +285,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             backgroundEdgeEventsConfig.latencyUpdateConfig.maxNumberOfUpdates = 0; // Default is 0, which means test forever.
             backgroundEdgeEventsConfig.latencyUpdateConfig.updateIntervalSeconds = 7; // The default is 30.
             backgroundEdgeEventsConfig.latencyThresholdTrigger = 186;
-
             //! [edgeevents_subscriber_setup_example]
-            //backgroundEdgeEventsConfig.latencyUpdateConfig = null;
-            //backgroundEdgeEventsConfig.locationUpdateConfig = null; // app driven.
 
             //! [startedgeevents_example]
-            me.startEdgeEvents(backgroundEdgeEventsConfig);
+            me.startEdgeEventsFuture(backgroundEdgeEventsConfig);
             //! [startedgeevents_example]
         }
 
@@ -745,6 +742,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     dmeHostAddress, port, 10000);
             Log.i(TAG, "closest Cloudlet is " + closestCloudlet);
             mLastFindCloudlet = closestCloudlet;
+            //me.startEdgeEventsFuture(me.createDefaultEdgeEventsConfig());
 
             if (closestCloudlet.getStatus() != AppClient.FindCloudletReply.FindStatus.FIND_FOUND) {
                 someText += "Cloudlet not found!";

@@ -33,6 +33,7 @@ public class EdgeEventsConfig {
 
     // Configure how to send events
     public int latencyInternalPort; //!< port information for latency testing. This is the AppPort's internal port, not public mapped port for current AppInst. Use 0 for selecting the first available port, favoring TCP.
+    public int reconnectDelayMs; // !< reconnect delay in milliseconds.
     public NetTest.TestType latencyTestType = NetTest.TestType.CONNECT; //!< TCP connect default. Use ping for UDP.
     public UpdateConfig latencyUpdateConfig; //!< config for latency updates
     public UpdateConfig locationUpdateConfig; //!< config for gps location updates
@@ -45,6 +46,7 @@ public class EdgeEventsConfig {
 
     public EdgeEventsConfig() {
         latencyInternalPort = 0;
+        reconnectDelayMs = 1000;
         latencyTestType = NetTest.TestType.CONNECT;
         latencyThresholdTrigger = 50;
         latencyTriggerTestMode = MatchingEngine.FindCloudletMode.PERFORMANCE;
