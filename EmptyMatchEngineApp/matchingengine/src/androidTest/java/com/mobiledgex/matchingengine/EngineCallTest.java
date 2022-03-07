@@ -56,6 +56,7 @@ import java.net.DatagramSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -358,7 +359,6 @@ public class EngineCallTest {
                     .setAppVers(appVersion);
             registerClientRequest = regRequestBuilder.build();
             if (useHostOverride) {
-                me.setSSLEnabled(false);
                 //! [registeroverrideexample]
                 registerReply = me.registerClient(registerClientRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
                 //! [registeroverrideexample]
@@ -1447,11 +1447,14 @@ public class EngineCallTest {
             assertTrue("AppPorts is empty!", appPorts.size() > 0);
 
             HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
-            AppPort one = portMap.get(8011); // This internal port depends entirely the AppInst configuration/Docker image.
+            // Unencrypted port:
+            AppPort one = portMap.get(2016); // This internal port depends entirely the AppInst configuration/Docker image.
             assertTrue("EndPort is expected to be 0 for this AppInst", one.getEndPort() == 0 );
             // The actual mapped Public port, or one between getPublicPort() to getEndPort(), inclusive.
             Future<Socket> fs = appConnect.getTcpSocket(findCloudletReply, one, one.getPublicPort(), (int)GRPC_TIMEOUT_MS);
             s = fs.get(); // Nothing to do. Await value.
+
+            assertTrue("Not connected!", s.isConnected());
 
             // Interface bound TCP socket.
 
@@ -1463,25 +1466,26 @@ public class EngineCallTest {
 
                 Object aMon = new Object(); // Some arbitrary object Monitor.
                 synchronized (aMon) {
-                    aMon.wait(1000);
+                    aMon.wait(200);
                 }
-
                 bis = new BufferedInputStream(s.getInputStream());
+                assertTrue("The InputStream not alive?", s.isInputShutdown() == false);
                 int available = bis.available();
                 assertTrue("No bytes available in response.", available > 0); // Probably true.
 
-                byte[] b = new byte[4096];
+                byte[] b = new byte[available];
                 int numRead = bis.read(b);
                 assertTrue("Didn't get response!", numRead > 0);
 
-                String output = new String(b);
+                String output = new String(b, StandardCharsets.UTF_8);
                 // Not an http client, so we're just going to get the substring of something stable:
                 boolean found = output.indexOf("pong") != -1 ? true : false;
 
                 assertEquals("Didn't find response data [" + rawpost + "] in response!", "pong", output);
 
             } catch (IOException ioe) {
-                assertTrue("Failed to get output stream for socket!", false);
+                Log.e(TAG, Log.getStackTraceString(ioe));
+                assertTrue("Failed to get stream for socket!", false);
             }
 
         } catch (DmeDnsException dde) {
@@ -1529,28 +1533,9 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
         OkHttpClient httpClient = null;
-        // Test against Http Echo.
-        String carrierName = "TDG";
-        String appName = "HttpEcho";
-        String orgName = "MobiledgeX";
-        String appVersion = "20191204";
         try {
-            String data = "{\"Data\": \"food\"}";
-
-            AppClient.RegisterClientRequest req = me.createDefaultRegisterClientRequest(context, orgName)
-                    .setCarrierName(carrierName)
-                    .setAppName(appName)
-                    .setAppVers(appVersion)
-                    .build();
-
-            AppClient.RegisterClientReply registerReply;
-            // FIXME: Need/want a secondary cloudlet for this AppInst test.
-            if (true) {
-                registerReply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            } else {
-                registerReply = me.registerClient(req, GRPC_TIMEOUT_MS);
-            }
-            assertTrue("Register did not succeed for HttpEcho appInst", registerReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            String data = "ping";
+            registerClient(me);
 
             MeLocation meLoc = new MeLocation(me);
             assertTrue("Missing Location!", meLoc != null);
@@ -1558,9 +1543,8 @@ public class EngineCallTest {
             Location location = getTestLocation();
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
-                    .setCarrierName(carrierName)
+                    .setCarrierName(findCloudletCarrierOverride)
                     .build();
-            assertEquals("Session cookies don't match!", registerReply.getSessionCookie(), findCloudletRequest.getSessionCookie());
 
             AppClient.FindCloudletReply findCloudletReply;
             if (true) {
@@ -1606,8 +1590,6 @@ public class EngineCallTest {
             String output = response.body().string();
             boolean found = output.indexOf("food") !=-1 ? true : false;;
             assertTrue("Didn't find json data [" + data + "] in response!", found == true);
-        } catch (PackageManager.NameNotFoundException nnfe) {
-
         } catch (IOException ioe) {
             Log.e(TAG, Log.getStackTraceString(ioe));
             assertFalse("appConnectionTestTcp002: IOException", true);
@@ -1643,30 +1625,21 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
         try {
-            String data = "{\"Data\": \"food\"}";
-            String carrierName = "TDG";
-            String orgName = "MobiledgeX";
-            String appName = "HttpEcho";
-            String appVersion = "20191204";
-
-            AppClient.RegisterClientRequest req = me.createDefaultRegisterClientRequest(context, orgName)
-                    .setCarrierName(carrierName)
-                    .setAppName(appName)
-                    .setAppVers(appVersion)
-                    .build();
-            AppClient.RegisterClientReply registerClientReply;
-            // FIXME: Need/want a secondary cloudlet for this AppInst test.
-            if (true) {
-                registerClientReply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            } else {
-                registerClientReply = me.registerClient(req, GRPC_TIMEOUT_MS);
-            }
-            assertTrue("Register did not succeed for HttpEcho appInst", registerClientReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            registerClient(me);
+            String responseBodyTest =
+                    "<html>" +
+                            "\n   <head>" +
+                            "\n      <title>Automation test server</title>" +
+                            "\n   </head>" +
+                            "\n   <body>" +
+                            "\n      <p>test server is running</p>" +
+                            "\n   </body>" +
+                            "\n</html>\n";
 
             Location location = getTestLocation();
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
-                    .setCarrierName(carrierName)
+                    .setCarrierName(findCloudletCarrierOverride)
                     .build();
             assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
                     me.getSessionCookie(), findCloudletRequest.getSessionCookie());
@@ -1689,28 +1662,25 @@ public class EngineCallTest {
 
             HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
             // Choose the TCP port, and we happen to know our server is on one port only: 3001.
-            AppPort one = portMap.get(3001);
+            AppPort one = portMap.get(8085);
             assertTrue("Did not find server! ", one != null);
             String protocol = one.getTls() ? "https" : "http";
             url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
-
+            url += "/automation.html";
             assertTrue("URL for server seems very incorrect. ", url != null && url.length() > "http://:3001".length());
 
             // Interface bound TCP socket, has default timeout equal to NetworkManager.
             OkHttpClient httpClient = httpClientFuture.get();
             MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-
-            RequestBody body = RequestBody.create(JSON, data);
             Request request = new Request.Builder()
                     .url(url)
-                    .post(body)
                     .build();
 
             Response response = httpClient.newCall(request).execute();
             String output = response.body().string();
-            boolean found = output.indexOf("food") != -1 ? true : false;
-            assertTrue("Didn't find json data [" + data + "] in response!", found == true);
+            boolean found = output.indexOf(responseBodyTest) != -1 ? true : false;
+            assertTrue("Didn't find json data [" + responseBodyTest + "] in response!", found == true);
 
 
             Request mobiledgeXSiteRequest = new Request.Builder()
@@ -1734,10 +1704,6 @@ public class EngineCallTest {
                 assertEquals("Should fail SSL Host verification, but still be 200 OK. Status: ", 200, httpStatus);
             }
             assertTrue("Did not fail hostname SSL verification!", failedVerification);
-        } catch (PackageManager.NameNotFoundException nnfe) {
-            Log.e(TAG, nnfe.getMessage());
-            Log.i(TAG, Log.getStackTraceString(nnfe));
-            assertFalse("appConnectionTestTcp001: Package Info is missing!", true);
         } catch (IOException ioe) {
             Log.e(TAG, Log.getStackTraceString(ioe));
             assertFalse("appConnectionTestTcp001: IOException", true);

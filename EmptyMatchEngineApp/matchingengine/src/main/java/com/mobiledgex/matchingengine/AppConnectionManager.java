@@ -155,7 +155,7 @@ public class AppConnectionManager {
             }
 
             if (!AppPortIsEqual(aPort, appPort)) {
-                return null;
+                continue;
             }
 
             if (isValidInternalPortNumber(aPort, portNum)) {
