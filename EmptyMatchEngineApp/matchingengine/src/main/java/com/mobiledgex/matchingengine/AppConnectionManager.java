@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.AppClient.FindCloudletReply;
@@ -353,8 +354,9 @@ public class AppConnectionManager {
 
                 String host = getHost(findCloudletReply, foundPort);
                 InetSocketAddress socketAddress = new InetSocketAddress(host, publicPortNum);
-                socket.connect(socketAddress);
                 socket.setSoTimeout(timeout);
+                socket.connect(socketAddress);
+
 
                 mNetworkManager.resetNetworkToDefault();
 
