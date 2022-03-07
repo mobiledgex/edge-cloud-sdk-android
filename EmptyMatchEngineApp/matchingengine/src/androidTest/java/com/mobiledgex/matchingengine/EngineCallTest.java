@@ -383,6 +383,64 @@ public class EngineCallTest {
     }
 
     @Test
+    public void registerClientWithUniqueIdTest() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+
+        AppClient.RegisterClientReply reply = null;
+
+        try {
+            AppClient.RegisterClientRequest request = me.createRegisterClientRequest(
+                    context,
+                    organizationName,
+                    applicationName,
+                    appVersion,
+                    null,
+                    "someUniqueType",
+                    "someUniqueId",
+                    null);
+            assertEquals(request.getUniqueIdType(), "someUniqueType");
+            assertEquals(request.getUniqueId(), "someUniqueId");
+            if (useHostOverride) {
+                reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                reply = me.registerClient(request, me.generateDmeHostAddress(), me.getPort(), GRPC_TIMEOUT_MS);
+            }
+            assertTrue(reply != null);
+            assertTrue(reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            //assertTrue( !reply.getUniqueId().isEmpty());
+            assertTrue( reply.getSessionCookie().length() > 0);
+            assertEquals("Sessions must be equal.", reply.getSessionCookie(), me.getSessionCookie());
+        } catch (PackageManager.NameNotFoundException nnfe) {
+            Log.e(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("ExecutionException registering using PackageManager.", true);
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertFalse("registerClientTest: DmeDnsException!", true);
+        } catch (ExecutionException ee) {
+            Log.e(TAG, "Reason: " + ee.getLocalizedMessage());
+            Log.e(TAG, Log.getStackTraceString(ee));
+            assertFalse("registerClientTest: ExecutionException!", true);
+        } catch (StatusRuntimeException sre) {
+            Log.e(TAG, Log.getStackTraceString(sre));
+            assertFalse("registerClientTest: StatusRuntimeException!", true);
+        } catch (InterruptedException ie) {
+            Log.e(TAG, Log.getStackTraceString(ie));
+            assertFalse("registerClientTest: InterruptedException!", true);
+        } finally {
+            me.close();
+            enableMockLocation(context,false);
+        }
+
+        // Temporary.
+        Log.i(TAG, "registerClientTest reply: " + reply.toString());
+        assertEquals(0, reply.getVer());
+        assertEquals(AppClient.ReplyStatus.RS_SUCCESS, reply.getStatus());
+    }
+
+    @Test
     public void registerClientTest() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         MatchingEngine me = new MatchingEngine(context);
@@ -1721,7 +1779,7 @@ public class EngineCallTest {
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
                     organizationName, applicationName,
                     appVersion, location, "",
-                    null, MatchingEngine.FindCloudletMode.PROXIMITY); // FIXME: These parameters should be overloaded or optional.
+                    null, null, null, MatchingEngine.FindCloudletMode.PROXIMITY); // FIXME: These parameters should be overloaded or optional.
             //! [registerandfindoverrideexample]
             // Just wait:
             AppClient.FindCloudletReply findCloudletReply = findCloudletReplyFuture.get();
