@@ -1128,8 +1128,9 @@ public class MatchingEngine {
             builder.putAllTags(tags);
         }
 
-        if (uniqueId != null && uniqueId.length() > 0) {
-            builder.setUniqueIdType(uniqueIdType); // Let server handle it, should not be null.
+        if (uniqueId != null && uniqueId.length() > 0 &&
+                uniqueIdType != null && uniqueIdType.length() > 0) {
+            builder.setUniqueIdType(uniqueIdType);
             builder.setUniqueId(uniqueId);
         }
 
