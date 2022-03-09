@@ -1288,9 +1288,16 @@ public class EngineCallTest {
                 .setProto(Appcommon.LProto.L_PROTO_UDP)
                 .build();
 
-        AppPort portReal = AppPort.newBuilder()
+        AppPort portRealSSL = AppPort.newBuilder()
                 .setPublicPort(2015)
                 .setInternalPort(2015)
+                .setEndPort(0)
+                .setProto(Appcommon.LProto.L_PROTO_TCP)
+                .build();
+
+        AppPort portRealNotSSL = AppPort.newBuilder()
+                .setPublicPort(8085)
+                .setInternalPort(8085)
                 .setEndPort(0)
                 .setProto(Appcommon.LProto.L_PROTO_TCP)
                 .build();
@@ -1378,13 +1385,13 @@ public class EngineCallTest {
 
         try {
             // Need a real port in order to connect test:
-            int resolvedPort = me.getAppConnectionManager().getPort(portReal, 0);
-            assertEquals("Ports should match!", resolvedPort, portReal.getPublicPort());
-            int publicPort = me.getAppConnectionManager().getPort(portReal, 2015);
-            assertEquals("Ports not the same!", publicPort, portReal.getPublicPort()); // Identity.
+            int resolvedPort = me.getAppConnectionManager().getPort(portRealSSL, 0);
+            assertEquals("Ports should match!", resolvedPort, portRealSSL.getPublicPort());
+            int publicPort = me.getAppConnectionManager().getPort(portRealSSL, 2015);
+            assertEquals("Ports not the same!", publicPort, portRealSSL.getPublicPort()); // Identity.
 
             // This one needs a real server:
-            String url = me.getAppConnectionManager().createUrl(reply, portReal, 2015, "http", "/test");
+            String url = me.getAppConnectionManager().createUrl(reply, portRealNotSSL, 8085, "http", "/automation.html");
             Future<OkHttpClient> httpClientFuture = me.getAppConnectionManager().getHttpClient(5000);
             OkHttpClient httpClient = httpClientFuture.get();
             Request request = new Request.Builder()
