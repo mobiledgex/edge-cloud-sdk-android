@@ -1083,8 +1083,8 @@ public class MatchingEngine {
      */
     public RegisterClientRequest createRegisterClientRequest(Context context, String organizationName,
                                                              String applicationName, String appVersion,
-                                                             String authToken,
-                                                             Map<String, String> tags)
+                                                             String authToken, String uniqueIdType,
+                                                             String uniqueId, Map<String, String> tags)
             throws PackageManager.NameNotFoundException
     {
         if (!mMatchingEngineLocationAllowed) {
@@ -1107,7 +1107,6 @@ public class MatchingEngine {
                 packageLabel = seq.toString();
             }
         }
-        PackageInfo pInfo;
         String versionName;
         String appName;
         if (applicationName == null || applicationName.equals("")) {
@@ -1127,6 +1126,12 @@ public class MatchingEngine {
 
         if (tags != null) {
             builder.putAllTags(tags);
+        }
+
+        if (uniqueId != null && uniqueId.length() > 0 &&
+                uniqueIdType != null && uniqueIdType.length() > 0) {
+            builder.setUniqueIdType(uniqueIdType);
+            builder.setUniqueId(uniqueId);
         }
 
         return builder.build();
@@ -2130,6 +2135,53 @@ public class MatchingEngine {
     }
 
     /*!
+     * Register and FindCloudlet to get FindCloudletReply for cloudlet AppInsts info all at once:
+     * \ingroup functions_dmeapis
+     */
+    public Future<FindCloudletReply> registerAndFindCloudlet(final Context context,
+                                                             final String organizationName,
+                                                             final String applicationName,
+                                                             final String appVersion,
+                                                             final Location location,
+                                                             final String authToken,
+                                                             final String uniqueIdType,
+                                                             final String uniqueId,
+                                                             final Map<String, String> tags,
+                                                             final FindCloudletMode mode) {
+
+        final MatchingEngine me = this;
+
+        Callable<FindCloudletReply> future = new Callable<FindCloudletReply>() {
+            @Override
+            public FindCloudletReply call() throws Exception {
+                RegisterClientRequest registerClientRequest = createRegisterClientRequest(context,
+                        organizationName, applicationName, appVersion, authToken, uniqueIdType, uniqueId, tags);
+
+                RegisterClientReply registerClientReply = me.registerClient(registerClientRequest, me.getNetworkManager().getTimeout());
+
+                if (registerClientReply == null) {
+                    return null;
+                }
+
+                FindCloudletRequest.Builder findCloudletRequestBuilder = createDefaultFindCloudletRequest(context, location);
+                if (tags != null) {
+                    findCloudletRequestBuilder.putAllTags(tags);
+                }
+                FindCloudletRequest findCloudletRequest = findCloudletRequestBuilder.build();
+                FindCloudletMode useMode = mode;
+                if (useMode == null) {
+                    useMode = FindCloudletMode.PROXIMITY;
+                }
+                FindCloudletReply findCloudletReply = me.findCloudlet(findCloudletRequest, me.getNetworkManager().getTimeout(), useMode);
+
+                return findCloudletReply;
+            }
+        };
+
+        return threadpool.submit(future);
+    }
+
+    /*!
      * Register and FindCloudlet with DME host and port parameters, to get FindCloudletReply for cloudlet AppInsts info all at once:
      * \ingroup functions_dmeapis
      * \section registerandfindoverrideexample Example
@@ -2143,6 +2195,8 @@ public class MatchingEngine {
                                                              final String appVersion,
                                                              final Location location,
                                                              final String authToken,
+                                                             final String uniqueIdType,
+                                                             final String uniqueId,
                                                              final Map<String, String> tags,
                                                              final FindCloudletMode mode) {
 
@@ -2152,7 +2206,7 @@ public class MatchingEngine {
             @Override
             public FindCloudletReply call() throws Exception {
                 RegisterClientRequest registerClientRequest = createRegisterClientRequest(context,
-                        organizationName, applicationName, appVersion, authToken, tags);
+                        organizationName, applicationName, appVersion, authToken, uniqueIdType, uniqueId, tags);
 
                 RegisterClientReply registerClientReply = me.registerClient(registerClientRequest,
                         host, port, me.getNetworkManager().getTimeout());
