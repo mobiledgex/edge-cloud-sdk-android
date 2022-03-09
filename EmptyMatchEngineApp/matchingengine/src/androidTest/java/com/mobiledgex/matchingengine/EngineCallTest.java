@@ -51,11 +51,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.ConnectException;
 import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.URL;
+import java.net.URLConnection;
 import java.net.UnknownHostException;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -89,8 +96,12 @@ import androidx.annotation.UiThread;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import javax.net.SocketFactory;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 
 @RunWith(AndroidJUnit4.class)
 public class EngineCallTest {
@@ -358,7 +369,6 @@ public class EngineCallTest {
                     .setAppVers(appVersion);
             registerClientRequest = regRequestBuilder.build();
             if (useHostOverride) {
-                me.setSSLEnabled(false);
                 //! [registeroverrideexample]
                 registerReply = me.registerClient(registerClientRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
                 //! [registeroverrideexample]
@@ -380,6 +390,64 @@ public class EngineCallTest {
             Log.e(TAG, Log.getStackTraceString(ioe));
             assertTrue("InterruptedException registering client", false);
         }
+    }
+
+    @Test
+    public void registerClientWithUniqueIdTest() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        MatchingEngine me = new MatchingEngine(context);
+        me.setMatchingEngineLocationAllowed(true);
+        me.setAllowSwitchIfNoSubscriberInfo(true);
+
+        AppClient.RegisterClientReply reply = null;
+
+        try {
+            AppClient.RegisterClientRequest request = me.createRegisterClientRequest(
+                    context,
+                    organizationName,
+                    applicationName,
+                    appVersion,
+                    null,
+                    "someUniqueType",
+                    "someUniqueId",
+                    null);
+            assertEquals(request.getUniqueIdType(), "someUniqueType");
+            assertEquals(request.getUniqueId(), "someUniqueId");
+            if (useHostOverride) {
+                reply = me.registerClient(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
+            } else {
+                reply = me.registerClient(request, me.generateDmeHostAddress(), me.getPort(), GRPC_TIMEOUT_MS);
+            }
+            assertTrue(reply != null);
+            assertTrue(reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            //assertTrue( !reply.getUniqueId().isEmpty());
+            assertTrue( reply.getSessionCookie().length() > 0);
+            assertEquals("Sessions must be equal.", reply.getSessionCookie(), me.getSessionCookie());
+        } catch (PackageManager.NameNotFoundException nnfe) {
+            Log.e(TAG, Log.getStackTraceString(nnfe));
+            assertFalse("ExecutionException registering using PackageManager.", true);
+        } catch (DmeDnsException dde) {
+            Log.e(TAG, Log.getStackTraceString(dde));
+            assertFalse("registerClientTest: DmeDnsException!", true);
+        } catch (ExecutionException ee) {
+            Log.e(TAG, "Reason: " + ee.getLocalizedMessage());
+            Log.e(TAG, Log.getStackTraceString(ee));
+            assertFalse("registerClientTest: ExecutionException!", true);
+        } catch (StatusRuntimeException sre) {
+            Log.e(TAG, Log.getStackTraceString(sre));
+            assertFalse("registerClientTest: StatusRuntimeException!", true);
+        } catch (InterruptedException ie) {
+            Log.e(TAG, Log.getStackTraceString(ie));
+            assertFalse("registerClientTest: InterruptedException!", true);
+        } finally {
+            me.close();
+            enableMockLocation(context,false);
+        }
+
+        // Temporary.
+        Log.i(TAG, "registerClientTest reply: " + reply.toString());
+        assertEquals(0, reply.getVer());
+        assertEquals(AppClient.ReplyStatus.RS_SUCCESS, reply.getStatus());
     }
 
     @Test
@@ -1201,7 +1269,9 @@ public class EngineCallTest {
         MatchingEngine me = new MatchingEngine(context);
         AppConnectionManager appConnect = me.getAppConnectionManager();
         me.setMatchingEngineLocationAllowed(true);
-        //me.setNetworkSwitchingEnabled(false); // Not testing this, disable for sim and no sim.
+
+        Future<AppClient.FindCloudletReply> freply = me.registerAndFindCloudlet(context, hostOverride, portOverride,
+                organizationName, applicationName, appVersion, getTestLocation(),null, null, null,null, MatchingEngine.FindCloudletMode.PROXIMITY);
 
         // Construct a FindCloudlet Reply for testing.
         AppPort port = AppPort.newBuilder()
@@ -1218,25 +1288,31 @@ public class EngineCallTest {
                 .setProto(Appcommon.LProto.L_PROTO_UDP)
                 .build();
 
-        AppPort portReal = AppPort.newBuilder()
-                .setPublicPort(8008)
-                .setInternalPort(8008)
+        AppPort portRealSSL = AppPort.newBuilder()
+                .setPublicPort(2015)
+                .setInternalPort(2015)
+                .setEndPort(0)
+                .setProto(Appcommon.LProto.L_PROTO_TCP)
+                .build();
+
+        AppPort portRealNotSSL = AppPort.newBuilder()
+                .setPublicPort(8085)
+                .setInternalPort(8085)
                 .setEndPort(0)
                 .setProto(Appcommon.LProto.L_PROTO_TCP)
                 .build();
 
         // A dummy FindCloudletReply:
-        AppClient.FindCloudletReply reply = AppClient.FindCloudletReply.newBuilder()
-                .setFqdn("cv-cluster.beacon-main.gddt.mobiledgex.net")
-                .addPorts(port)
-                .build();
-
-        // A dummy FindCloudletReply:
-        AppClient.FindCloudletReply replyReal = AppClient.FindCloudletReply.newBuilder()
-                .setFqdn("cv-cluster.hawkins-main.gddt.mobiledgex.net")
-                .addPorts(portReal)
-                .build();
-
+        AppClient.FindCloudletReply reply = null;
+        try {
+            reply = freply.get();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+            assertFalse("Unexpected Exception hit: " + e.getMessage(), true);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            assertFalse("Unexpected Exception hit: " + e.getMessage(), true);
+        }
 
         //! [gettcpsocketexample]
         Future<Socket> sf = null;
@@ -1245,7 +1321,6 @@ public class EngineCallTest {
             sf = me.getAppConnectionManager().getTcpSocket(reply, port, 4000, 10000);
             s = sf.get();
         } catch (ExecutionException ee) {
-            // Expected invalid port.
             assertTrue("Expected invalid port", ee.getCause() instanceof InvalidPortException);
         } catch (Exception e) {
             assertFalse("Unexpected Exception hit: " + e.getMessage(), true);
@@ -1253,6 +1328,7 @@ public class EngineCallTest {
             closeSocket(s);
         }
         //! [gettcpsocketexample]
+
 
         try {
             sf = me.getAppConnectionManager().getTcpSocket(reply, port, 3000, 10000);
@@ -1267,20 +1343,25 @@ public class EngineCallTest {
         }
 
         try {
-            sf = me.getAppConnectionManager().getTcpSocket(reply, port, 8008, 10000);
-            s = sf.get();
+            // Real reply ports, bad appPort chosen:
+            sf = me.getAppConnectionManager().getTcpSocket(reply, port, 4000, 10000);
+            sf.get();
             assertTrue("Not connected!", s.isConnected() == true);
+        } catch (ExecutionException ee) {
+            // Expected invalid port.
+            assertTrue("Expected invalid port", ee.getCause() instanceof InvalidPortException);
         } catch (Exception e) {
-            // 4000 isn't valid.
-            assertFalse("Exception hit: " + e.getMessage(), false);
+            assertFalse("Unexpected Exception hit: " + e.getMessage(), true);
+        } finally {
+            closeSocket(s);
         }
 
         try {
+            // Ranged port is valid, but it doesn't actually exist!
             sf = me.getAppConnectionManager().getTcpSocket(reply, port, 8009, 10000);
             s = sf.get(); // Wrong port, and we know it doesn't exist.
             assertTrue("Not connected!", s.isConnected() == false);
         } catch (ExecutionException ee) {
-            // 8009 isn't valid.
             assertTrue("Expected Connection Exception!", ee.getCause() instanceof ConnectException);
         } catch (InterruptedException ie) {
             assertFalse("Not expected InterruptedException: " + ie.getMessage(), true);
@@ -1288,6 +1369,8 @@ public class EngineCallTest {
             closeSocket(s);
         }
 
+        // The autoconnect will fail, as the timeout won't happen on read(), which is never.
+        // Wait for timeout.
         try {
             sf = me.getAppConnectionManager().getTcpSocket(reply, port, 8011, 10000);
             s = sf.get();
@@ -1295,19 +1378,20 @@ public class EngineCallTest {
             s.close();
         } catch (Exception e) {
             // 8011 isn't valid.
-            assertFalse("Exception hit: " + e.getMessage(), false);
+            assertTrue("Expected invalid port", e.getCause() instanceof InvalidPortException);
         } finally {
             closeSocket(s);
         }
 
         try {
             // Need a real port in order to connect test:
-            int resolvedPort = me.getAppConnectionManager().getPort(portReal, 0);
-            assertEquals("Ports should match!", resolvedPort, portReal.getPublicPort());
-            int publicPort = me.getAppConnectionManager().getPort(portReal, 8008);
-            assertEquals("Ports not the same!", publicPort, portReal.getPublicPort()); // Identity.
+            int resolvedPort = me.getAppConnectionManager().getPort(portRealSSL, 0);
+            assertEquals("Ports should match!", resolvedPort, portRealSSL.getPublicPort());
+            int publicPort = me.getAppConnectionManager().getPort(portRealSSL, 2015);
+            assertEquals("Ports not the same!", publicPort, portRealSSL.getPublicPort()); // Identity.
 
-            String url = me.getAppConnectionManager().createUrl(replyReal, portReal, 8008, "http", "/test");
+            // This one needs a real server:
+            String url = me.getAppConnectionManager().createUrl(reply, portRealNotSSL, 8085, "http", "/automation.html");
             Future<OkHttpClient> httpClientFuture = me.getAppConnectionManager().getHttpClient(5000);
             OkHttpClient httpClient = httpClientFuture.get();
             Request request = new Request.Builder()
@@ -1353,7 +1437,7 @@ public class EngineCallTest {
     /**
      * Tests the MatchingEngine SDK supplied TCP connection to the edge cloudlet.
      *
-     * This is a raw stream to a test echo server, so there are no explicit message delimiters.
+     * This is a raw stream to a test ping/pong server, so there are no explicit message delimiters.
      */
     @Test
     public void appConnectionTestTcp001() {
@@ -1375,7 +1459,7 @@ public class EngineCallTest {
                     .build();
 
             AppClient.FindCloudletReply findCloudletReply;
-            if (true) {
+            if (useHostOverride) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
@@ -1389,11 +1473,14 @@ public class EngineCallTest {
             assertTrue("AppPorts is empty!", appPorts.size() > 0);
 
             HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
-            AppPort one = portMap.get(8011); // This internal port depends entirely the AppInst configuration/Docker image.
+            // Unencrypted port:
+            AppPort one = portMap.get(2016); // This internal port depends entirely the AppInst configuration/Docker image.
             assertTrue("EndPort is expected to be 0 for this AppInst", one.getEndPort() == 0 );
             // The actual mapped Public port, or one between getPublicPort() to getEndPort(), inclusive.
             Future<Socket> fs = appConnect.getTcpSocket(findCloudletReply, one, one.getPublicPort(), (int)GRPC_TIMEOUT_MS);
             s = fs.get(); // Nothing to do. Await value.
+
+            assertTrue("Not connected!", s.isConnected());
 
             // Interface bound TCP socket.
 
@@ -1405,25 +1492,26 @@ public class EngineCallTest {
 
                 Object aMon = new Object(); // Some arbitrary object Monitor.
                 synchronized (aMon) {
-                    aMon.wait(1000);
+                    aMon.wait(200);
                 }
-
                 bis = new BufferedInputStream(s.getInputStream());
+                assertTrue("The InputStream not alive?", s.isInputShutdown() == false);
                 int available = bis.available();
                 assertTrue("No bytes available in response.", available > 0); // Probably true.
 
-                byte[] b = new byte[4096];
+                byte[] b = new byte[available];
                 int numRead = bis.read(b);
                 assertTrue("Didn't get response!", numRead > 0);
 
-                String output = new String(b);
+                String output = new String(b, StandardCharsets.UTF_8);
                 // Not an http client, so we're just going to get the substring of something stable:
                 boolean found = output.indexOf("pong") != -1 ? true : false;
 
                 assertEquals("Didn't find response data [" + rawpost + "] in response!", "pong", output);
 
             } catch (IOException ioe) {
-                assertTrue("Failed to get output stream for socket!", false);
+                Log.e(TAG, Log.getStackTraceString(ioe));
+                assertTrue("Failed to get stream for socket!", false);
             }
 
         } catch (DmeDnsException dde) {
@@ -1458,9 +1546,10 @@ public class EngineCallTest {
     }
 
     /**
-     * Tests the MatchingEngine SDK supplied HTTP connection to the edge cloudlet. FIXME: TLS Test with certs.
+     * Tests the MatchingEngine SDK supplied TCP SSL connection to the edge cloudlet.
+     *
+     * This is a raw TLS stream to a test ping/pong server, so there are no explicit message delimiters.
      */
-
     @Test
     public void appConnectionTestTcp002() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
@@ -1468,107 +1557,93 @@ public class EngineCallTest {
         MatchingEngine me = new MatchingEngine(context);
         AppConnectionManager appConnect = me.getAppConnectionManager();
         me.setMatchingEngineLocationAllowed(true);
-        me.setAllowSwitchIfNoSubscriberInfo(true);
-
-        OkHttpClient httpClient = null;
-        // Test against Http Echo.
-        String carrierName = "GDDT";
-        String appName = "HttpEcho";
-        String orgName = "MobiledgeX";
-        String appVersion = "20191204";
+        Socket s = null;
         try {
-            String data = "{\"Data\": \"food\"}";
-
-            AppClient.RegisterClientRequest req = me.createDefaultRegisterClientRequest(context, orgName)
-                    .setCarrierName(carrierName)
-                    .setAppName(appName)
-                    .setAppVers(appVersion)
-                    .build();
-
-            AppClient.RegisterClientReply registerReply;
-            // FIXME: Need/want a secondary cloudlet for this AppInst test.
-            if (true) {
-                registerReply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            } else {
-                registerReply = me.registerClient(req, GRPC_TIMEOUT_MS);
-            }
-            assertTrue("Register did not succeed for HttpEcho appInst", registerReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
-
-            MeLocation meLoc = new MeLocation(me);
-            assertTrue("Missing Location!", meLoc != null);
+            // NOTE: A self signed test server and DME will not work!
+            registerClient(me);
 
             Location location = getTestLocation();
-
+            // Defaults:
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
-                    .setCarrierName(carrierName)
+                    .setCarrierName(findCloudletCarrierOverride)
                     .build();
-            assertEquals("Session cookies don't match!", registerReply.getSessionCookie(), findCloudletRequest.getSessionCookie());
 
             AppClient.FindCloudletReply findCloudletReply;
-            if (true) {
+            if (useHostOverride) {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
                 findCloudletReply = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);
             }
 
-            // SSL:
-            //! [gethttpclientexample]
-            Future<OkHttpClient> httpClientFuture = null;
-            httpClientFuture = appConnect.getHttpClient((int) GRPC_TIMEOUT_MS);
-            //! [gethttpclientexample]
+            assertTrue(findCloudletReply != null);
+            assertTrue(findCloudletReply.getStatus() == AppClient.FindCloudletReply.FindStatus.FIND_FOUND);
+            // Just using first one. This depends entirely on the server design.
 
-            // FIXME: UI Console exposes HTTP as TCP only, so test here use getTcpMap().
-            String url = null;
-            assertTrue("No AppPorts!", findCloudletReply.getPortsCount() > 0);
+            List<AppPort> appPorts = findCloudletReply.getPortsList();
+            assertTrue("AppPorts is null", appPorts != null);
+            assertTrue("AppPorts is empty!", appPorts.size() > 0);
+
             HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
-            // Choose the port that we happen to know the internal port for, 3001.
-            AppPort one = portMap.get(3001);
+            // Encrypted port:
+            AppPort one = portMap.get(2015); // This internal port depends entirely the AppInst configuration/Docker image.
+            assertTrue("EndPort is expected to be 0 for this AppInst", one.getEndPort() == 0 );
+            // The actual mapped Public port, or one between getPublicPort() to getEndPort(), inclusive.
+            Future<SSLSocket> fs = appConnect.getTcpSslSocket(findCloudletReply, one, one.getPublicPort(), (int)GRPC_TIMEOUT_MS);
+            s = fs.get(); // Nothing to do. Await value.
 
-            //! [createurlexample]
-            String protocol = one.getTls() ? "https" : "http";
-            url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
-            //! [createurlexample]
+            String host = appConnect.getHost(findCloudletReply, one);
+            System.out.print(host);
 
-            assertTrue("URL for server seems very incorrect. ", url != null && url.length() > "http://:".length());
+            assertTrue("Not connected!", s.isConnected());
 
-            assertFalse("Failed to get an SSL Socket!", httpClientFuture == null);
+            // Interface bound TCP socket.
 
-            // Interface bound TCP socket, has default timeout equal to NetworkManager.
-            httpClient = httpClientFuture.get();
-            MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+            try {
+                OutputStream sos = s.getOutputStream();
+                String rawpost = "ping";
+                sos.write(rawpost.getBytes(StandardCharsets.UTF_8));
+                sos.flush();
 
+                assertTrue("The InputStream not alive?", s.isInputShutdown() == false);
+                InputStream sis = s.getInputStream();
 
-            RequestBody body = RequestBody.create(JSON, data);
-            Request request = new Request.Builder()
-                    .url(url)
-                    .post(body)
-                    .build();
+                byte[] b = new byte[100];
+                int numRead = sis.read(b);
+                assertTrue("Didn't get response!", numRead > 0);
 
-            Response response = httpClient.newCall(request).execute();
-            String output = response.body().string();
-            boolean found = output.indexOf("food") !=-1 ? true : false;;
-            assertTrue("Didn't find json data [" + data + "] in response!", found == true);
-        } catch (PackageManager.NameNotFoundException nnfe) {
+                String output = new String(b, 0, numRead, StandardCharsets.US_ASCII);
+                // Not an http client, so we're just going to get the substring of something stable:
+                boolean found = output.indexOf("pong") != -1 ? true : false;
 
-        } catch (IOException ioe) {
-            Log.e(TAG, Log.getStackTraceString(ioe));
-            assertFalse("appConnectionTestTcp002: IOException", true);
+                assertEquals("Didn't find response data [" + rawpost + "] in response! Response Found: " + found, "pong", output);
+
+            } catch (IOException ioe) {
+                Log.e(TAG, Log.getStackTraceString(ioe));
+                assertTrue("Failed to get stream for socket!", false);
+            }
+
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
-            assertFalse("appConnectionTestTcp002: DmeDnsException", true);
+            assertFalse("appConnectionTestTcp001: DmeDnsException", true);
         } catch (ExecutionException ee) {
             Log.i(TAG, Log.getStackTraceString(ee));
-            assertFalse("appConnectionTestTcp002: ExecutionException!", true);
+            assertFalse("appConnectionTestTcp001: ExecutionException!", true);
         } catch (StatusRuntimeException sre) {
             Log.i(TAG, sre.getMessage());
             Log.i(TAG, Log.getStackTraceString(sre));
-            assertFalse("appConnectionTestTcp002: StatusRuntimeException!", true);
+            assertFalse("appConnectionTestTcp001: StatusRuntimeException!", true);
         } catch (InterruptedException ie) {
             Log.i(TAG, Log.getStackTraceString(ie));
-            assertFalse("appConnectionTestTcp002: InterruptedException!", true);
+            assertFalse("appConnectionTestTcp001: InterruptedException!", true);
         } finally {
-            me.close();
-            enableMockLocation(context,false);
+            try {
+                if (s != null && !s.isClosed()) {
+                    s.close();
+                }
+            } catch (IOException ioe) {
+                assertFalse("IO Exceptions trying to close socket.", true);
+            }
+            enableMockLocation(context, false);
         }
     }
 
@@ -1585,30 +1660,21 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
         try {
-            String data = "{\"Data\": \"food\"}";
-            String carrierName = "GDDT";
-            String orgName = "MobiledgeX";
-            String appName = "HttpEcho";
-            String appVersion = "20191204";
-
-            AppClient.RegisterClientRequest req = me.createDefaultRegisterClientRequest(context, orgName)
-                    .setCarrierName(carrierName)
-                    .setAppName(appName)
-                    .setAppVers(appVersion)
-                    .build();
-            AppClient.RegisterClientReply registerClientReply;
-            // FIXME: Need/want a secondary cloudlet for this AppInst test.
-            if (true) {
-                registerClientReply = me.registerClient(req, hostOverride, portOverride, GRPC_TIMEOUT_MS);
-            } else {
-                registerClientReply = me.registerClient(req, GRPC_TIMEOUT_MS);
-            }
-            assertTrue("Register did not succeed for HttpEcho appInst", registerClientReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            registerClient(me);
+            String responseBodyTest =
+                    "<html>" +
+                            "\n   <head>" +
+                            "\n      <title>Automation test server</title>" +
+                            "\n   </head>" +
+                            "\n   <body>" +
+                            "\n      <p>test server is running</p>" +
+                            "\n   </body>" +
+                            "\n</html>\n";
 
             Location location = getTestLocation();
 
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
-                    .setCarrierName(carrierName)
+                    .setCarrierName(findCloudletCarrierOverride)
                     .build();
             assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
                     me.getSessionCookie(), findCloudletRequest.getSessionCookie());
@@ -1620,8 +1686,10 @@ public class EngineCallTest {
             }
 
             // SSL:
+            //! [gethttpclientexample]
             Future<OkHttpClient> httpClientFuture = null;
-            httpClientFuture = appConnect.getHttpClient(GRPC_TIMEOUT_MS);
+            httpClientFuture = appConnect.getHttpClient((int) GRPC_TIMEOUT_MS);
+            //! [gethttpclientexample]
             assertTrue("HttpClientFuture is NULL!", httpClientFuture != null);
 
             // FIXME: UI Console exposes HTTP as TCP only, so the test here uses getTcpList().
@@ -1631,28 +1699,26 @@ public class EngineCallTest {
 
             HashMap<Integer, AppPort> portMap = appConnect.getTCPMap(findCloudletReply);
             // Choose the TCP port, and we happen to know our server is on one port only: 3001.
-            AppPort one = portMap.get(3001);
+            AppPort one = portMap.get(8085);
             assertTrue("Did not find server! ", one != null);
+            //! [createurlexample]
             String protocol = one.getTls() ? "https" : "http";
             url = appConnect.createUrl(findCloudletReply, one, one.getPublicPort(), protocol, null);
-
-            assertTrue("URL for server seems very incorrect. ", url != null && url.length() > "http://:3001".length());
+            //! [createurlexample]
+            url += "/automation.html";
 
             // Interface bound TCP socket, has default timeout equal to NetworkManager.
             OkHttpClient httpClient = httpClientFuture.get();
             MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-
-            RequestBody body = RequestBody.create(JSON, data);
             Request request = new Request.Builder()
                     .url(url)
-                    .post(body)
                     .build();
 
             Response response = httpClient.newCall(request).execute();
             String output = response.body().string();
-            boolean found = output.indexOf("food") != -1 ? true : false;
-            assertTrue("Didn't find json data [" + data + "] in response!", found == true);
+            boolean found = output.indexOf(responseBodyTest) != -1 ? true : false;
+            assertTrue("Didn't find json data [" + responseBodyTest + "] in response!", found == true);
 
 
             Request mobiledgeXSiteRequest = new Request.Builder()
@@ -1676,10 +1742,6 @@ public class EngineCallTest {
                 assertEquals("Should fail SSL Host verification, but still be 200 OK. Status: ", 200, httpStatus);
             }
             assertTrue("Did not fail hostname SSL verification!", failedVerification);
-        } catch (PackageManager.NameNotFoundException nnfe) {
-            Log.e(TAG, nnfe.getMessage());
-            Log.i(TAG, Log.getStackTraceString(nnfe));
-            assertFalse("appConnectionTestTcp001: Package Info is missing!", true);
         } catch (IOException ioe) {
             Log.e(TAG, Log.getStackTraceString(ioe));
             assertFalse("appConnectionTestTcp001: IOException", true);
@@ -1716,12 +1778,11 @@ public class EngineCallTest {
         Location location = getTestLocation();
         Socket socket = null;
         try {
-            me.setSSLEnabled(false);
             //! [registerandfindoverrideexample]
             Future<AppClient.FindCloudletReply> findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,
                     organizationName, applicationName,
                     appVersion, location, "",
-                    null, MatchingEngine.FindCloudletMode.PROXIMITY); // FIXME: These parameters should be overloaded or optional.
+                    null, null, null, MatchingEngine.FindCloudletMode.PROXIMITY); // FIXME: These parameters should be overloaded or optional.
             //! [registerandfindoverrideexample]
             // Just wait:
             AppClient.FindCloudletReply findCloudletReply = findCloudletReplyFuture.get();
