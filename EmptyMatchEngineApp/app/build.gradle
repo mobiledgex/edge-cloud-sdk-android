@@ -7,7 +7,7 @@ android {
         applicationId "com.mobiledgex.sdkdemo"
         minSdkVersion 26
         targetSdkVersion 31
-        versionCode 28
+        versionCode 29
         versionName '3.0.13'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -39,7 +39,7 @@ dependencies {
     implementation 'com.google.guava:guava:29.0-android'
 
     // Use maven:
-    //implementation 'com.mobiledgex:matchingengine:3.0.13'
+    //implementation 'com.mobiledgex:matchingengine:3.0.14'
     // Dependencies of Matching Engine, if using Maven:
     implementation "io.grpc:grpc-stub:${grpcVersion}"
 

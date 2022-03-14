@@ -1207,6 +1207,8 @@ public class EdgeEventsConnection {
                     }
                     break;
             }
+        } else {
+            eventBusRegister(); // Attach Subscriber for server messages only.
         }
     }
 
@@ -1236,6 +1238,8 @@ public class EdgeEventsConnection {
                     }
                     break;
             }
+        } else {
+            eventBusRegister(); // Attach Subscriber for server messages only.
         }
     }
 
