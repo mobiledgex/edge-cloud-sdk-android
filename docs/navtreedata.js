@@ -34,7 +34,7 @@ var NAVTREE =
 
 var NAVTREEINDEX =
 [
-"classcom_1_1mobiledgex_1_1matchingengine_1_1_app_connection_manager.html"
+"classes.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

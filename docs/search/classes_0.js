@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['appconnectionmanager_0',['AppConnectionManager',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_app_connection_manager.html',1,'com::mobiledgex::matchingengine']]]
+  ['appcompatpreferenceactivity_0',['AppCompatPreferenceActivity',['../classcom_1_1mobiledgex_1_1sdkdemo_1_1_app_compat_preference_activity.html',1,'com::mobiledgex::sdkdemo']]]
 ];

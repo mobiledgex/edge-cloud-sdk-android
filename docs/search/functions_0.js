@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['addedgeeventsintervaltask_0',['addEdgeEventsIntervalTask',['../classcom_1_1mobiledgex_1_1matchingengine_1_1_edge_events_connection.html#a4276bc805ff6b14d780a6016f38336a2',1,'com::mobiledgex::matchingengine::EdgeEventsConnection']]]
+  ['isvalidfragment_0',['isValidFragment',['../classcom_1_1mobiledgex_1_1sdkdemo_1_1_settings_activity.html#a6cbe99a57194eb541aac46e203c33b7f',1,'com::mobiledgex::sdkdemo::SettingsActivity']]]
 ];
