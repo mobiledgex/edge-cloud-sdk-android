@@ -2,7 +2,7 @@
    
 name: MobiledgeX Android Docs Update
 
-on: [release]
+on: [push]
 
 jobs:
   build:
