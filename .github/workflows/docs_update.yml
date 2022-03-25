@@ -1,0 +1,23 @@
+
+   
+name: MobiledgeX Android Docs Update
+
+on: [release]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Repo
+        uses: actions/checkout@v2
+      - name: Update Docs
+        uses: mattnotmitt/doxygen-action@v1.9.2
+        with:  
+          working-directory: './EmptyMatchEngineApp/gradle'
+          doxyfile-path: '../doxygen/Doxyfile'
+      - name: Commit Doxygen Updates
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+            commit_message: Docs Automated Updates
+            branch: master
+            push_options: '--force'
