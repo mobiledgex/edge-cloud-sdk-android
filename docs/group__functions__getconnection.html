@@ -212,7 +212,6 @@ Example</h1>
 <div class="line">            sf = me.getAppConnectionManager().getTcpSocket(reply, port, 4000, 10000);</div>
 <div class="line">            s = sf.get();</div>
 <div class="line">        } <span class="keywordflow">catch</span> (ExecutionException ee) {</div>
-<div class="line">            <span class="comment">// Expected invalid port.</span></div>
 <div class="line">            assertTrue(<span class="stringliteral">&quot;Expected invalid port&quot;</span>, ee.getCause() instanceof InvalidPortException);</div>
 <div class="line">        } <span class="keywordflow">catch</span> (Exception e) {</div>
 <div class="line">            assertFalse(<span class="stringliteral">&quot;Unexpected Exception hit: &quot;</span> + e.getMessage(), <span class="keyword">true</span>);</div>
