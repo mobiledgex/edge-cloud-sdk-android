@@ -121,9 +121,9 @@ Functions</h2></td></tr>
 <tr class="separator:ga1d6040f96f519ed3cccadf03483b5ed9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae2042ac3377ddc4e3f2a0a01cbe681a7"><td class="memItemLeft" align="right" valign="top">RegisterClientRequest.Builder&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gae2042ac3377ddc4e3f2a0a01cbe681a7">com.mobiledgex.matchingengine.MatchingEngine.createDefaultRegisterClientRequest</a> (Context context, String organizationName)  throws PackageManager.NameNotFoundException </td></tr>
 <tr class="separator:gae2042ac3377ddc4e3f2a0a01cbe681a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaf24be56bc0018b4554f0cdcb31d68a56"><td class="memItemLeft" align="right" valign="top"><a id="gaf24be56bc0018b4554f0cdcb31d68a56" name="gaf24be56bc0018b4554f0cdcb31d68a56"></a>
-RegisterClientRequest&#160;</td><td class="memItemRight" valign="bottom"><b>com.mobiledgex.matchingengine.MatchingEngine.createRegisterClientRequest</b> (Context context, String organizationName, String applicationName, String appVersion, String authToken, Map&lt; String, String &gt; tags)  throws PackageManager.NameNotFoundException     </td></tr>
-<tr class="separator:gaf24be56bc0018b4554f0cdcb31d68a56"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2d523610e23228d5794542fa300a971f"><td class="memItemLeft" align="right" valign="top"><a id="ga2d523610e23228d5794542fa300a971f" name="ga2d523610e23228d5794542fa300a971f"></a>
+RegisterClientRequest&#160;</td><td class="memItemRight" valign="bottom"><b>com.mobiledgex.matchingengine.MatchingEngine.createRegisterClientRequest</b> (Context context, String organizationName, String applicationName, String appVersion, String authToken, String uniqueIdType, String uniqueId, Map&lt; String, String &gt; tags)  throws PackageManager.NameNotFoundException     </td></tr>
+<tr class="separator:ga2d523610e23228d5794542fa300a971f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaebc5e4e9bbb546895f605e602550a0cd"><td class="memItemLeft" align="right" valign="top">VerifyLocationRequest.Builder&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gaebc5e4e9bbb546895f605e602550a0cd">com.mobiledgex.matchingengine.MatchingEngine.createDefaultVerifyLocationRequest</a> (Context context, android.location.Location location)</td></tr>
 <tr class="separator:gaebc5e4e9bbb546895f605e602550a0cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga8189c03b1bd38967264b00e93173d911"><td class="memItemLeft" align="right" valign="top">AppClient.FindCloudletRequest.Builder&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga8189c03b1bd38967264b00e93173d911">com.mobiledgex.matchingengine.MatchingEngine.createDefaultFindCloudletRequest</a> (Context context, Location location)</td></tr>
@@ -209,8 +209,10 @@ Future&lt; RegisterClientReply &gt;&#160;</td><td class="memItemRight" valign="b
 <tr class="separator:ga2fa89c791c7c6e3baed581955068c626"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga4596d475f9c4601d4d696baecdb6e945"><td class="memItemLeft" align="right" valign="top">Future&lt; FindCloudletReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga4596d475f9c4601d4d696baecdb6e945">com.mobiledgex.matchingengine.MatchingEngine.registerAndFindCloudlet</a> (final Context context, final String organizationName, final String applicationName, final String appVersion, final Location location, final String authToken, final Map&lt; String, String &gt; tags, final <a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a> mode)</td></tr>
 <tr class="separator:ga4596d475f9c4601d4d696baecdb6e945"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga085f17755a8ce57a4859221a4695a777"><td class="memItemLeft" align="right" valign="top">Future&lt; FindCloudletReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#ga085f17755a8ce57a4859221a4695a777">com.mobiledgex.matchingengine.MatchingEngine.registerAndFindCloudlet</a> (final Context context, final String host, final int port, final String organizationName, final String applicationName, final String appVersion, final Location location, final String authToken, final Map&lt; String, String &gt; tags, final <a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a> mode)</td></tr>
-<tr class="separator:ga085f17755a8ce57a4859221a4695a777"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab5c91d855bdf9ab3f3bd6071f384ddcb"><td class="memItemLeft" align="right" valign="top">Future&lt; FindCloudletReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gab5c91d855bdf9ab3f3bd6071f384ddcb">com.mobiledgex.matchingengine.MatchingEngine.registerAndFindCloudlet</a> (final Context context, final String organizationName, final String applicationName, final String appVersion, final Location location, final String authToken, final String uniqueIdType, final String uniqueId, final Map&lt; String, String &gt; tags, final <a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a> mode)</td></tr>
+<tr class="separator:gab5c91d855bdf9ab3f3bd6071f384ddcb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa4215bdcb429a86d90bab9c5a6d20d28"><td class="memItemLeft" align="right" valign="top">Future&lt; FindCloudletReply &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__functions__dmeapis.html#gaa4215bdcb429a86d90bab9c5a6d20d28">com.mobiledgex.matchingengine.MatchingEngine.registerAndFindCloudlet</a> (final Context context, final String host, final int port, final String organizationName, final String applicationName, final String appVersion, final Location location, final String authToken, final String uniqueIdType, final String uniqueId, final Map&lt; String, String &gt; tags, final <a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a> mode)</td></tr>
+<tr class="separator:gaa4215bdcb429a86d90bab9c5a6d20d28"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <h2 class="groupheader">Function Documentation</h2>
@@ -313,7 +315,6 @@ Example</h1>
 <h1><a class="anchor" id="createdeffindcloudletexample"></a>
 Example</h1>
 <div class="fragment"><div class="line">            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)</div>
-<div class="line">                .setCarrierName(findCloudletCarrierOverride)</div>
 <div class="line">                .build();</div>
 </div><!-- fragment --> 
 </div>
@@ -1728,8 +1729,8 @@ Example</h1>
 
 </div>
 </div>
-<a id="ga085f17755a8ce57a4859221a4695a777" name="ga085f17755a8ce57a4859221a4695a777"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga085f17755a8ce57a4859221a4695a777">&#9670;&nbsp;</a></span>registerAndFindCloudlet() <span class="overload">[1/2]</span></h2>
+<a id="gaa4215bdcb429a86d90bab9c5a6d20d28" name="gaa4215bdcb429a86d90bab9c5a6d20d28"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaa4215bdcb429a86d90bab9c5a6d20d28">&#9670;&nbsp;</a></span>registerAndFindCloudlet() <span class="overload">[1/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1785,6 +1786,18 @@ Example</h1>
         <tr>
           <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">final String&#160;</td>
+          <td class="paramname"><em>uniqueIdType</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">final String&#160;</td>
+          <td class="paramname"><em>uniqueId</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">final Map&lt; String, String &gt;&#160;</td>
           <td class="paramname"><em>tags</em>, </td>
         </tr>
@@ -1807,13 +1820,13 @@ Example</h1>
 <div class="fragment"><div class="line">            Future&lt;AppClient.FindCloudletReply&gt; findCloudletReplyFuture = me.registerAndFindCloudlet(context, hostOverride, portOverride,</div>
 <div class="line">                    organizationName, applicationName,</div>
 <div class="line">                    appVersion, location, <span class="stringliteral">&quot;&quot;</span>,</div>
-<div class="line">                    <span class="keyword">null</span>, <a class="code hl_function" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">MatchingEngine</a>.FindCloudletMode.PROXIMITY); <span class="comment">// FIXME: These parameters should be overloaded or optional.</span></div>
+<div class="line">                    <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <a class="code hl_function" href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">MatchingEngine</a>.FindCloudletMode.PROXIMITY); <span class="comment">// FIXME: These parameters should be overloaded or optional.</span></div>
 <div class="ttc" id="aclasscom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_html_a169f68551802701593df83c15e1ee7c5"><div class="ttname"><a href="classcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine.html#a169f68551802701593df83c15e1ee7c5">com.mobiledgex.matchingengine.MatchingEngine.MatchingEngine</a></div><div class="ttdeci">MatchingEngine(Context context)</div><div class="ttdef"><b>Definition:</b> MatchingEngine.java:170</div></div>
 </div><!-- fragment --> 
 </div>
 </div>
 <a id="ga4596d475f9c4601d4d696baecdb6e945" name="ga4596d475f9c4601d4d696baecdb6e945"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga4596d475f9c4601d4d696baecdb6e945">&#9670;&nbsp;</a></span>registerAndFindCloudlet() <span class="overload">[2/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ga4596d475f9c4601d4d696baecdb6e945">&#9670;&nbsp;</a></span>registerAndFindCloudlet() <span class="overload">[2/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1887,6 +1900,83 @@ Example</h1>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Future&lt;FindCloudletReply&gt; </dd></dl>
+
+</div>
+</div>
+<a id="gab5c91d855bdf9ab3f3bd6071f384ddcb" name="gab5c91d855bdf9ab3f3bd6071f384ddcb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab5c91d855bdf9ab3f3bd6071f384ddcb">&#9670;&nbsp;</a></span>registerAndFindCloudlet() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">Future&lt; FindCloudletReply &gt; com.mobiledgex.matchingengine.MatchingEngine.registerAndFindCloudlet </td>
+          <td>(</td>
+          <td class="paramtype">final Context&#160;</td>
+          <td class="paramname"><em>context</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">final String&#160;</td>
+          <td class="paramname"><em>organizationName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">final String&#160;</td>
+          <td class="paramname"><em>applicationName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">final String&#160;</td>
+          <td class="paramname"><em>appVersion</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">final Location&#160;</td>
+          <td class="paramname"><em>location</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">final String&#160;</td>
+          <td class="paramname"><em>authToken</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">final String&#160;</td>
+          <td class="paramname"><em>uniqueIdType</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">final String&#160;</td>
+          <td class="paramname"><em>uniqueId</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">final Map&lt; String, String &gt;&#160;</td>
+          <td class="paramname"><em>tags</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">final <a class="el" href="enumcom_1_1mobiledgex_1_1matchingengine_1_1_matching_engine_1_1_find_cloudlet_mode.html">FindCloudletMode</a>&#160;</td>
+          <td class="paramname"><em>mode</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Register and FindCloudlet to get FindCloudletReply for cloudlet AppInsts info all at once: </p>
 
 </div>
 </div>

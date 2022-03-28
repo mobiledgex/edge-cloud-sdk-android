@@ -51,3 +51,59 @@ dependencies {
     implementation 'com.google.android.gms:play-services-location:19.0.1'
     implementation("com.google.android.gms:play-services-oss-licenses:17.0.0")
 }
+
+// Generate app, to get App level third party disclosures, then convert to text file (same as for App Display)
+generateLicenses.dependsOn('build')
+task generateThirdPartyLicensesTxt {
+
+    // Convert the generated output metadata into a single text file:
+    var licensesFile = generateLicenses.getLicenses()
+    var licensesMetadataFile = generateLicenses.getLicensesMetadata()
+    if (!licensesFile.canRead() && licensesFile.length() > 0) {
+        printf "Can't read license file!"
+        return
+    }
+    if (!licensesMetadataFile.canRead() && licensesMetadataFile.length() > 0) {
+        printf "Can't read license metadata file!"
+        return
+    }
+
+    var licFileReader = new java.io.RandomAccessFile(licensesFile, "r")
+    File thirdPartyLicensesTextFile = new File("THIRD_PARTY_LICENSES.txt")
+
+    def licenseWriter = new FileWriter(thirdPartyLicensesTextFile, false) // overwrite mode.
+
+    def lines = licensesMetadataFile.readLines()
+    def licenseSeparator = "================================================================================"
+    lines.each { String line ->
+        {
+            printf("line: %s\n", line)
+            String []data = line.split(" ", 2)
+            //printf("data0: %s\n", data[0])
+            //printf("data1: %s\n", data[1])
+
+            String []licLocation = data[0].split(":", 2)
+
+            def packageString = data[1]
+            //printf("package: %s\n", packageString)
+
+            long offset = Integer.parseInt(licLocation[0])
+            printf("Offset seek: %d\n", offset)
+            long licenseLength = Integer.parseInt(licLocation[1])
+            printf("Length of lic text: %d\n", licenseLength)
+
+            // ASCII files, according to "FILE"
+            licFileReader.seek(offset)
+            byte []licText = new byte[licenseLength]
+            licFileReader.read(licText, 0, (int)licenseLength)
+
+            def packageOut = String.format("%s\nPackage: %s\n", licenseSeparator, packageString)
+            def licenseTextOut = String.format("License:\n%s\n", new String(licText, "ASCII"))
+            printf("%s", packageOut)
+            printf("%s", licenseTextOut)
+
+            licenseWriter.write(packageOut)
+            licenseWriter.write(licenseTextOut)
+        }
+    }
+}

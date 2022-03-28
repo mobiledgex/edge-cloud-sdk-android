@@ -189,7 +189,6 @@ Register and FindCloudlet</h2>
 <p >Create a register client request: </p><div class="fragment"><div class="line">            AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, organizationName).build();</div>
 </div><!-- fragment --><p >Register, with a sane timeout, like 5 seconds. </p><div class="fragment"><div class="line">                registerReply = me.registerClient(registerClientRequest, GRPC_TIMEOUT_MS);</div>
 </div><!-- fragment --><p >Create a default FindCloudlet Request: </p><div class="fragment"><div class="line">            AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)</div>
-<div class="line">                .setCarrierName(findCloudletCarrierOverride)</div>
 <div class="line">                .build();</div>
 </div><!-- fragment --><p >FindCloudlet, with a sane timeout, like 5 seconds. </p><div class="fragment"><div class="line">                findCloudletReply1 = me.findCloudlet(findCloudletRequest, GRPC_TIMEOUT_MS);</div>
 </div><!-- fragment --><h2><a class="anchor" id="connect_to_appinst"></a>

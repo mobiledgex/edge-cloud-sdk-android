@@ -306,11 +306,15 @@ public class EngineCallTest {
             //! [createdefregisterexample]
             assertTrue(registerClientRequest == null);
 
+            // Doc purposes, just create a dummy, and recreate for test.
             //! [createdeffindcloudletexample]
             AppClient.FindCloudletRequest findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
-                .setCarrierName(findCloudletCarrierOverride)
                 .build();
             //! [createdeffindcloudletexample]
+            assertTrue(findCloudletRequest == null);
+            findCloudletRequest = me.createDefaultFindCloudletRequest(context, location)
+                    .setCarrierName(findCloudletCarrierOverride)
+                    .build();
             assertTrue(findCloudletRequest == null);
 
             AppClient.GetLocationRequest locationRequest = me.createDefaultGetLocationRequest(context).build();
