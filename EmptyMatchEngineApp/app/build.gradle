@@ -80,8 +80,6 @@ task generateThirdPartyLicensesTxt {
         {
             printf("line: %s\n", line)
             String []data = line.split(" ", 2)
-            //printf("data0: %s\n", data[0])
-            //printf("data1: %s\n", data[1])
 
             String []licLocation = data[0].split(":", 2)
 
@@ -100,8 +98,6 @@ task generateThirdPartyLicensesTxt {
 
             def packageOut = String.format("%s\nPackage: %s\n", licenseSeparator, packageString)
             def licenseTextOut = String.format("License:\n%s\n", new String(licText, "ASCII"))
-            //printf("%s", packageOut)
-            //printf("%s", licenseTextOut)
 
             licenseWriter.write(packageOut)
             licenseWriter.write(licenseTextOut)
