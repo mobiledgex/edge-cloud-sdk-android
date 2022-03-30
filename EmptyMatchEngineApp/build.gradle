@@ -31,7 +31,7 @@ buildscript {
 
         classpath "org.ysb33r.gradle:doxygen-gradle-plugin:0.7.0"
 
-        classpath("com.google.android.gms:oss-licenses-plugin:0.10.4")
+        classpath("com.google.android.gms:oss-licenses-plugin:0.10.5")
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }

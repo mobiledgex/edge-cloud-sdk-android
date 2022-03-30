@@ -47,28 +47,29 @@ dependencies {
     implementation "io.grpc:grpc-okhttp:${grpcVersion}" // If using embedded OKHttp from GPRC
     implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
 
-    // For Google Location Services.
+    // For Google Services.
     implementation 'com.google.android.gms:play-services-location:19.0.1'
     implementation("com.google.android.gms:play-services-oss-licenses:17.0.0")
 }
 
-// Generate app, to get App level third party disclosures, then convert to text file (same as for App Display)
-generateLicenses.dependsOn('build')
+// Generate the RELEASE variant app, to get App level third party disclosures, then convert to text file (same as for App Display)
 task generateThirdPartyLicensesTxt {
-
+    dependsOn "generateReleaseAssets"
     // Convert the generated output metadata into a single text file:
-    var licensesFile = generateLicenses.getLicenses()
-    var licensesMetadataFile = generateLicenses.getLicensesMetadata()
-    if (!licensesFile.canRead() && licensesFile.length() > 0) {
-        printf "Can't read license file!"
+    def currDir = System.getProperty("user.dir");
+    printf("CurrentDir: %s\n", currDir)
+    def licensesFile = new File(currDir + "/app/build/generated/third_party_licenses/release/res/raw/third_party_licenses")
+    def licensesMetadataFile = new File(currDir + "/app/build/generated/third_party_licenses/release/res/raw/third_party_license_metadata")
+    if (!licensesFile.canRead() || licensesFile.length() == 0) {
+        printf("Can't read release license file: [%s]!\n", licensesFile)
         return
     }
-    if (!licensesMetadataFile.canRead() && licensesMetadataFile.length() > 0) {
-        printf "Can't read license metadata file!"
+    if (!licensesMetadataFile.canRead() || licensesMetadataFile.length() == 0) {
+        printf("Can't read release license metadata file [%s]!\n", licensesMetadataFile)
         return
     }
 
-    var licFileReader = new java.io.RandomAccessFile(licensesFile, "r")
+    def licFileReader = new java.io.RandomAccessFile(licensesFile, "r")
     File thirdPartyLicensesTextFile = new File("THIRD_PARTY_LICENSES.txt")
 
     def licenseWriter = new FileWriter(thirdPartyLicensesTextFile, false) // overwrite mode.
@@ -79,17 +80,15 @@ task generateThirdPartyLicensesTxt {
         {
             printf("line: %s\n", line)
             String []data = line.split(" ", 2)
-            //printf("data0: %s\n", data[0])
-            //printf("data1: %s\n", data[1])
 
             String []licLocation = data[0].split(":", 2)
 
             def packageString = data[1]
-            //printf("package: %s\n", packageString)
+            printf("package: %s\n", packageString)
 
-            long offset = Integer.parseInt(licLocation[0])
+            def offset = Long.parseLong(licLocation[0])
             printf("Offset seek: %d\n", offset)
-            long licenseLength = Integer.parseInt(licLocation[1])
+            def licenseLength = Long.parseLong(licLocation[1])
             printf("Length of lic text: %d\n", licenseLength)
 
             // ASCII files, according to "FILE"
@@ -99,11 +98,12 @@ task generateThirdPartyLicensesTxt {
 
             def packageOut = String.format("%s\nPackage: %s\n", licenseSeparator, packageString)
             def licenseTextOut = String.format("License:\n%s\n", new String(licText, "ASCII"))
-            printf("%s", packageOut)
-            printf("%s", licenseTextOut)
 
             licenseWriter.write(packageOut)
             licenseWriter.write(licenseTextOut)
         }
     }
+    licenseWriter.flush()
+    licenseWriter.close()
+    licFileReader.close()
 }
