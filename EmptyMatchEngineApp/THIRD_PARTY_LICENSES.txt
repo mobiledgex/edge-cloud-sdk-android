@@ -2752,11 +2752,11 @@ Package: Activity
 License:
 http://www.apache.org/licenses/LICENSE-2.0.txt
 ================================================================================
-Package: Android Support Library fragment
+Package: Android Support CardView v7
 License:
 http://www.apache.org/licenses/LICENSE-2.0.txt
 ================================================================================
-Package: Android Support CardView v7
+Package: Android Support Library fragment
 License:
 http://www.apache.org/licenses/LICENSE-2.0.txt
 ================================================================================
@@ -3846,7 +3846,7 @@ EXHIBIT A-Netscape Public License.
 
 
     Alternatively, the contents of this file may be used under the
-    terms of the _____ license (the ���[___] License���), in which case
+    terms of the _____ license (the ???[___] License???), in which case
     the provisions of [______] License are applicable instead of those
     above.  If you wish to allow use of your version of this file only
     under the terms of the [____] License and not to allow others to
@@ -4325,7 +4325,7 @@ Version 1.1
 13. MULTIPLE-LICENSED CODE.
 
     Initial Developer may designate portions of the Covered Code as
-    ���Multiple-Licensed���.  ���Multiple-Licensed��� means that the Initial
+    ???Multiple-Licensed???.  ???Multiple-Licensed??? means that the Initial
     Developer permits you to utilize portions of the Covered Code
     under Your choice of the NPL or the alternative licenses, if any,
     specified by the Initial Developer in the file described in
@@ -4354,7 +4354,7 @@ EXHIBIT A -Mozilla Public License.
     Contributor(s): ______________________________________.
 
     Alternatively, the contents of this file may be used under the
-    terms of the _____ license (the ���[___] License���), in which case
+    terms of the _____ license (the ???[___] License???), in which case
     the provisions of [______] License are applicable instead of those
     above.  If you wish to allow use of your version of this file only
     under the terms of the [____] License and not to allow others to
@@ -5719,11 +5719,11 @@ Package: perfmark:perfmark-api
 License:
 https://opensource.org/licenses/Apache-2.0
 ================================================================================
-Package: Android Support Library collections
+Package: Android Lifecycle LiveData Core
 License:
 http://www.apache.org/licenses/LICENSE-2.0.txt
 ================================================================================
-Package: Android Lifecycle LiveData Core
+Package: Android Support Library collections
 License:
 http://www.apache.org/licenses/LICENSE-2.0.txt
 ================================================================================
@@ -5763,13 +5763,13 @@ Package: Android Support Library Interpolators
 License:
 http://www.apache.org/licenses/LICENSE-2.0.txt
 ================================================================================
-Package: J2ObjC Annotations
-License:
-http://www.apache.org/licenses/LICENSE-2.0.txt
-================================================================================
 Package: Google Android Annotations Library
 License:
 http://www.apache.org/licenses/LICENSE-2.0
+================================================================================
+Package: J2ObjC Annotations
+License:
+http://www.apache.org/licenses/LICENSE-2.0.txt
 ================================================================================
 Package: Checker Qual
 License:
@@ -5811,11 +5811,15 @@ Package: io.grpc:grpc-stub
 License:
 https://opensource.org/licenses/Apache-2.0
 ================================================================================
+Package: Android Resources Library
+License:
+http://www.apache.org/licenses/LICENSE-2.0.txt
+================================================================================
 Package: error-prone annotations
 License:
 http://www.apache.org/licenses/LICENSE-2.0.txt
 ================================================================================
-Package: Android Resources Library
+Package: Android Support Library core utils
 License:
 http://www.apache.org/licenses/LICENSE-2.0.txt
 ================================================================================
@@ -5998,7 +6002,7 @@ Package: ICU4C
 License:
 COPYRIGHT AND PERMISSION NOTICE (ICU 58 and later)
 
-Copyright �� 1991-2017 Unicode, Inc. All rights reserved.
+Copyright ?? 1991-2017 Unicode, Inc. All rights reserved.
 Distributed under the Terms of Use in http://www.unicode.org/copyright.html
 
 Permission is hereby granted, free of charge, to any person obtaining
@@ -6428,10 +6432,6 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ================================================================================
-Package: Android Support Library core utils
-License:
-http://www.apache.org/licenses/LICENSE-2.0.txt
-================================================================================
 Package: Android Support Library Custom View
 License:
 http://www.apache.org/licenses/LICENSE-2.0.txt
@@ -6460,11 +6460,11 @@ Package: Android ConstraintLayout
 License:
 http://www.apache.org/licenses/LICENSE-2.0.txt
 ================================================================================
-Package: Android Support Library compat
+Package: Android App Startup Runtime
 License:
 http://www.apache.org/licenses/LICENSE-2.0.txt
 ================================================================================
-Package: Android App Startup Runtime
+Package: Android Support Library compat
 License:
 http://www.apache.org/licenses/LICENSE-2.0.txt
 ================================================================================

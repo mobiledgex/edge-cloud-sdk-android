@@ -71,6 +71,8 @@ import java.util.concurrent.Future;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
+import distributed_match_engine.Locverify;
+import distributed_match_engine.SessionOuterClass;
 import io.grpc.StatusRuntimeException;
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -710,7 +712,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
             // Use createDefaultRegisterClientRequest() to get a Builder class to fill in optional parameters
             // like AuthToken or Tag key value pairs.
-            AppClient.RegisterClientRequest registerClientRequest =
+            SessionOuterClass.RegisterClientRequest registerClientRequest =
                     me.createDefaultRegisterClientRequest(ctx, orgName)
                             //.setCarrierName("cerust")
                             .setAppName(appName)
@@ -719,15 +721,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             Log.i(TAG, "registerclient request is " + registerClientRequest);
 
             // This exercises a threadpool that can have a dependent call depth larger than 1
-            AppClient.RegisterClientReply registerClientReply;
-            Future<AppClient.RegisterClientReply> registerClientReplyFuture =
+            SessionOuterClass.RegisterClientReply registerClientReply;
+            Future<SessionOuterClass.RegisterClientReply> registerClientReplyFuture =
                     me.registerClientFuture(registerClientRequest,
                             dmeHostAddress, port, 10000);
             registerClientReply = registerClientReplyFuture.get();
 
             Log.i(TAG, "RegisterReply status is " + registerClientReply.getStatus());
 
-            if (registerClientReply.getStatus() != AppClient.ReplyStatus.RS_SUCCESS) {
+            if (registerClientReply.getStatus() != Appcommon.ReplyStatus.RS_SUCCESS) {
                 someText += "Registration Failed. Error: " + registerClientReply.getStatus();
                 return;
             }
@@ -757,14 +759,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                             dmeHostAddress, port, 10000);
             registerClientReply = registerClientReplyFuture.get();
             Log.i(TAG, "Register status: " + registerClientReply.getStatus());
-            AppClient.VerifyLocationRequest verifyRequest =
+            Locverify.VerifyLocationRequest verifyRequest =
                     me.createDefaultVerifyLocationRequest(ctx, location)
                             .build();
             Log.i(TAG, "verifyRequest is " + verifyRequest);
 
             if (verifyRequest != null) {
                 // Location Verification (Blocking, or use verifyLocationFuture):
-                AppClient.VerifyLocationReply verifiedLocation =
+                Locverify.VerifyLocationReply verifiedLocation =
                         me.verifyLocation(verifyRequest, dmeHostAddress, port, 10000);
                 Log.i(TAG, "VerifyLocationReply is " + verifiedLocation);
 

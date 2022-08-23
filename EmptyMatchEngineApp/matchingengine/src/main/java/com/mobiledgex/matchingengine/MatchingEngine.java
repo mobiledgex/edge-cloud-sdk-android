@@ -59,27 +59,32 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import distributed_match_engine.AppClient;
-import distributed_match_engine.AppClient.RegisterClientRequest;
-import distributed_match_engine.AppClient.RegisterClientReply;
-import distributed_match_engine.AppClient.VerifyLocationRequest;
-import distributed_match_engine.AppClient.VerifyLocationReply;
+import distributed_match_engine.DynamicLocationGroup;
+import distributed_match_engine.Locverify;
+import distributed_match_engine.Qos;
+import distributed_match_engine.QosPositionOuterClass;
+import distributed_match_engine.SessionOuterClass;
+import distributed_match_engine.SessionOuterClass.RegisterClientRequest;
+import distributed_match_engine.SessionOuterClass.RegisterClientReply;
+import distributed_match_engine.Locverify.VerifyLocationRequest;
+import distributed_match_engine.Locverify.VerifyLocationReply;
 import distributed_match_engine.AppClient.FindCloudletRequest;
 import distributed_match_engine.AppClient.FindCloudletReply;
-import distributed_match_engine.AppClient.GetLocationRequest;
-import distributed_match_engine.AppClient.GetLocationReply;
+import distributed_match_engine.Locverify.GetLocationRequest;
+import distributed_match_engine.Locverify.GetLocationReply;
 import distributed_match_engine.AppClient.AppInstListRequest;
 import distributed_match_engine.AppClient.AppInstListReply;
-import distributed_match_engine.AppClient.QosPositionRequest;
-import distributed_match_engine.AppClient.QosPositionKpiReply;
-import distributed_match_engine.AppClient.QosPosition;
-import distributed_match_engine.AppClient.QosPrioritySessionCreateRequest;
-import distributed_match_engine.AppClient.QosPrioritySessionReply;
-import distributed_match_engine.AppClient.QosPrioritySessionDeleteRequest;
-import distributed_match_engine.AppClient.QosPrioritySessionDeleteReply;
-import distributed_match_engine.AppClient.BandSelection;
+import distributed_match_engine.QosPositionOuterClass.QosPositionRequest;
+import distributed_match_engine.QosPositionOuterClass.QosPositionKpiReply;
+import distributed_match_engine.QosPositionOuterClass.QosPosition;
+import distributed_match_engine.Qos.QosPrioritySessionCreateRequest;
+import distributed_match_engine.Qos.QosPrioritySessionReply;
+import distributed_match_engine.Qos.QosPrioritySessionDeleteRequest;
+import distributed_match_engine.Qos.QosPrioritySessionDeleteReply;
+import distributed_match_engine.QosPositionOuterClass.BandSelection;
 
-import distributed_match_engine.AppClient.DynamicLocGroupRequest;
-import distributed_match_engine.AppClient.DynamicLocGroupReply;
+import distributed_match_engine.DynamicLocationGroup.DynamicLocGroupRequest;
+import distributed_match_engine.DynamicLocationGroup.DynamicLocGroupReply;
 
 import distributed_match_engine.Appcommon;
 import distributed_match_engine.LocOuterClass;
@@ -691,14 +696,14 @@ public class MatchingEngine {
         return mRegisterClientRequest;
     }
 
-    synchronized void setLastRegisterClientRequest(AppClient.RegisterClientRequest registerRequest) {
+    synchronized void setLastRegisterClientRequest(SessionOuterClass.RegisterClientRequest registerRequest) {
         mRegisterClientRequest = registerRequest;
     }
 
     synchronized RegisterClientReply getMatchingEngineStatus() {
         return mRegisterClientReply;
     }
-    synchronized void setMatchEngineStatus(AppClient.RegisterClientReply status) {
+    synchronized void setMatchEngineStatus(SessionOuterClass.RegisterClientReply status) {
         mRegisterClientReply = status;
     }
 
@@ -707,7 +712,7 @@ public class MatchingEngine {
         mMatchEngineLocation = locationReply.getNetworkLocation();
     }
 
-    synchronized void setVerifyLocationReply(AppClient.VerifyLocationReply locationVerify) {
+    synchronized void setVerifyLocationReply(Locverify.VerifyLocationReply locationVerify) {
         mVerifyLocationReply = locationVerify;
     }
 
@@ -1063,7 +1068,7 @@ public class MatchingEngine {
             versionName = "";
         }
 
-        RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder()
+        RegisterClientRequest.Builder builder = SessionOuterClass.RegisterClientRequest.newBuilder()
                 .setOrgName(organizationName);
 
         if (appName != null) {
@@ -1118,7 +1123,7 @@ public class MatchingEngine {
 
         versionName = (appVersion == null || appVersion.isEmpty()) ? getAppVersion(context) : appVersion;
 
-        RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder()
+        RegisterClientRequest.Builder builder = SessionOuterClass.RegisterClientRequest.newBuilder()
                 .setOrgName((organizationName == null) ? "" : organizationName)
                 .setAppName(appName)
                 .setAppVers(versionName)
@@ -1167,7 +1172,7 @@ public class MatchingEngine {
         String carrierName = getCarrierName(context);
         Loc aLoc = androidLocToMeLoc(location);
 
-        VerifyLocationRequest.Builder builder = AppClient.VerifyLocationRequest.newBuilder()
+        VerifyLocationRequest.Builder builder = Locverify.VerifyLocationRequest.newBuilder()
                 .setSessionCookie(mSessionCookie)
                 .setCarrierName(carrierName)
                 .setGpsLocation(aLoc); // Latest token is unknown until retrieved.
@@ -1212,7 +1217,7 @@ public class MatchingEngine {
      * @private
      * \ingroup functions_dmeapis
      */
-    public AppClient.GetLocationRequest.Builder createDefaultGetLocationRequest(Context context) {
+    public Locverify.GetLocationRequest.Builder createDefaultGetLocationRequest(Context context) {
         if (!mMatchingEngineLocationAllowed) {
             Log.e(TAG, "Location Permission required to Create DefaultGetLocationRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
@@ -1265,7 +1270,7 @@ public class MatchingEngine {
      * \section createdefappinstexample Example
      * \snippet EngineCallTest.java createdefappinstexample
      */
-    public AppClient.QosPrioritySessionCreateRequest.Builder createDefaultQosPrioritySessionCreateRequest(Context context) {
+    public Qos.QosPrioritySessionCreateRequest.Builder createDefaultQosPrioritySessionCreateRequest(Context context) {
         if (!mMatchingEngineLocationAllowed) {
             Log.e(TAG, "Location Permission required to Create DefaultQosPrioritySessionCreateRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
@@ -1288,7 +1293,7 @@ public class MatchingEngine {
      * \section createdefappinstexample Example
      * \snippet EngineCallTest.java createdefappinstexample
      */
-    public AppClient.QosPrioritySessionDeleteRequest.Builder createDefaultQosPrioritySessionDeleteRequest(Context context) {
+    public Qos.QosPrioritySessionDeleteRequest.Builder createDefaultQosPrioritySessionDeleteRequest(Context context) {
         if (!mMatchingEngineLocationAllowed) {
             Log.e(TAG, "Location Permission required to Delete DefaultQosPrioritySessionDeleteRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
@@ -1306,7 +1311,7 @@ public class MatchingEngine {
      * @private
      * \ingroup functions_dmeapis
      */
-    public AppClient.DynamicLocGroupRequest.Builder createDefaultDynamicLocGroupRequest(Context context, DynamicLocGroupRequest.DlgCommType commType) {
+    public DynamicLocationGroup.DynamicLocGroupRequest.Builder createDefaultDynamicLocGroupRequest(Context context, DynamicLocGroupRequest.DlgCommType commType) {
         if (!mMatchingEngineLocationAllowed) {
             Log.e(TAG, "Location Permission required to Create DefaultDynamicLocGroupRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
             return null;
@@ -1333,7 +1338,7 @@ public class MatchingEngine {
      * \section createdefqosexample Example
      * \snippet EngineCallTest.java createdefqosexample
      */
-    public AppClient.QosPositionRequest.Builder createDefaultQosPositionRequest(List<QosPosition> requests, int lte_category, BandSelection band_selection) {
+    public QosPositionOuterClass.QosPositionRequest.Builder createDefaultQosPositionRequest(List<QosPosition> requests, int lte_category, BandSelection band_selection) {
 
         if (!mMatchingEngineLocationAllowed) {
             Log.e(TAG, "Location Permission required to Create DefaultQosPositionRequest. Consider using com.mobiledgex.matchingengine.util.RequestPermissions and then calling MatchingEngine.setMatchingEngineLocationAllowed(true).");
@@ -1414,7 +1419,7 @@ public class MatchingEngine {
         RegisterClient registerClient = new RegisterClient(this); // Instanced, so just add host, port as field.
         registerClient.setRequest(request, host, port, timeoutInMilliseconds);
 
-        Log.i(TAG, "DME host is: " + host);
+        Log.i(TAG, "DME host is: " + host + ":" + port);
         return registerClient.call();
     }
 

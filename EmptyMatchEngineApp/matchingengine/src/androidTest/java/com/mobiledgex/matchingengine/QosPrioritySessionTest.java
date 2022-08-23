@@ -41,6 +41,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import distributed_match_engine.AppClient;
+import distributed_match_engine.Appcommon;
+import distributed_match_engine.Qos;
+import distributed_match_engine.SessionOuterClass;
 import io.grpc.StatusRuntimeException;
 
 @RunWith(AndroidJUnit4.class)
@@ -112,12 +115,12 @@ public class QosPrioritySessionTest {
   public void registerClient(MatchingEngine me) {
     Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-    AppClient.RegisterClientReply registerReply;
-    AppClient.RegisterClientRequest registerClientRequest;
+    SessionOuterClass.RegisterClientReply registerReply;
+    SessionOuterClass.RegisterClientRequest registerClientRequest;
 
     try {
       // The app version will be null, but we can build from scratch for test
-      AppClient.RegisterClientRequest.Builder regRequestBuilder = AppClient.RegisterClientRequest.newBuilder()
+      SessionOuterClass.RegisterClientRequest.Builder regRequestBuilder = SessionOuterClass.RegisterClientRequest.newBuilder()
               .setOrgName(organizationName)
               .setAppName(applicationName)
               .setAppVers(appVersion);
@@ -134,7 +137,7 @@ public class QosPrioritySessionTest {
       }
       assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
               registerReply.getSessionCookie(), me.getSessionCookie());
-      assertTrue(registerReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+      assertTrue(registerReply.getStatus() == Appcommon.ReplyStatus.RS_SUCCESS);
     } catch (DmeDnsException dde) {
       Log.e(TAG, Log.getStackTraceString(dde));
       assertTrue("ExecutionException registering client.", false);
@@ -166,16 +169,16 @@ public class QosPrioritySessionTest {
       String protocol = "TCP";
       String profile = "QOS_LOW_LATENCY";
 
-      AppClient.QosPrioritySessionCreateRequest.Builder builder = me.createDefaultQosPrioritySessionCreateRequest(context);
+      Qos.QosPrioritySessionCreateRequest.Builder builder = me.createDefaultQosPrioritySessionCreateRequest(context);
       builder.setPortApplicationServer("8008");
       builder.setIpUserEquipment(ipUserEquipment);
       builder.setIpApplicationServer(ipApplicationServer);
-      builder.setProtocolIn(AppClient.QosSessionProtocol.valueOf(protocol));
-      builder.setProfile(AppClient.QosSessionProfile.valueOf(profile));
+      builder.setProtocolIn(Qos.QosSessionProtocol.valueOf(protocol));
+      builder.setProfile(Qos.QosSessionProfile.valueOf(profile));
       builder.setSessionDuration(duration);
 
-      AppClient.QosPrioritySessionCreateRequest qosPrioritySessionCreateRequest;
-      Future<AppClient.QosPrioritySessionReply> qosPrioritySessionReplyFuture;
+      Qos.QosPrioritySessionCreateRequest qosPrioritySessionCreateRequest;
+      Future<Qos.QosPrioritySessionReply> qosPrioritySessionReplyFuture;
 
       qosPrioritySessionCreateRequest = builder.build();
 
@@ -188,7 +191,7 @@ public class QosPrioritySessionTest {
         qosPrioritySessionReplyFuture = me.qosPrioritySessionCreateFuture(qosPrioritySessionCreateRequest, GRPC_TIMEOUT_MS);
         //! [qosprioritysessioncreatefutureexample]
       }
-      AppClient.QosPrioritySessionReply qosPrioritySessionReply = qosPrioritySessionReplyFuture.get();
+      Qos.QosPrioritySessionReply qosPrioritySessionReply = qosPrioritySessionReplyFuture.get();
       Log.i(TAG, "mQosPrioritySessionReply.getSessionId()="+ qosPrioritySessionReply.getSessionId()+" mQosPrioritySessionReply.getHttpStatus()="+ qosPrioritySessionReply.getHttpStatus());
 
       assert (qosPrioritySessionReply != null);
@@ -229,19 +232,19 @@ public class QosPrioritySessionTest {
       String protocol = "TCP";
       String profile = "QOS_LOW_LATENCY";
 
-      AppClient.QosPrioritySessionCreateRequest.Builder builder = me.createDefaultQosPrioritySessionCreateRequest(context);
+      Qos.QosPrioritySessionCreateRequest.Builder builder = me.createDefaultQosPrioritySessionCreateRequest(context);
       builder.setPortApplicationServer(""+port);
       builder.setIpUserEquipment(ipUserEquipment);
       builder.setIpApplicationServer(ipApplicationServer);
-      builder.setProtocolIn(AppClient.QosSessionProtocol.valueOf(protocol));
-      builder.setProfile(AppClient.QosSessionProfile.valueOf(profile));
+      builder.setProtocolIn(Qos.QosSessionProtocol.valueOf(protocol));
+      builder.setProfile(Qos.QosSessionProfile.valueOf(profile));
       builder.setSessionDuration(duration);
 
-      AppClient.QosPrioritySessionCreateRequest qosPrioritySessionCreateRequest;
+      Qos.QosPrioritySessionCreateRequest qosPrioritySessionCreateRequest;
 
       qosPrioritySessionCreateRequest = builder.build();
 
-      AppClient.QosPrioritySessionReply qosPrioritySessionReply;
+      Qos.QosPrioritySessionReply qosPrioritySessionReply;
 
       if (useHostOverride) {
         //! [qosprioritysessioncreatefutureoverrideexample]
@@ -283,7 +286,7 @@ public class QosPrioritySessionTest {
     me.setSSLEnabled(false);
 
     try {
-      AppClient.QosPrioritySessionCreateRequest.Builder builder = me.createDefaultQosPrioritySessionCreateRequest(context);
+      Qos.QosPrioritySessionCreateRequest.Builder builder = me.createDefaultQosPrioritySessionCreateRequest(context);
     } catch (IllegalArgumentException iae) {
       Log.e(TAG, Log.getStackTraceString(iae));
       assertEquals(iae.getMessage(), ("An unexpired RegisterClient sessionCookie is required."));
@@ -308,12 +311,12 @@ public class QosPrioritySessionTest {
       String protocol = "TCP";
       String profile = "QOS_LOW_LATENCY";
 
-      AppClient.QosPrioritySessionDeleteRequest.Builder builder = me.createDefaultQosPrioritySessionDeleteRequest(context);
-      builder.setProfile(AppClient.QosSessionProfile.valueOf(profile));
+      Qos.QosPrioritySessionDeleteRequest.Builder builder = me.createDefaultQosPrioritySessionDeleteRequest(context);
+      builder.setProfile(Qos.QosSessionProfile.valueOf(profile));
       builder.setSessionId(qosSesId);
 
-      AppClient.QosPrioritySessionDeleteRequest qosPrioritySessionDeleteRequest;
-      Future<AppClient.QosPrioritySessionDeleteReply> qosPrioritySessionDeleteReplyFuture;
+      Qos.QosPrioritySessionDeleteRequest qosPrioritySessionDeleteRequest;
+      Future<Qos.QosPrioritySessionDeleteReply> qosPrioritySessionDeleteReplyFuture;
 
       qosPrioritySessionDeleteRequest = builder.build();
 
@@ -326,7 +329,7 @@ public class QosPrioritySessionTest {
         qosPrioritySessionDeleteReplyFuture = me.qosPrioritySessionDeleteFuture(qosPrioritySessionDeleteRequest, GRPC_TIMEOUT_MS);
         //! [qosprioritysessiondeletefutureexample]
       }
-      AppClient.QosPrioritySessionDeleteReply qosPrioritySessionDeleteReply = qosPrioritySessionDeleteReplyFuture.get();
+      Qos.QosPrioritySessionDeleteReply qosPrioritySessionDeleteReply = qosPrioritySessionDeleteReplyFuture.get();
       Log.i(TAG, "qosPrioritySessionDeleteReply.getStatus()="+ qosPrioritySessionDeleteReply.getStatus());
 
       assert (qosPrioritySessionDeleteReply != null);
@@ -360,12 +363,12 @@ public class QosPrioritySessionTest {
       String protocol = "TCP";
       String profile = "QOS_LOW_LATENCY";
 
-      AppClient.QosPrioritySessionDeleteRequest.Builder builder = me.createDefaultQosPrioritySessionDeleteRequest(context);
-      builder.setProfile(AppClient.QosSessionProfile.valueOf(profile));
+      Qos.QosPrioritySessionDeleteRequest.Builder builder = me.createDefaultQosPrioritySessionDeleteRequest(context);
+      builder.setProfile(Qos.QosSessionProfile.valueOf(profile));
       builder.setSessionId(qosSesId);
-      AppClient.QosPrioritySessionDeleteRequest qosPrioritySessionDeleteRequest = builder.build();
+      Qos.QosPrioritySessionDeleteRequest qosPrioritySessionDeleteRequest = builder.build();
 
-      AppClient.QosPrioritySessionDeleteReply qosPrioritySessionDeleteReply;
+      Qos.QosPrioritySessionDeleteReply qosPrioritySessionDeleteReply;
 
       if (useHostOverride) {
         //! [qosprioritysessiondeletefutureoverrideexample]
@@ -409,12 +412,12 @@ public class QosPrioritySessionTest {
       String protocol = "TCP";
       String profile = "QOS_LOW_LATENCY";
 
-      AppClient.QosPrioritySessionDeleteRequest.Builder builder = me.createDefaultQosPrioritySessionDeleteRequest(context);
-      builder.setProfile(AppClient.QosSessionProfile.valueOf(profile));
+      Qos.QosPrioritySessionDeleteRequest.Builder builder = me.createDefaultQosPrioritySessionDeleteRequest(context);
+      builder.setProfile(Qos.QosSessionProfile.valueOf(profile));
       builder.setSessionId("this-is-a-bad-session-id");
-      AppClient.QosPrioritySessionDeleteRequest qosPrioritySessionDeleteRequest = builder.build();
+      Qos.QosPrioritySessionDeleteRequest qosPrioritySessionDeleteRequest = builder.build();
 
-      AppClient.QosPrioritySessionDeleteReply qosPrioritySessionDeleteReply;
+      Qos.QosPrioritySessionDeleteReply qosPrioritySessionDeleteReply;
 
       if (useHostOverride) {
         //! [qosprioritysessiondeletefutureoverrideexample]

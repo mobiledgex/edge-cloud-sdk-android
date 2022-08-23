@@ -24,9 +24,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import distributed_match_engine.AppClient.DynamicLocGroupRequest;
-import distributed_match_engine.AppClient.DynamicLocGroupReply;
-import distributed_match_engine.MatchEngineApiGrpc;
+import distributed_match_engine.DynamicLocGroupApiGrpc;
+import distributed_match_engine.DynamicLocationGroup.DynamicLocGroupRequest;
+import distributed_match_engine.DynamicLocationGroup.DynamicLocGroupReply;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 
@@ -82,7 +82,7 @@ class AddUserToGroup implements Callable {
             Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
-            MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+            DynamicLocGroupApiGrpc.DynamicLocGroupApiBlockingStub stub = DynamicLocGroupApiGrpc.newBlockingStub(channel);
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .addUserToGroup(mRequest);

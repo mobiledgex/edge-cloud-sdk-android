@@ -68,6 +68,7 @@ import java.util.concurrent.TimeUnit;
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
 import distributed_match_engine.LocOuterClass;
+import distributed_match_engine.SessionOuterClass;
 
 import static com.mobiledgex.matchingengine.EdgeEventsConnection.ChannelStatus.open;
 import static com.mobiledgex.matchingengine.EdgeEventsConnection.ChannelStatus.opening;
@@ -192,12 +193,12 @@ public class EdgeEventsConnectionTest {
     public void registerClient(MatchingEngine me) {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        AppClient.RegisterClientReply registerReply;
-        AppClient.RegisterClientRequest regRequest;
+        SessionOuterClass.RegisterClientReply registerReply;
+        SessionOuterClass.RegisterClientRequest regRequest;
 
         try {
             // The app version will be null, but we can build from scratch for test
-            AppClient.RegisterClientRequest.Builder regRequestBuilder = AppClient.RegisterClientRequest.newBuilder()
+            SessionOuterClass.RegisterClientRequest.Builder regRequestBuilder = SessionOuterClass.RegisterClientRequest.newBuilder()
                     .setOrgName(organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion);
@@ -209,7 +210,7 @@ public class EdgeEventsConnectionTest {
             }
             assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
                     registerReply.getSessionCookie(), me.getSessionCookie());
-            assertSame(registerReply.getStatus(), AppClient.ReplyStatus.RS_SUCCESS);
+            assertSame(registerReply.getStatus(), Appcommon.ReplyStatus.RS_SUCCESS);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             fail("ExecutionException registering client.");

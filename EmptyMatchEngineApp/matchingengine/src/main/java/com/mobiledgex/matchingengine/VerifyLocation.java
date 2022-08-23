@@ -31,10 +31,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import distributed_match_engine.AppClient;
-import distributed_match_engine.AppClient.VerifyLocationRequest;
-import distributed_match_engine.AppClient.VerifyLocationReply;
-import distributed_match_engine.MatchEngineApiGrpc;
+import distributed_match_engine.LocationGrpc;
+import distributed_match_engine.Locverify;
+import distributed_match_engine.Locverify.VerifyLocationRequest;
+import distributed_match_engine.Locverify.VerifyLocationReply;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 
@@ -113,7 +113,7 @@ public class VerifyLocation implements Callable {
     }
 
     private VerifyLocationRequest addTokenToRequest(String token) {
-        VerifyLocationRequest tokenizedRequest = AppClient.VerifyLocationRequest.newBuilder()
+        VerifyLocationRequest tokenizedRequest = Locverify.VerifyLocationRequest.newBuilder()
                 .setVer(mRequest.getVer())
                 .setSessionCookie(mRequest.getSessionCookie())
                 .setCarrierName(mRequest.getCarrierName())
@@ -144,7 +144,7 @@ public class VerifyLocation implements Callable {
             Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
-            MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+            LocationGrpc.LocationBlockingStub stub = LocationGrpc.newBlockingStub(channel);
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .verifyLocation(grpcRequest);

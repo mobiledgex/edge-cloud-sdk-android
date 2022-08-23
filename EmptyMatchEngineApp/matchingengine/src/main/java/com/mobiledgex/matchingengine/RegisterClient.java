@@ -26,8 +26,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import distributed_match_engine.AppClient;
-import distributed_match_engine.MatchEngineApiGrpc;
+import distributed_match_engine.SessionGrpc;
+import distributed_match_engine.SessionOuterClass;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 
@@ -35,7 +35,7 @@ public class RegisterClient implements Callable {
     public static final String TAG = "RegisterClient";
 
     private MatchingEngine mMatchingEngine;
-    private AppClient.RegisterClientRequest mRequest;
+    private SessionOuterClass.RegisterClientRequest mRequest;
     private String mHost = null;
     private int mPort = 0;
     private long mTimeoutInMilliseconds = -1;
@@ -44,7 +44,7 @@ public class RegisterClient implements Callable {
         mMatchingEngine = matchingEngine;
     }
 
-    public boolean setRequest(AppClient.RegisterClientRequest request, String host, int port, long timeoutInMilliseconds) {
+    public boolean setRequest(SessionOuterClass.RegisterClientRequest request, String host, int port, long timeoutInMilliseconds) {
         if (request == null) {
             throw new IllegalArgumentException("Request object must not be null.");
         } else if (!MatchingEngine.isMatchingEngineLocationAllowed()) {
@@ -67,19 +67,19 @@ public class RegisterClient implements Callable {
         return true;
     }
 
-    private AppClient.RegisterClientRequest.Builder appendDeviceDetails(AppClient.RegisterClientRequest.Builder builder) {
+    private SessionOuterClass.RegisterClientRequest.Builder appendDeviceDetails(SessionOuterClass.RegisterClientRequest.Builder builder) {
         HashMap<String, String> map = mMatchingEngine.getDeviceInfo();
         builder.putAllTags(map);
         return builder;
     }
 
     @Override
-    public AppClient.RegisterClientReply call() throws MissingRequestException, StatusRuntimeException, InterruptedException, ExecutionException {
+    public SessionOuterClass.RegisterClientReply call() throws MissingRequestException, StatusRuntimeException, InterruptedException, ExecutionException {
         if (mRequest == null) {
             throw new MissingRequestException("Usage error: RegisterClient() does not have a request object to make call!");
         }
 
-        AppClient.RegisterClientReply reply;
+        SessionOuterClass.RegisterClientReply reply;
         ManagedChannel channel = null;
         NetworkManager nm;
         Network network;
@@ -88,9 +88,9 @@ public class RegisterClient implements Callable {
             network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
-            MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+            SessionGrpc.SessionBlockingStub stub = SessionGrpc.newBlockingStub(channel);
 
-            AppClient.RegisterClientRequest.Builder builder = AppClient.RegisterClientRequest.newBuilder(mRequest);
+            SessionOuterClass.RegisterClientRequest.Builder builder = SessionOuterClass.RegisterClientRequest.newBuilder(mRequest);
             appendDeviceDetails(builder)
                     .build();
 

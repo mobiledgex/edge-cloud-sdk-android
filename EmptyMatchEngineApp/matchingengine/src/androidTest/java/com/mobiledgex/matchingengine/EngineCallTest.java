@@ -81,6 +81,10 @@ import java.util.concurrent.TimeoutException;
 import distributed_match_engine.AppClient;
 import distributed_match_engine.Appcommon;
 import distributed_match_engine.Appcommon.AppPort;
+import distributed_match_engine.DynamicLocationGroup;
+import distributed_match_engine.Locverify;
+import distributed_match_engine.QosPositionOuterClass;
+import distributed_match_engine.SessionOuterClass;
 import io.grpc.StatusRuntimeException;
 
 import static junit.framework.TestCase.assertNotNull;
@@ -302,7 +306,7 @@ public class EngineCallTest {
             Location location = meLoc.getBlocking(context, GRPC_TIMEOUT_MS);
 
             //! [createdefregisterexample]
-            AppClient.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, organizationName).build();
+            SessionOuterClass.RegisterClientRequest registerClientRequest = me.createDefaultRegisterClientRequest(context, organizationName).build();
             //! [createdefregisterexample]
             assertTrue(registerClientRequest == null);
 
@@ -317,11 +321,11 @@ public class EngineCallTest {
                     .build();
             assertTrue(findCloudletRequest == null);
 
-            AppClient.GetLocationRequest locationRequest = me.createDefaultGetLocationRequest(context).build();
+            Locverify.GetLocationRequest locationRequest = me.createDefaultGetLocationRequest(context).build();
             assertTrue(locationRequest == null);
 
             //! [createdefverifylocationexample]
-            AppClient.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location).build();
+            Locverify.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location).build();
             //! [createdefverifylocationexample]
             assertTrue(verifyLocationRequest == null);
 
@@ -362,12 +366,12 @@ public class EngineCallTest {
     public void registerClient(MatchingEngine me) {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        AppClient.RegisterClientReply registerReply;
-        AppClient.RegisterClientRequest registerClientRequest;
+        SessionOuterClass.RegisterClientReply registerReply;
+        SessionOuterClass.RegisterClientRequest registerClientRequest;
 
         try {
             // The app version will be null, but we can build from scratch for test
-            AppClient.RegisterClientRequest.Builder regRequestBuilder = AppClient.RegisterClientRequest.newBuilder()
+            SessionOuterClass.RegisterClientRequest.Builder regRequestBuilder = SessionOuterClass.RegisterClientRequest.newBuilder()
                     .setOrgName(organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion);
@@ -383,7 +387,7 @@ public class EngineCallTest {
             }
             assertEquals("Response SessionCookie should equal MatchingEngine SessionCookie",
                     registerReply.getSessionCookie(), me.getSessionCookie());
-            assertTrue(registerReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            assertTrue(registerReply.getStatus() == Appcommon.ReplyStatus.RS_SUCCESS);
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
             assertTrue("ExecutionException registering client.", false);
@@ -403,10 +407,10 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        AppClient.RegisterClientReply reply = null;
+        SessionOuterClass.RegisterClientReply reply = null;
 
         try {
-            AppClient.RegisterClientRequest request = me.createRegisterClientRequest(
+            SessionOuterClass.RegisterClientRequest request = me.createRegisterClientRequest(
                     context,
                     organizationName,
                     applicationName,
@@ -423,7 +427,7 @@ public class EngineCallTest {
                 reply = me.registerClient(request, me.generateDmeHostAddress(), me.getPort(), GRPC_TIMEOUT_MS);
             }
             assertTrue(reply != null);
-            assertTrue(reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            assertTrue(reply.getStatus() == Appcommon.ReplyStatus.RS_SUCCESS);
             //assertTrue( !reply.getUniqueId().isEmpty());
             assertTrue( reply.getSessionCookie().length() > 0);
             assertEquals("Sessions must be equal.", reply.getSessionCookie(), me.getSessionCookie());
@@ -451,7 +455,7 @@ public class EngineCallTest {
         // Temporary.
         Log.i(TAG, "registerClientTest reply: " + reply.toString());
         assertEquals(0, reply.getVer());
-        assertEquals(AppClient.ReplyStatus.RS_SUCCESS, reply.getStatus());
+        assertEquals(Appcommon.ReplyStatus.RS_SUCCESS, reply.getStatus());
     }
 
     @Test
@@ -461,10 +465,10 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        AppClient.RegisterClientReply reply = null;
+        SessionOuterClass.RegisterClientReply reply = null;
 
         try {
-            AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
+            SessionOuterClass.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
                     .build();
@@ -474,7 +478,7 @@ public class EngineCallTest {
                 reply = me.registerClient(request, me.generateDmeHostAddress(), me.getPort(), GRPC_TIMEOUT_MS);
             }
             assertTrue(reply != null);
-            assertTrue(reply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            assertTrue(reply.getStatus() == Appcommon.ReplyStatus.RS_SUCCESS);
             //assertTrue( !reply.getUniqueId().isEmpty());
             assertTrue( reply.getSessionCookie().length() > 0);
             assertEquals("Sessions must be equal.", reply.getSessionCookie(), me.getSessionCookie());
@@ -502,7 +506,7 @@ public class EngineCallTest {
         // Temporary.
         Log.i(TAG, "registerClientTest reply: " + reply.toString());
         assertEquals(0, reply.getVer());
-        assertEquals(AppClient.ReplyStatus.RS_SUCCESS, reply.getStatus());
+        assertEquals(Appcommon.ReplyStatus.RS_SUCCESS, reply.getStatus());
     }
 
     @Test
@@ -512,11 +516,11 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        Future<AppClient.RegisterClientReply> registerReplyFuture;
-        AppClient.RegisterClientReply reply = null;
+        Future<SessionOuterClass.RegisterClientReply> registerReplyFuture;
+        SessionOuterClass.RegisterClientReply reply = null;
 
         try {
-            AppClient.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
+            SessionOuterClass.RegisterClientRequest request = me.createDefaultRegisterClientRequest(context, organizationName)
                     .setAppName(applicationName)
                     .setAppVers(appVersion)
                     .build();
@@ -548,7 +552,7 @@ public class EngineCallTest {
         // Temporary.
         Log.i(TAG, "registerClientFutureTest() response: " + reply.toString());
         assertEquals(0, reply.getVer());
-        assertEquals(AppClient.ReplyStatus.RS_SUCCESS, reply.getStatus());
+        assertEquals(Appcommon.ReplyStatus.RS_SUCCESS, reply.getStatus());
     }
 
     @Test
@@ -775,7 +779,7 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
         MeLocation meLoc = new MeLocation(me);
-        AppClient.VerifyLocationReply verifyLocationReply = null;
+        Locverify.VerifyLocationReply verifyLocationReply = null;
 
         try {
             Location location = getTestLocation();
@@ -783,7 +787,7 @@ public class EngineCallTest {
             String carrierName = me.getCarrierName(context);
             registerClient(me);
 
-            AppClient.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location)
+            Locverify.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location)
                     .setCarrierName(carrierName)
                     .build();
 
@@ -819,8 +823,8 @@ public class EngineCallTest {
 
         // Temporary.
         assertEquals(0, verifyLocationReply.getVer());
-        assertEquals(AppClient.VerifyLocationReply.TowerStatus.TOWER_UNKNOWN, verifyLocationReply.getTowerStatus());
-        assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_ROAMING_COUNTRY_MATCH, verifyLocationReply.getGpsLocationStatus());
+        assertEquals(Locverify.VerifyLocationReply.TowerStatus.TOWER_UNKNOWN, verifyLocationReply.getTowerStatus());
+        assertEquals(Locverify.VerifyLocationReply.GPSLocationStatus.LOC_ROAMING_COUNTRY_MATCH, verifyLocationReply.getGpsLocationStatus());
     }
 
     @Test
@@ -830,15 +834,15 @@ public class EngineCallTest {
         MatchingEngine me = new MatchingEngine(context);
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
-        AppClient.VerifyLocationReply verifyLocationReply = null;
-        Future<AppClient.VerifyLocationReply> verifyLocationReplyFuture = null;
+        Locverify.VerifyLocationReply verifyLocationReply = null;
+        Future<Locverify.VerifyLocationReply> verifyLocationReplyFuture = null;
 
         try {
             Location location = getTestLocation();
 
             String carrierName = me.getCarrierName(context);
             registerClient(me);
-            AppClient.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location)
+            Locverify.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location)
                     .setCarrierName(carrierName)
                     .build();
             if (useHostOverride) {
@@ -864,8 +868,8 @@ public class EngineCallTest {
 
         // Temporary.
         assertEquals(0, verifyLocationReply.getVer());
-        assertEquals(AppClient.VerifyLocationReply.TowerStatus.TOWER_UNKNOWN, verifyLocationReply.getTowerStatus());
-        assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_ROAMING_COUNTRY_MATCH, verifyLocationReply.getGpsLocationStatus());
+        assertEquals(Locverify.VerifyLocationReply.TowerStatus.TOWER_UNKNOWN, verifyLocationReply.getTowerStatus());
+        assertEquals(Locverify.VerifyLocationReply.GPSLocationStatus.LOC_ROAMING_COUNTRY_MATCH, verifyLocationReply.getGpsLocationStatus());
     }
 
     /**
@@ -879,13 +883,13 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        AppClient.VerifyLocationReply verifyLocationReply = null;
+        Locverify.VerifyLocationReply verifyLocationReply = null;
         try {
             Location location = getTestLocation();
 
             String carrierName = me.getCarrierName(context);
             registerClient(me);
-            AppClient.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location)
+            Locverify.VerifyLocationRequest verifyLocationRequest = me.createDefaultVerifyLocationRequest(context, location)
                     .setCarrierName(carrierName)
                     .build();
             if (useHostOverride) {
@@ -913,8 +917,8 @@ public class EngineCallTest {
 
         // Temporary.
         assertEquals(0, verifyLocationReply.getVer());
-        assertEquals(AppClient.VerifyLocationReply.TowerStatus.TOWER_UNKNOWN, verifyLocationReply.getTowerStatus());
-        assertEquals(AppClient.VerifyLocationReply.GPSLocationStatus.LOC_ROAMING_COUNTRY_MATCH, verifyLocationReply.getGpsLocationStatus()); // Based on test data.
+        assertEquals(Locverify.VerifyLocationReply.TowerStatus.TOWER_UNKNOWN, verifyLocationReply.getTowerStatus());
+        assertEquals(Locverify.VerifyLocationReply.GPSLocationStatus.LOC_ROAMING_COUNTRY_MATCH, verifyLocationReply.getGpsLocationStatus()); // Based on test data.
 
     }
 
@@ -926,7 +930,7 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        AppClient.DynamicLocGroupReply dynamicLocGroupReply = null;
+        DynamicLocationGroup.DynamicLocGroupReply dynamicLocGroupReply = null;
         Location loc = getTestLocation();
 
         String carrierName = me.getCarrierName(context);
@@ -935,9 +939,9 @@ public class EngineCallTest {
 
             // FIXME: Need groupId source.
             long groupId = 1001L;
-            AppClient.DynamicLocGroupRequest dynamicLocGroupRequest = me.createDefaultDynamicLocGroupRequest(
+            DynamicLocationGroup.DynamicLocGroupRequest dynamicLocGroupRequest = me.createDefaultDynamicLocGroupRequest(
                     context,
-                    AppClient.DynamicLocGroupRequest.DlgCommType.DLG_SECURE)
+                    DynamicLocationGroup.DynamicLocGroupRequest.DlgCommType.DLG_SECURE)
                     .build();
 
             if (useHostOverride) {
@@ -945,7 +949,7 @@ public class EngineCallTest {
             } else {
                 dynamicLocGroupReply = me.addUserToGroup(dynamicLocGroupRequest, GRPC_TIMEOUT_MS);
             }
-            assertTrue("DynamicLocation Group Add should return: ME_SUCCESS", dynamicLocGroupReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            assertTrue("DynamicLocation Group Add should return: ME_SUCCESS", dynamicLocGroupReply.getStatus() == Appcommon.ReplyStatus.RS_SUCCESS);
             assertTrue("Group cookie result.", dynamicLocGroupReply.getGroupCookie().equals("")); // FIXME: This GroupCookie should have a value.
 
         } catch (DmeDnsException dde) {
@@ -976,7 +980,7 @@ public class EngineCallTest {
         me.setMatchingEngineLocationAllowed(true);
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
-        AppClient.DynamicLocGroupReply dynamicLocGroupReply = null;
+        DynamicLocationGroup.DynamicLocGroupReply dynamicLocGroupReply = null;
 
         Location loc = getTestLocation();
         String carrierName = me.getCarrierName(context);
@@ -985,19 +989,19 @@ public class EngineCallTest {
 
             // FIXME: Need groupId source.
             long groupId = 1001L;
-            AppClient.DynamicLocGroupRequest dynamicLocGroupRequest = me.createDefaultDynamicLocGroupRequest(
+            DynamicLocationGroup.DynamicLocGroupRequest dynamicLocGroupRequest = me.createDefaultDynamicLocGroupRequest(
                     context,
-                    AppClient.DynamicLocGroupRequest.DlgCommType.DLG_SECURE)
+                    DynamicLocationGroup.DynamicLocGroupRequest.DlgCommType.DLG_SECURE)
                     .build();
 
-            Future<AppClient.DynamicLocGroupReply> responseFuture;
+            Future<DynamicLocationGroup.DynamicLocGroupReply> responseFuture;
             if (useHostOverride) {
                 responseFuture = me.addUserToGroupFuture(dynamicLocGroupRequest, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
                 responseFuture = me.addUserToGroupFuture(dynamicLocGroupRequest, GRPC_TIMEOUT_MS);
             }
             dynamicLocGroupReply = responseFuture.get();
-            assertTrue("DynamicLocation Group Add should return: ME_SUCCESS", dynamicLocGroupReply.getStatus() == AppClient.ReplyStatus.RS_SUCCESS);
+            assertTrue("DynamicLocation Group Add should return: ME_SUCCESS", dynamicLocGroupReply.getStatus() == Appcommon.ReplyStatus.RS_SUCCESS);
             assertTrue("Group cookie result.", dynamicLocGroupReply.getGroupCookie().equals("")); // FIXME: This GroupCookie should have a value.
         } catch (DmeDnsException dde) {
             Log.e(TAG, Log.getStackTraceString(dde));
@@ -1135,7 +1139,7 @@ public class EngineCallTest {
 
         Location location = getTestLocation();
 
-        ChannelIterator<AppClient.QosPositionKpiReply> responseIterator = null;
+        ChannelIterator<QosPositionOuterClass.QosPositionKpiReply> responseIterator = null;
         try {
             registerClient(me);
 
@@ -1143,10 +1147,10 @@ public class EngineCallTest {
             double increment = 0.1;
             double direction = 45d;
 
-            ArrayList<AppClient.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
+            ArrayList<QosPositionOuterClass.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
 
             //! [createdefqosexample]
-            AppClient.QosPositionRequest request = me.createDefaultQosPositionRequest(kpiRequests, 0, null).build();
+            QosPositionOuterClass.QosPositionRequest request = me.createDefaultQosPositionRequest(kpiRequests, 0, null).build();
             //! [createdefqosexample]
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
@@ -1162,7 +1166,7 @@ public class EngineCallTest {
             // A stream of QosPositionKpiReply(s), with a non-stream block of responses.
             long total = 0;
             while (responseIterator.hasNext()) {
-                AppClient.QosPositionKpiReply aR = responseIterator.next();
+                QosPositionOuterClass.QosPositionKpiReply aR = responseIterator.next();
                 for (int i = 0; i < aR.getPositionResultsCount(); i++) {
                     System.out.println(aR.getPositionResults(i));
                 }
@@ -1209,13 +1213,13 @@ public class EngineCallTest {
             double increment = 0.1;
             double direction = 45d;
 
-            ArrayList<AppClient.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
+            ArrayList<QosPositionOuterClass.QosPosition> kpiRequests = MockUtils.createQosPositionArray(location, direction, totalDistanceKm, increment);
 
-            AppClient.BandSelection bandSelection = AppClient.BandSelection.newBuilder().build();
-            AppClient.QosPositionRequest request = me.createDefaultQosPositionRequest(kpiRequests, 0, bandSelection).build();
+            QosPositionOuterClass.BandSelection bandSelection = QosPositionOuterClass.BandSelection.newBuilder().build();
+            QosPositionOuterClass.QosPositionRequest request = me.createDefaultQosPositionRequest(kpiRequests, 0, bandSelection).build();
             assertFalse("SessionCookie must not be empty.", request.getSessionCookie().isEmpty());
 
-            Future<ChannelIterator<AppClient.QosPositionKpiReply>> replyFuture = null;
+            Future<ChannelIterator<QosPositionOuterClass.QosPositionKpiReply>> replyFuture = null;
             if (useHostOverride) {
                 replyFuture = me.getQosPositionKpiFuture(request, hostOverride, portOverride, GRPC_TIMEOUT_MS);
             } else {
@@ -1223,10 +1227,10 @@ public class EngineCallTest {
             }
             // A stream of QosPositionKpiReply(s), with a non-stream block of responses.
             // Wait for value with get().
-            ChannelIterator<AppClient.QosPositionKpiReply> responseIterator = replyFuture.get();
+            ChannelIterator<QosPositionOuterClass.QosPositionKpiReply> responseIterator = replyFuture.get();
             long total = 0;
             while (responseIterator.hasNext()) {
-                AppClient.QosPositionKpiReply aR = responseIterator.next();
+                QosPositionOuterClass.QosPositionKpiReply aR = responseIterator.next();
                 for (int i = 0; i < aR.getPositionResultsCount(); i++) {
                     System.out.println(aR.getPositionResults(i));
                 }
@@ -1981,7 +1985,7 @@ public class EngineCallTest {
 
         Location loc = MockUtils.createLocation("findCloudletTest", 122.3321, 47.6062);
         try {
-            AppClient.VerifyLocationRequest.Builder requestBuilder = me.createDefaultVerifyLocationRequest(context, loc);
+            Locverify.VerifyLocationRequest.Builder requestBuilder = me.createDefaultVerifyLocationRequest(context, loc);
             assertFalse("We should not be here, expected an user error and illegal engine state.", true);
         } catch (IllegalArgumentException iae) {
             Log.i(TAG, Log.getStackTraceString(iae));
@@ -2016,11 +2020,11 @@ public class EngineCallTest {
         me.setAllowSwitchIfNoSubscriberInfo(true);
 
         try {
-            AppClient.QosPosition qos = AppClient.QosPosition.newBuilder().build();
-            List<AppClient.QosPosition> list = new ArrayList<>();
+            QosPositionOuterClass.QosPosition qos = QosPositionOuterClass.QosPosition.newBuilder().build();
+            List<QosPositionOuterClass.QosPosition> list = new ArrayList<>();
             list.add(qos);
-            AppClient.BandSelection bandSelection = AppClient.BandSelection.newBuilder().build();
-            AppClient.QosPositionRequest.Builder requestBuilder = me.createDefaultQosPositionRequest(list, 0, bandSelection);
+            QosPositionOuterClass.BandSelection bandSelection = QosPositionOuterClass.BandSelection.newBuilder().build();
+            QosPositionOuterClass.QosPositionRequest.Builder requestBuilder = me.createDefaultQosPositionRequest(list, 0, bandSelection);
             assertFalse("We should not be here, expected an user error and illegal engine state.", true);
         } catch (IllegalArgumentException iae) {
             Log.i(TAG, Log.getStackTraceString(iae));

@@ -25,18 +25,18 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import distributed_match_engine.QosPositionKpiGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 
-import distributed_match_engine.MatchEngineApiGrpc;
-import distributed_match_engine.AppClient;
-import distributed_match_engine.AppClient.QosPositionRequest;
-import distributed_match_engine.AppClient.QosPositionKpiReply;
+import distributed_match_engine.QosPositionOuterClass;
+import distributed_match_engine.QosPositionOuterClass.QosPositionRequest;
+import distributed_match_engine.QosPositionOuterClass.QosPositionKpiReply;
 
 public class QosPositionKpi implements Callable {
     public static final String TAG = "QueryQosKpi";
     private MatchingEngine mMatchingEngine;
-    private AppClient.QosPositionRequest mQosPositionKpiRequest;
+    private QosPositionOuterClass.QosPositionRequest mQosPositionKpiRequest;
     private String mHost;
     private int mPort;
     private long mTimeoutInMilliseconds;
@@ -101,7 +101,7 @@ public class QosPositionKpi implements Callable {
             Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
-            MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+            QosPositionKpiGrpc.QosPositionKpiBlockingStub stub = QosPositionKpiGrpc.newBlockingStub(channel);
 
             response = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .getQosPositionKpi(mQosPositionKpiRequest);

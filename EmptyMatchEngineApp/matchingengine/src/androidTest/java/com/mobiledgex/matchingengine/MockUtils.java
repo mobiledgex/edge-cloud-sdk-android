@@ -28,7 +28,7 @@ import java.util.concurrent.ExecutionException;
 
 import distributed_match_engine.AppClient;
 import distributed_match_engine.LocOuterClass;
-import distributed_match_engine.AppClient.QosPosition;
+import distributed_match_engine.QosPositionOuterClass.QosPosition;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -69,7 +69,7 @@ public class MockUtils {
                     .setLatitude(latitude)
                 .build();
 
-            QosPosition np = AppClient.QosPosition.newBuilder()
+            QosPosition np = QosPosition.newBuilder()
                     .setPositionid(id++)
                     .setGpsLocation(loc)
                     .build();

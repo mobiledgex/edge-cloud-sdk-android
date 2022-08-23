@@ -24,9 +24,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import distributed_match_engine.AppClient.QosPrioritySessionDeleteRequest;
-import distributed_match_engine.AppClient.QosPrioritySessionDeleteReply;
+import distributed_match_engine.Qos.QosPrioritySessionDeleteRequest;
+import distributed_match_engine.Qos.QosPrioritySessionDeleteReply;
 import distributed_match_engine.MatchEngineApiGrpc;
+import distributed_match_engine.QualityOfServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 
@@ -83,7 +84,7 @@ public class QosPrioritySessionDelete implements Callable {
             Network network = nm.getCellularNetworkOrWifiBlocking(false, mMatchingEngine.getMccMnc(mMatchingEngine.mContext));
 
             channel = mMatchingEngine.channelPicker(mHost, mPort, network);
-            MatchEngineApiGrpc.MatchEngineApiBlockingStub stub = MatchEngineApiGrpc.newBlockingStub(channel);
+            QualityOfServiceGrpc.QualityOfServiceBlockingStub stub = QualityOfServiceGrpc.newBlockingStub(channel);
 
             reply = stub.withDeadlineAfter(mTimeoutInMilliseconds, TimeUnit.MILLISECONDS)
                     .qosPrioritySessionDelete(mRequest);
